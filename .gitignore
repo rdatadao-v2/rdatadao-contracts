@@ -9,7 +9,7 @@ out/
 /broadcast/
 
 # Docs
-docs/
+# docs/  # Documentation should be tracked!
 
 # Dotenv file
 .env
