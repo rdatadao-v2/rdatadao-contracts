@@ -1,0 +1,52 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc = "0.8.13"
+optimizer = true
+optimizer_runs = 200
+
+# Local testing profiles
+[profile.local-base]
+chain_id = 8453
+eth_rpc_url = "http://localhost:8545"
+# Use the same mnemonic as anvil-multichain.sh for consistency
+mnemonic = "test test test test test test test test test test test junk"
+
+[profile.local-vana]
+chain_id = 1480
+eth_rpc_url = "http://localhost:8546"
+# Use the same mnemonic as anvil-multichain.sh for consistency
+mnemonic = "test test test test test test test test test test test junk"
+
+# Base Configuration
+[profile.base]
+chain_id = 8453
+# Base Mainnet RPC endpoint - replace with your own
+eth_rpc_url = "${BASE_RPC_URL}"
+
+# Base Sepolia Testnet Configuration
+[profile.base-sepolia]
+chain_id = 84532
+# Base Sepolia RPC endpoint - replace with your own
+eth_rpc_url = "${BASE_SEPOLIA_RPC_URL}"
+
+# Vana Mainnet Configuration
+[profile.vana]
+chain_id = 1480
+# Vana RPC endpoint - replace with your own
+eth_rpc_url = "${VANA_RPC_URL}"
+
+# Vana Moksha Testnet Configuration
+[profile.vana-moksha]
+chain_id = 14800
+# Vana Moksha testnet RPC endpoint - replace with your own
+eth_rpc_url = "${VANA_MOKSHA_RPC_URL}"
+
+# Etherscan API keys for verification
+[etherscan]
+base = { key = "${BASESCAN_API_KEY}", url = "https://api.basescan.org/api" }
+base-sepolia = { key = "${BASESCAN_API_KEY}", url = "https://api-sepolia.basescan.org/api" }
+# Add Vana block explorer configuration when available
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
