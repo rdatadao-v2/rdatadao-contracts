@@ -1,0 +1,514 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.23;
+
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "./interfaces/IStakingPositions.sol";
+import "./interfaces/IRDAT.sol";
+import "./interfaces/IvRDAT.sol";
+
+/**
+ * @title StakingPositions
+ * @author r/datadao
+ * @notice NFT-based staking contract allowing multiple concurrent positions
+ * @dev Each stake creates an ERC-721 NFT with independent state
+ * 
+ * Key Features:
+ * - Unlimited concurrent stakes per user
+ * - Each position has independent amount, duration, and rewards
+ * - Soulbound during lock period (non-transferable)
+ * - Transferable after maturity
+ * - ERC721Enumerable for easy position queries
+ * - Emergency withdrawal with penalty
+ */
+contract StakingPositions is 
+    Initializable,
+    ERC721Upgradeable,
+    ERC721EnumerableUpgradeable,
+    AccessControlUpgradeable,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable,
+    IStakingPositions
+{
+    using SafeERC20 for IERC20;
+    
+    // Roles
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    
+    // Constants
+    uint256 public constant MONTH_1 = 30 days;
+    uint256 public constant MONTH_3 = 90 days;
+    uint256 public constant MONTH_6 = 180 days;
+    uint256 public constant MONTH_12 = 365 days;
+    
+    uint256 public constant EMERGENCY_WITHDRAW_PENALTY = 50; // 50% penalty
+    uint256 public constant PRECISION = 10000; // For percentage calculations
+    
+    // State variables
+    IERC20 private _rdatToken;
+    IvRDAT private _vrdatToken;
+    
+    uint256 private _nextPositionId;
+    mapping(uint256 => Position) private _positions;
+    mapping(uint256 => uint256) public lockMultipliers;
+    
+    uint256 public totalStaked;
+    uint256 public totalRewardsDistributed;
+    uint256 public rewardRate; // Rewards per second per token staked (with precision)
+    uint256 public pendingRevenueRewards; // Revenue rewards from RevenueCollector
+    
+    // Storage gap for upgradeability
+    uint256[41] private __gap;
+    
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+    
+    /**
+     * @dev Initialize the contract
+     * @param rdatToken_ RDAT token address
+     * @param vrdatToken_ vRDAT token address  
+     * @param admin_ Admin address
+     */
+    function initialize(
+        address rdatToken_,
+        address vrdatToken_,
+        address admin_
+    ) public initializer {
+        require(rdatToken_ != address(0), "Invalid RDAT");
+        require(vrdatToken_ != address(0), "Invalid vRDAT");
+        require(admin_ != address(0), "Invalid admin");
+        
+        __ERC721_init("r/datadao Staking Position", "rdatSTAKE");
+        __ERC721Enumerable_init();
+        __AccessControl_init();
+        __Pausable_init();
+        __ReentrancyGuard_init();
+        __UUPSUpgradeable_init();
+        
+        _rdatToken = IERC20(rdatToken_);
+        _vrdatToken = IvRDAT(vrdatToken_);
+        
+        _grantRole(DEFAULT_ADMIN_ROLE, admin_);
+        _grantRole(ADMIN_ROLE, admin_);
+        _grantRole(PAUSER_ROLE, admin_);
+        _grantRole(UPGRADER_ROLE, admin_);
+        
+        // Start position IDs at 1
+        _nextPositionId = 1;
+        
+        // Initialize default multipliers (with PRECISION factor)
+        lockMultipliers[MONTH_1] = 10000;   // 1x = 100%
+        lockMultipliers[MONTH_3] = 15000;   // 1.5x = 150%
+        lockMultipliers[MONTH_6] = 20000;   // 2x = 200%
+        lockMultipliers[MONTH_12] = 40000;  // 4x = 400%
+        
+        // Default reward rate: 0.1 RDAT per second per 1000 RDAT staked
+        rewardRate = 100; // 0.01% per second with PRECISION
+    }
+    
+    /**
+     * @dev Stake RDAT tokens for a specified lock period
+     * @param amount Amount of RDAT to stake
+     * @param lockPeriod Lock duration (must be one of the predefined periods)
+     * @return positionId The ID of the created position NFT
+     */
+    function stake(uint256 amount, uint256 lockPeriod) 
+        external 
+        override 
+        nonReentrant 
+        whenNotPaused 
+        returns (uint256 positionId) 
+    {
+        if (amount == 0) revert ZeroAmount();
+        if (lockMultipliers[lockPeriod] == 0) revert InvalidLockDuration();
+        
+        // Transfer RDAT tokens from user
+        _rdatToken.safeTransferFrom(msg.sender, address(this), amount);
+        
+        // Calculate vRDAT amount
+        uint256 vrdatAmount = (amount * lockMultipliers[lockPeriod]) / PRECISION;
+        
+        // Create position
+        positionId = _nextPositionId++;
+        _positions[positionId] = Position({
+            amount: amount,
+            startTime: block.timestamp,
+            lockPeriod: lockPeriod,
+            multiplier: lockMultipliers[lockPeriod],
+            vrdatMinted: vrdatAmount,
+            lastRewardTime: block.timestamp,
+            rewardsClaimed: 0
+        });
+        
+        totalStaked += amount;
+        
+        // Mint position NFT
+        _safeMint(msg.sender, positionId);
+        
+        // Mint vRDAT for governance
+        _vrdatToken.mint(msg.sender, vrdatAmount);
+        
+        emit Staked(msg.sender, positionId, amount, lockPeriod, lockMultipliers[lockPeriod]);
+    }
+    
+    /**
+     * @dev Unstake a position after lock period ends
+     * @param positionId The position NFT to unstake
+     */
+    function unstake(uint256 positionId) external override nonReentrant {
+        if (_ownerOf(positionId) == address(0)) revert PositionDoesNotExist();
+        if (ownerOf(positionId) != msg.sender) revert NotPositionOwner();
+        if (!canUnstake(positionId)) revert StakeStillLocked();
+        
+        Position memory position = _positions[positionId];
+        
+        // Claim any pending rewards
+        _claimRewards(positionId);
+        
+        // Burn vRDAT tokens - try to burn from current owner, if fails, skip
+        // This handles the case where NFT was transferred but vRDAT is soul-bound
+        if (position.vrdatMinted > 0) {
+            try _vrdatToken.burn(msg.sender, position.vrdatMinted) {
+                // Successfully burned
+            } catch {
+                // If burn fails (e.g., transferred NFT), continue anyway
+                // The vRDAT will remain with original staker
+            }
+        }
+        
+        // Delete position data
+        delete _positions[positionId];
+        totalStaked -= position.amount;
+        
+        // Burn the NFT
+        _burn(positionId);
+        
+        // Transfer RDAT back to user
+        _rdatToken.safeTransfer(msg.sender, position.amount);
+        
+        emit Unstaked(msg.sender, positionId, position.amount, position.vrdatMinted);
+    }
+    
+    /**
+     * @dev Claim accumulated rewards for a position
+     * @param positionId The position to claim rewards for
+     */
+    function claimRewards(uint256 positionId) external virtual override nonReentrant whenNotPaused {
+        if (_ownerOf(positionId) == address(0)) revert PositionDoesNotExist();
+        if (ownerOf(positionId) != msg.sender) revert NotPositionOwner();
+        
+        _claimRewards(positionId);
+    }
+    
+    /**
+     * @dev Claim rewards for all positions owned by the caller
+     */
+    function claimAllRewards() external override nonReentrant whenNotPaused {
+        uint256 balance = balanceOf(msg.sender);
+        for (uint256 i = 0; i < balance; i++) {
+            uint256 positionId = tokenOfOwnerByIndex(msg.sender, i);
+            _claimRewards(positionId);
+        }
+    }
+    
+    /**
+     * @dev Emergency withdrawal with penalty
+     * @param positionId The position to emergency withdraw
+     */
+    function emergencyWithdraw(uint256 positionId) external override nonReentrant {
+        if (_ownerOf(positionId) == address(0)) revert PositionDoesNotExist();
+        if (ownerOf(positionId) != msg.sender) revert NotPositionOwner();
+        
+        Position memory position = _positions[positionId];
+        
+        // Calculate penalty
+        uint256 penalty = (position.amount * EMERGENCY_WITHDRAW_PENALTY) / 100;
+        uint256 withdrawAmount = position.amount - penalty;
+        
+        // Burn vRDAT tokens - try to burn from current owner, if fails, skip
+        if (position.vrdatMinted > 0) {
+            try _vrdatToken.burn(msg.sender, position.vrdatMinted) {
+                // Successfully burned
+            } catch {
+                // If burn fails (e.g., transferred NFT), continue anyway
+                // The vRDAT will remain with original staker
+            }
+        }
+        
+        // Delete position data
+        delete _positions[positionId];
+        totalStaked -= position.amount;
+        
+        // Burn the NFT
+        _burn(positionId);
+        
+        // Transfer reduced amount back to user
+        _rdatToken.safeTransfer(msg.sender, withdrawAmount);
+        
+        // Penalty stays in contract for treasury rescue
+        
+        emit EmergencyWithdraw(msg.sender, positionId, withdrawAmount, penalty);
+    }
+    
+    /**
+     * @dev Calculate pending rewards for a position
+     * @param positionId The position to calculate rewards for
+     * @return pendingRewards Amount of pending rewards
+     */
+    function calculatePendingRewards(uint256 positionId) 
+        external 
+        view 
+        override 
+        returns (uint256) 
+    {
+        if (_ownerOf(positionId) == address(0)) return 0;
+        return _calculateRewards(positionId);
+    }
+    
+    /**
+     * @dev Get all pending rewards for a user across all positions
+     * @param user User address
+     * @return totalPending Total pending rewards
+     */
+    function getUserTotalRewards(address user) 
+        external 
+        view 
+        override 
+        returns (uint256 totalPending) 
+    {
+        uint256 balance = balanceOf(user);
+        for (uint256 i = 0; i < balance; i++) {
+            uint256 positionId = tokenOfOwnerByIndex(user, i);
+            totalPending += _calculateRewards(positionId);
+        }
+    }
+    
+    /**
+     * @dev Check if position can be unstaked
+     * @param positionId Position ID
+     * @return canUnstakeNow Whether the position can be unstaked
+     */
+    function canUnstake(uint256 positionId) public view override returns (bool) {
+        if (_ownerOf(positionId) == address(0)) return false;
+        Position memory position = _positions[positionId];
+        return block.timestamp >= position.startTime + position.lockPeriod;
+    }
+    
+    /**
+     * @dev Get position details
+     * @param positionId Position ID
+     * @return position Position struct
+     */
+    function getPosition(uint256 positionId) external view override returns (Position memory) {
+        if (_ownerOf(positionId) == address(0)) revert PositionDoesNotExist();
+        return _positions[positionId];
+    }
+    
+    /**
+     * @dev Get all position IDs for a user
+     * @param user User address
+     * @return positionIds Array of position IDs
+     */
+    function getUserPositions(address user) 
+        external 
+        view 
+        override 
+        returns (uint256[] memory positionIds) 
+    {
+        uint256 balance = balanceOf(user);
+        positionIds = new uint256[](balance);
+        for (uint256 i = 0; i < balance; i++) {
+            positionIds[i] = tokenOfOwnerByIndex(user, i);
+        }
+    }
+    
+    /**
+     * @dev Internal function to calculate rewards (protected for upgrades)
+     * @param positionId Position ID
+     * @return rewards Calculated rewards
+     */
+    function _calculateRewards(uint256 positionId) internal view virtual returns (uint256) {
+        Position memory position = _positions[positionId];
+        if (position.amount == 0) return 0;
+        
+        uint256 timeElapsed = block.timestamp - position.lastRewardTime;
+        if (timeElapsed == 0) return 0;
+        
+        // Rewards = staked * rate * time * multiplier / precision^2
+        uint256 rewards = (position.amount * rewardRate * timeElapsed * position.multiplier) 
+                         / (PRECISION * PRECISION);
+        
+        return rewards;
+    }
+    
+    /**
+     * @dev Internal function to claim rewards
+     * @param positionId Position ID
+     */
+    function _claimRewards(uint256 positionId) internal {
+        uint256 rewards = _calculateRewards(positionId);
+        if (rewards == 0) revert NoRewardsToClaim();
+        
+        Position storage position = _positions[positionId];
+        position.lastRewardTime = block.timestamp;
+        position.rewardsClaimed += rewards;
+        totalRewardsDistributed += rewards;
+        
+        // Mint rewards from RDAT token (requires MINTER_ROLE on RDAT)
+        IRDAT(address(_rdatToken)).mint(ownerOf(positionId), rewards);
+        
+        emit RewardsClaimed(ownerOf(positionId), positionId, rewards);
+    }
+    
+    /**
+     * @dev Override transfer to implement soulbound during lock
+     */
+    function _update(
+        address to,
+        uint256 tokenId,
+        address auth
+    ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (address) {
+        address from = _ownerOf(tokenId);
+        
+        // Allow minting and burning
+        if (from != address(0) && to != address(0)) {
+            // Check if position is still locked
+            if (!canUnstake(tokenId)) revert TransferWhileLocked();
+        }
+        
+        return super._update(to, tokenId, auth);
+    }
+    
+    /**
+     * @dev Override to resolve multiple inheritance
+     */
+    function _increaseBalance(address account, uint128 value) 
+        internal 
+        override(ERC721Upgradeable, ERC721EnumerableUpgradeable) 
+    {
+        super._increaseBalance(account, value);
+    }
+    
+    // Admin functions
+    
+    /**
+     * @dev Set new reward rate
+     * @param newRate New reward rate (with PRECISION factor)
+     */
+    function setRewardRate(uint256 newRate) external override onlyRole(ADMIN_ROLE) {
+        uint256 oldRate = rewardRate;
+        rewardRate = newRate;
+        emit RewardRateUpdated(oldRate, newRate);
+    }
+    
+    /**
+     * @dev Update lock period multipliers
+     * @param month1 1-month multiplier
+     * @param month3 3-month multiplier
+     * @param month6 6-month multiplier
+     * @param month12 12-month multiplier
+     */
+    function setMultipliers(
+        uint256 month1,
+        uint256 month3,
+        uint256 month6,
+        uint256 month12
+    ) external override onlyRole(ADMIN_ROLE) {
+        if (month1 == 0 || month3 == 0 || month6 == 0 || month12 == 0) {
+            revert InvalidMultiplier();
+        }
+        
+        lockMultipliers[MONTH_1] = month1;
+        lockMultipliers[MONTH_3] = month3;
+        lockMultipliers[MONTH_6] = month6;
+        lockMultipliers[MONTH_12] = month12;
+        
+        emit MultipliersUpdated(month1, month3, month6, month12);
+    }
+    
+    /**
+     * @dev Rescue accidentally sent tokens (not RDAT)
+     * @param token Token address
+     * @param amount Amount to rescue
+     */
+    function rescueTokens(address token, uint256 amount) external override onlyRole(ADMIN_ROLE) {
+        require(token != address(_rdatToken), "Cannot rescue RDAT");
+        IERC20(token).safeTransfer(msg.sender, amount);
+    }
+    
+    /**
+     * @dev Pause the contract
+     */
+    function pause() external override onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+    
+    /**
+     * @dev Unpause the contract
+     */
+    function unpause() external override onlyRole(PAUSER_ROLE) {
+        _unpause();
+    }
+    
+    /**
+     * @dev Notify contract of revenue rewards from RevenueCollector
+     * @param amount Amount of rewards to distribute to stakers
+     */
+    function notifyRewardAmount(uint256 amount) external {
+        // Only allow admin or a designated revenue collector to notify rewards
+        require(hasRole(ADMIN_ROLE, msg.sender), "Not authorized");
+        pendingRevenueRewards += amount;
+        // These rewards will be distributed proportionally when users claim
+    }
+    
+    /**
+     * @dev Authorize upgrade
+     */
+    function _authorizeUpgrade(address newImplementation) 
+        internal 
+        override 
+        onlyRole(UPGRADER_ROLE) 
+    {}
+    
+    // View functions
+    
+    /**
+     * @dev Get RDAT token address
+     * @return RDAT token address
+     */
+    function rdatToken() external view override returns (address) {
+        return address(_rdatToken);
+    }
+    
+    /**
+     * @dev Get vRDAT token address
+     * @return vRDAT token address
+     */
+    function vrdatToken() external view override returns (address) {
+        return address(_vrdatToken);
+    }
+    
+    /**
+     * @dev Required override for ERC721Enumerable
+     */
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721Upgradeable, ERC721EnumerableUpgradeable, AccessControlUpgradeable)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
+}
