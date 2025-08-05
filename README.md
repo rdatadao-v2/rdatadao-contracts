@@ -1,20 +1,20 @@
-# 🚀 r/datadao V2 Beta Smart Contracts
+# 🚀 r/datadao Smart Contracts
 
-**Version**: 2.0 Beta  
+**Version**: 2.0  
 **Sprint**: August 5-18, 2025  
 **Blockchain**: Vana (Primary), Base (Migration Only)
 
 ## 📋 Overview
 
-RDAT V2 Beta represents a major upgrade from V1, expanding token supply from 30M to 100M and migrating from Base to Vana blockchain. This repository contains the smart contracts for the r/datadao ecosystem.
+RDAT represents a major upgrade from V1, expanding token supply from 30M to 100M and migrating from Base to Vana blockchain. This repository contains the smart contracts for the r/datadao ecosystem.
 
 ## 🏗️ Architecture
 
 ### Core Contracts
-- **RDAT_V2**: Main ERC-20 token with VRC-20 compliance (100M supply)
-- **vRDAT_V2**: Soul-bound governance token earned through staking
-- **StakingV2**: Simplified staking system with time-lock multipliers
-- **MigrationBridge_V2**: Secure V1→V2 cross-chain migration
+- **RDAT**: Main ERC-20 token with VRC-20 compliance (100M supply)
+- **vRDAT**: Soul-bound governance token earned through staking
+- **Staking**: Simplified staking system with time-lock multipliers
+- **MigrationBridge**: Secure V1→V2 cross-chain migration
 - **EmergencyPause**: Shared emergency response system
 
 ### Key Addresses
@@ -64,7 +64,7 @@ forge test --match-test testStaking -vvv
 ./script/anvil-multichain.sh start
 
 # Deploy to local chains
-forge script script/DeployV2Beta.s.sol --rpc-url http://localhost:8546 --broadcast
+forge script script/Deploy.s.sol --rpc-url http://localhost:8546 --broadcast
 
 # Stop local chains
 ./script/anvil-multichain.sh stop
@@ -74,7 +74,7 @@ forge script script/DeployV2Beta.s.sol --rpc-url http://localhost:8546 --broadca
 
 ### Testnet Deployment (Vana Moksha)
 ```bash
-forge script script/DeployV2Beta.s.sol \
+forge script script/Deploy.s.sol \
   --rpc-url $VANA_MOKSHA_RPC_URL \
   --private-key $DEPLOYER_PRIVATE_KEY \
   --broadcast \
@@ -83,7 +83,7 @@ forge script script/DeployV2Beta.s.sol \
 
 ### Mainnet Deployment (Vana)
 ```bash
-forge script script/DeployV2Beta.s.sol \
+forge script script/Deploy.s.sol \
   --rpc-url $VANA_RPC_URL \
   --private-key $DEPLOYER_PRIVATE_KEY \
   --broadcast \

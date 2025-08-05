@@ -3,21 +3,21 @@ pragma solidity 0.8.23;
 
 import "forge-std/Script.sol";
 import "forge-std/console2.sol";
-import "../src/RDAT_V2.sol";
-import "../src/vRDAT_V2.sol";
-import "../src/StakingV2.sol";
-import "../src/MigrationBridge_V2.sol";
+import "../src/RDAT.sol";
+import "../src/vRDAT.sol";
+import "../src/Staking.sol";
+import "../src/MigrationBridge.sol";
 import "./PreDeploymentCheck.s.sol";
 
 /**
- * @title DeployV2Beta
- * @dev Deployment script for RDAT V2 Beta contracts
+ * @title Deploy
+ * @dev Deployment script for RDAT contracts
  * 
  * Usage:
- * - Testnet: forge script script/DeployV2Beta.s.sol --rpc-url $VANA_MOKSHA_RPC_URL --broadcast
- * - Mainnet: forge script script/DeployV2Beta.s.sol --rpc-url $VANA_RPC_URL --broadcast
+ * - Testnet: forge script script/Deploy.s.sol --rpc-url $VANA_MOKSHA_RPC_URL --broadcast
+ * - Mainnet: forge script script/Deploy.s.sol --rpc-url $VANA_RPC_URL --broadcast
  */
-contract DeployV2Beta is Script {
+contract Deploy is Script {
     // Deployment addresses
     address public treasury;
     address public multisig;
@@ -26,10 +26,10 @@ contract DeployV2Beta is Script {
     bool public constant RUN_CHECKS = true;
     
     // Deployed contracts
-    RDAT_V2 public rdatV2;
-    vRDAT_V2 public vrdatV2;
-    StakingV2 public stakingV2;
-    MigrationBridge_V2 public bridgeV2;
+    RDAT public rdat;
+    vRDAT public vrdat;
+    Staking public staking;
+    MigrationBridge public bridge;
     
     function run() external {
         // Load deployment config based on chain
@@ -65,56 +65,56 @@ contract DeployV2Beta is Script {
         // Start deployment
         vm.startBroadcast();
         
-        // 1. Deploy RDAT_V2
-        console2.log("Deploying RDAT_V2...");
-        rdatV2 = new RDAT_V2(treasury);
-        console2.log("RDAT_V2 deployed at:", address(rdatV2));
+        // 1. Deploy RDAT
+        console2.log("Deploying RDAT...");
+        rdat = new RDAT(treasury);
+        console2.log("RDAT deployed at:", address(rdat));
         
-        // 2. Deploy vRDAT_V2
-        console2.log("Deploying vRDAT_V2...");
-        vrdatV2 = new vRDAT_V2();
-        console2.log("vRDAT_V2 deployed at:", address(vrdatV2));
+        // 2. Deploy vRDAT
+        console2.log("Deploying vRDAT...");
+        vrdat = new vRDAT();
+        console2.log("vRDAT deployed at:", address(vrdat));
         
-        // 3. Deploy StakingV2
-        console2.log("Deploying StakingV2...");
-        stakingV2 = new StakingV2(address(rdatV2), address(vrdatV2));
-        console2.log("StakingV2 deployed at:", address(stakingV2));
+        // 3. Deploy Staking
+        console2.log("Deploying Staking...");
+        staking = new Staking(address(rdat), address(vrdat));
+        console2.log("Staking deployed at:", address(staking));
         
-        // 4. Deploy MigrationBridge_V2
-        console2.log("Deploying MigrationBridge_V2...");
-        bridgeV2 = new MigrationBridge_V2(address(rdatV2));
-        console2.log("MigrationBridge_V2 deployed at:", address(bridgeV2));
+        // 4. Deploy MigrationBridge
+        console2.log("Deploying MigrationBridge...");
+        bridge = new MigrationBridge(address(rdat));
+        console2.log("MigrationBridge deployed at:", address(bridge));
         
         // 5. Configure roles
         console2.log("Configuring roles...");
         
         // Grant minter roles
-        rdatV2.grantRole(rdatV2.MINTER_ROLE(), address(bridgeV2));
-        vrdatV2.grantRole(vrdatV2.MINTER_ROLE(), address(stakingV2));
+        rdat.grantRole(rdat.MINTER_ROLE(), address(bridge));
+        vrdat.grantRole(vrdat.MINTER_ROLE(), address(staking));
         
         // Setup multi-sig as admin
-        rdatV2.grantRole(rdatV2.DEFAULT_ADMIN_ROLE(), multisig);
-        vrdatV2.grantRole(vrdatV2.DEFAULT_ADMIN_ROLE(), multisig);
-        stakingV2.grantRole(stakingV2.DEFAULT_ADMIN_ROLE(), multisig);
-        bridgeV2.grantRole(bridgeV2.DEFAULT_ADMIN_ROLE(), multisig);
+        rdat.grantRole(rdat.DEFAULT_ADMIN_ROLE(), multisig);
+        vrdat.grantRole(vrdat.DEFAULT_ADMIN_ROLE(), multisig);
+        staking.grantRole(staking.DEFAULT_ADMIN_ROLE(), multisig);
+        bridge.grantRole(bridge.DEFAULT_ADMIN_ROLE(), multisig);
         
         // Renounce deployer admin (keeping one for initial setup)
         if (msg.sender != multisig) {
             console2.log("Renouncing deployer admin roles...");
-            rdatV2.renounceRole(rdatV2.DEFAULT_ADMIN_ROLE(), msg.sender);
-            vrdatV2.renounceRole(vrdatV2.DEFAULT_ADMIN_ROLE(), msg.sender);
-            stakingV2.renounceRole(stakingV2.DEFAULT_ADMIN_ROLE(), msg.sender);
-            bridgeV2.renounceRole(bridgeV2.DEFAULT_ADMIN_ROLE(), msg.sender);
+            rdat.renounceRole(rdat.DEFAULT_ADMIN_ROLE(), msg.sender);
+            vrdat.renounceRole(vrdat.DEFAULT_ADMIN_ROLE(), msg.sender);
+            staking.renounceRole(staking.DEFAULT_ADMIN_ROLE(), msg.sender);
+            bridge.renounceRole(bridge.DEFAULT_ADMIN_ROLE(), msg.sender);
         }
         
         vm.stopBroadcast();
         
         // Log deployment summary
         console2.log("\n=== Deployment Summary ===");
-        console2.log("RDAT_V2:", address(rdatV2));
-        console2.log("vRDAT_V2:", address(vrdatV2));
-        console2.log("StakingV2:", address(stakingV2));
-        console2.log("MigrationBridge_V2:", address(bridgeV2));
+        console2.log("RDAT:", address(rdat));
+        console2.log("vRDAT:", address(vrdat));
+        console2.log("Staking:", address(staking));
+        console2.log("MigrationBridge:", address(bridge));
         console2.log("Treasury:", treasury);
         console2.log("Multisig:", multisig);
         console2.log("========================\n");

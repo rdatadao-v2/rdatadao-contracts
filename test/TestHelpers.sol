@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 
 /**
  * @title TestHelpers
- * @dev Common testing utilities and helpers for RDAT V2 Beta tests
+ * @dev Common testing utilities and helpers for RDAT tests
  */
 contract TestHelpers is Test {
     // Common test addresses

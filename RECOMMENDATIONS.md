@@ -289,7 +289,7 @@ contract SnapshotExecutor is Module {
    - Integration with marketplace transactions
    - Multi-sig controlled distribution triggers
 
-7. **ProofOfContribution_V2Beta.sol** (NEW - VANA REQUIRED)
+7. **ProofOfContribution.sol** (NEW - VANA REQUIRED)
    - Minimal stub for Vana DLP registration
    - Validator-based contributor registration
    - Integration hooks for future expansion
@@ -297,7 +297,7 @@ contract SnapshotExecutor is Module {
 
 2. **vRDAT V2** (Soul-bound voting token + Quadratic Voting Support)
    ```solidity
-   contract vRDAT_V2 {
+   contract vRDAT {
        mapping(address => uint256) public balances;
        mapping(address => uint256) public lastMintTime;
        uint256 public constant MINT_DELAY = 48 hours;
@@ -342,7 +342,7 @@ contract SnapshotExecutor is Module {
 
 3. **V2 Staking** (Enhanced from V1 + Revenue Integration)
    ```solidity
-   contract StakingV2 is EmergencyPausable, ReentrancyGuard {
+   contract Staking is EmergencyPausable, ReentrancyGuard {
        mapping(address => StakeInfo) public stakes;
        IERC20 public rdatToken;
        IvRDAT public vrdatToken;
@@ -452,7 +452,7 @@ contract SnapshotExecutor is Module {
 #### Smart Contract Additions
 1. **Staking V2** with NFT positions
    ```solidity
-   contract StakingV2 {
+   contract Staking {
        // Migrate from simple staking
        function migrateFromV1(address user) external {
            StakeInfo memory oldStake = v1Staking.stakes(user);
@@ -531,9 +531,9 @@ Our comprehensive specifications review identified **8 remaining critical vulner
    }
    ```
 
-2. **ProofOfContribution_V2Beta.sol** - Minimal Vana DLP compliance
+2. **ProofOfContribution.sol** - Minimal Vana DLP compliance
    ```solidity
-   contract ProofOfContribution_V2Beta {
+   contract ProofOfContribution {
        mapping(address => bool) public registeredContributors;
        
        function registerContributor(address user) external onlyRole(VALIDATOR_ROLE) {
@@ -562,20 +562,20 @@ Our comprehensive specifications review identified **8 remaining critical vulner
    ```
 
 4. **Enhanced Reentrancy Guards** - All value-transfer functions
-   - StakingV2.sol: `nonReentrant` on stake/unstake/claimRewards
-   - MigrationBridge_V2.sol: `nonReentrant` on executeMigration
+   - Staking.sol: `nonReentrant` on stake/unstake/claimRewards
+   - MigrationBridge.sol: `nonReentrant` on executeMigration
    - RevenueCollector.sol: `nonReentrant` on all distribution functions
 
 #### 🟡 Updated V2 Beta Contract Architecture
 
 **Core Contracts (7 Total - Updated from 5)**:
-1. `RDAT_V2.sol` - Enhanced ERC20 + revenue hooks + VRC compliance
-2. `vRDAT_V2.sol` - Soul-bound voting + quadratic voting math integration
-3. `StakingV2.sol` - Enhanced staking + reentrancy guards + revenue integration
-4. `MigrationBridge_V2.sol` - V1→V2 bridge + reentrancy protection
+1. `RDAT.sol` - Enhanced ERC20 + revenue hooks + VRC compliance
+2. `vRDAT.sol` - Soul-bound voting + quadratic voting math integration
+3. `Staking.sol` - Enhanced staking + reentrancy guards + revenue integration
+4. `MigrationBridge.sol` - V1→V2 bridge + reentrancy protection
 5. `EmergencyPause.sol` - Emergency response system
 6. **`RevenueCollector.sol`** - **NEW CRITICAL**: Basic fee collection and distribution
-7. **`ProofOfContribution_V2Beta.sol`** - **NEW REQUIRED**: Minimal Vana compliance
+7. **`ProofOfContribution.sol`** - **NEW REQUIRED**: Minimal Vana compliance
 
 **Support Libraries**:
 8. `QuadraticVotingMath.sol` - Voting cost calculations
@@ -612,8 +612,8 @@ graph TD
     A --> C[Supabase]
     A --> D[PostHog]
     
-    B --> E[RDAT_V2 Token]
-    B --> F[StakingV2]
+    B --> E[RDAT Token]
+    B --> F[Staking]
     B --> G[Gnosis Safe]
     B --> N[RevenueCollector]
     B --> O[ProofOfContribution]
@@ -795,9 +795,9 @@ graph TD
 **Goal**: Staking and migration contracts
 
 **Track A**:
-- [ ] Complete StakingV2 contract + reentrancy guards + revenue integration
+- [ ] Complete Staking contract + reentrancy guards + revenue integration
 - [ ] Start V1-to-V2 MigrationBridge + reentrancy protection
-- [ ] Create ProofOfContribution_V2Beta stub
+- [ ] Create ProofOfContribution stub
 - [ ] Integrate emergency pause across all contracts
 - **Checkpoint**: Staking tests pass + security tests pass + Vana compliance ready ✅
 
@@ -1493,7 +1493,7 @@ contract TEEJobManager {
 #### Phase 1 V2 Beta Adjustments:
 ```solidity
 // V2 Beta with VRC compliance stubs
-contract RDAT_V2 is ERC20, IVRC20Basic {
+contract RDAT is ERC20, IVRC20Basic {
     // Enhanced from V1 with VRC-20 compliance
     function isVRC20() external pure returns (bool) {
         return true;
@@ -1587,14 +1587,14 @@ dataSources:
 ### Contract Deployment Schedule
 
 **Phase 1 V2 Beta Contracts:**
-1. `RDAT_V2.sol` - Enhanced ERC20 with VRC stubs (100M supply)
-2. `vRDAT_V2.sol` - Soul-bound voting token
-3. `StakingV2.sol` - Enhanced staking (improved from V1)
-4. `MigrationBridge_V2.sol` - V1→V2 cross-chain bridge
+1. `RDAT.sol` - Enhanced ERC20 with VRC stubs (100M supply)
+2. `vRDAT.sol` - Soul-bound voting token
+3. `Staking.sol` - Enhanced staking (improved from V1)
+4. `MigrationBridge.sol` - V1→V2 cross-chain bridge
 5. `EmergencyPause.sol` - Emergency response system
 
 **Phase 2 Additions:**
-1. `StakingV2.sol` - NFT positions with migration
+1. `Staking.sol` - NFT positions with migration
 2. `KismetRegistry.sol` - On-chain reputation scores
 3. `GovernanceExecutor.sol` - Reality.eth integration
 4. `DataContributionRegistry.sol` - Basic marketplace
@@ -1852,7 +1852,7 @@ Our comprehensive specifications review identified **8 remaining critical vulner
    - Manual distribution triggers for V2 Beta
    - Multi-sig controlled for security
 
-2. **ProofOfContribution_V2Beta.sol** - Minimal Vana DLP compliance
+2. **ProofOfContribution.sol** - Minimal Vana DLP compliance
    - Validator-based contributor registration
    - Required for Vana ecosystem participation
    - Functional stub with expansion hooks

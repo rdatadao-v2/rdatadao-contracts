@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 
-interface IStakingV2 {
+interface IStaking {
     // Structs
     struct StakeInfo {
         uint256 amount;

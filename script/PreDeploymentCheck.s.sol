@@ -37,7 +37,7 @@ contract PreDeploymentCheck is Script {
     
     function run() external {
         console2.log("\n========================================");
-        console2.log("     RDAT V2 Beta Pre-Deployment Check   ");
+        console2.log("     RDAT Pre-Deployment Check   ");
         console2.log("========================================\n");
         
         // Get current chain
@@ -121,7 +121,7 @@ contract PreDeploymentCheck is Script {
         console2.log("Treasury/Multisig: %s", getMultisigForChain(chainId));
         console2.log("Estimated deployment cost: ~0.02-0.03 ETH");
         console2.log("\nNext step: Run deployment script");
-        console2.log("forge script script/DeployV2Beta.s.sol --rpc-url $RPC_URL --broadcast\n");
+        console2.log("forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast\n");
     }
     
     function checkDeployerKey() internal view returns (CheckResult memory) {
@@ -249,14 +249,14 @@ contract PreDeploymentCheck is Script {
     
     function checkContractSizes() internal pure returns (CheckResult memory) {
         // Rough estimates based on similar contracts
-        uint256 rdatV2Size = 15000; // ~15KB
-        uint256 vrdatV2Size = 8000;  // ~8KB
+        uint256 rdatSize = 15000; // ~15KB
+        uint256 vrdatSize = 8000;  // ~8KB
         uint256 stakingSize = 12000; // ~12KB
         uint256 bridgeSize = 14000;  // ~14KB
         uint256 maxSize = 24576;     // 24KB limit
         
-        bool allWithinLimit = rdatV2Size < maxSize && 
-                             vrdatV2Size < maxSize && 
+        bool allWithinLimit = rdatSize < maxSize && 
+                             vrdatSize < maxSize && 
                              stakingSize < maxSize && 
                              bridgeSize < maxSize;
         

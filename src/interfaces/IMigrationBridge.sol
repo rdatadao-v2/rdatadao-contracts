@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 
-interface IMigrationBridge_V2 {
+interface IMigrationBridge {
     // Events
     event MigrationInitiated(bytes32 indexed requestId, address indexed user, uint256 amount, bytes32 burnTxHash);
     event MigrationValidated(bytes32 indexed requestId, address indexed validator);

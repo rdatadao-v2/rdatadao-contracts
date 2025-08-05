@@ -1,4 +1,4 @@
-# 📜 RDAT V2 Beta Smart Contracts Specification
+# 📜 RDAT Smart Contracts Specification
 
 **Version**: 1.1 (Updated with Security Requirements)  
 **Sprint Duration**: August 5-18, 2025 (13 days)  
@@ -10,18 +10,18 @@
 
 ## 📋 Executive Summary
 
-This document provides the complete smart contract specifications for RDAT V2 Beta, focusing on the contracts to be developed during the 13-day sprint. All contracts are designed for security audit readiness with comprehensive testing requirements.
+This document provides the complete smart contract specifications for RDAT, focusing on the contracts to be developed during the 13-day sprint. All contracts are designed for security audit readiness with comprehensive testing requirements.
 
-## 🎯 V2 Beta Contract Scope
+## 🎯 Contract Scope
 
 ### Core Contracts (7 Total - Updated)
-1. **RDAT_V2.sol** - Main token contract (100M supply) with reentrancy protection
-2. **vRDAT_V2.sol** - Soul-bound governance token with quadratic voting math
-3. **StakingV2.sol** - Simplified staking with reentrancy guards
-4. **MigrationBridge_V2.sol** - V1→V2 cross-chain bridge with enhanced security
+1. **RDAT.sol** - Main token contract (100M supply) with reentrancy protection
+2. **vRDAT.sol** - Soul-bound governance token with quadratic voting math
+3. **Staking.sol** - Simplified staking with reentrancy guards
+4. **MigrationBridge.sol** - V1→V2 cross-chain bridge with enhanced security
 5. **EmergencyPause.sol** - Emergency response system
 6. **RevenueCollector.sol** (NEW) - Fee distribution mechanism (50/30/20 split)
-7. **ProofOfContribution_V2Beta.sol** (NEW) - Minimal Vana DLP compliance
+7. **ProofOfContribution.sol** (NEW) - Minimal Vana DLP compliance
 
 ### Support Contracts
 - **MockRDAT.sol** - V1 token mock for testing
@@ -30,7 +30,7 @@ This document provides the complete smart contract specifications for RDAT V2 Be
 
 ## 📦 Contract Specifications
 
-### 1. RDAT_V2.sol
+### 1. RDAT.sol
 
 **Purpose**: Main ERC-20 token with VRC-20 compliance stubs
 
@@ -47,7 +47,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IVRC20Basic.sol";
 import "./interfaces/IRevenueCollector.sol";
 
-contract RDAT_V2 is 
+contract RDAT is 
     ERC20,
     ERC20Burnable,
     ERC20Pausable,
@@ -145,7 +145,7 @@ contract RDAT_V2 is
 
 ---
 
-### 2. vRDAT_V2.sol
+### 2. vRDAT.sol
 
 **Purpose**: Non-transferable governance token earned through staking
 
@@ -156,7 +156,7 @@ pragma solidity 0.8.23;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interfaces/IvRDAT.sol";
 
-contract vRDAT_V2 is AccessControl, IvRDAT {
+contract vRDAT is AccessControl, IvRDAT {
     // Roles
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
@@ -258,7 +258,7 @@ contract vRDAT_V2 is AccessControl, IvRDAT {
 
 ---
 
-### 3. StakingV2.sol
+### 3. Staking.sol
 
 **Purpose**: Simple staking contract without NFT complexity
 
@@ -272,7 +272,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IvRDAT.sol";
 
-contract StakingV2 is AccessControl, ReentrancyGuard, Pausable {
+contract Staking is AccessControl, ReentrancyGuard, Pausable {
     // Roles
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant REWARDS_ROLE = keccak256("REWARDS_ROLE");
@@ -393,7 +393,7 @@ contract StakingV2 is AccessControl, ReentrancyGuard, Pausable {
 
 ---
 
-### 4. MigrationBridge_V2.sol
+### 4. MigrationBridge.sol
 
 **Purpose**: Secure V1→V2 token migration with 2-of-3 multi-sig
 
@@ -403,15 +403,15 @@ pragma solidity 0.8.23;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "./interfaces/IRDAT_V2.sol";
+import "./interfaces/IRDAT.sol";
 
-contract MigrationBridge_V2 is AccessControl, Pausable {
+contract MigrationBridge is AccessControl, Pausable {
     // Roles
     bytes32 public constant VALIDATOR_ROLE = keccak256("VALIDATOR_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     
     // Contracts
-    IRDAT_V2 public immutable rdatV2;
+    IRDAT public immutable rdatV2;
     
     // Migration tracking
     mapping(bytes32 => MigrationRequest) public migrationRequests;
@@ -446,7 +446,7 @@ contract MigrationBridge_V2 is AccessControl, Pausable {
     event MigrationExecuted(bytes32 indexed requestId, address indexed user, uint256 amount, uint256 bonus);
     
     constructor(address _rdatV2) {
-        rdatV2 = IRDAT_V2(_rdatV2);
+        rdatV2 = IRDAT(_rdatV2);
         migrationStartTime = block.timestamp;
         lastResetTime = block.timestamp;
         
@@ -564,7 +564,7 @@ contract MigrationBridge_V2 is AccessControl, Pausable {
 - Test bonus calculation at all time periods
 - Test daily limit enforcement
 - Test duplicate prevention
-- Integration tests with RDAT_V2
+- Integration tests with RDAT
 
 ---
 
@@ -650,8 +650,8 @@ pragma solidity 0.8.23;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./interfaces/IRDAT_V2.sol";
-import "./interfaces/IStakingV2.sol";
+import "./interfaces/IRDAT.sol";
+import "./interfaces/IStaking.sol";
 
 contract RevenueCollector is AccessControl, ReentrancyGuard {
     // Roles
@@ -664,8 +664,8 @@ contract RevenueCollector is AccessControl, ReentrancyGuard {
     uint256 public constant BASIS_POINTS = 10000;
     
     // Contracts
-    IRDAT_V2 public immutable rdatToken;
-    IStakingV2 public stakingContract;
+    IRDAT public immutable rdatToken;
+    IStaking public stakingContract;
     address public treasury;
     
     // Tracking
@@ -678,7 +678,7 @@ contract RevenueCollector is AccessControl, ReentrancyGuard {
     event TreasuryUpdated(address indexed newTreasury);
     
     constructor(address _rdat, address _treasury) {
-        rdatToken = IRDAT_V2(_rdat);
+        rdatToken = IRDAT(_rdat);
         treasury = _treasury;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -715,7 +715,7 @@ contract RevenueCollector is AccessControl, ReentrancyGuard {
     }
     
     function setStakingContract(address _staking) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        stakingContract = IStakingV2(_staking);
+        stakingContract = IStaking(_staking);
         emit StakingContractUpdated(_staking);
     }
     
@@ -742,9 +742,9 @@ contract RevenueCollector is AccessControl, ReentrancyGuard {
 
 ---
 
-### 7. ProofOfContribution_V2Beta.sol (NEW)
+### 7. ProofOfContribution.sol (NEW)
 
-**Purpose**: Minimal Vana DLP compliance for V2 Beta
+**Purpose**: Minimal Vana DLP compliance
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -753,7 +753,7 @@ pragma solidity 0.8.23;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interfaces/IProofOfContribution.sol";
 
-contract ProofOfContribution_V2Beta is AccessControl, IProofOfContribution {
+contract ProofOfContribution is AccessControl, IProofOfContribution {
     // Roles
     bytes32 public constant VALIDATOR_ROLE = keccak256("VALIDATOR_ROLE");
     bytes32 public constant REGISTRAR_ROLE = keccak256("REGISTRAR_ROLE");
@@ -819,7 +819,7 @@ contract ProofOfContribution_V2Beta is AccessControl, IProofOfContribution {
     
     // Future upgrade path
     function version() external pure returns (string memory) {
-        return "V2Beta";
+        return "1.0";
     }
 }
 ```
@@ -843,13 +843,13 @@ contract ProofOfContribution_V2Beta is AccessControl, IProofOfContribution {
 
 ### Unit Tests (Target: 100% Coverage)
 ```bash
-forge test --match-contract RDAT_V2Test -vvv
-forge test --match-contract vRDAT_V2Test -vvv
-forge test --match-contract StakingV2Test -vvv
-forge test --match-contract MigrationBridge_V2Test -vvv
+forge test --match-contract RDATTest -vvv
+forge test --match-contract vRDATTest -vvv
+forge test --match-contract StakingTest -vvv
+forge test --match-contract MigrationBridgeTest -vvv
 forge test --match-contract EmergencyPauseTest -vvv
 forge test --match-contract RevenueCollectorTest -vvv
-forge test --match-contract ProofOfContribution_V2BetaTest -vvv
+forge test --match-contract ProofOfContributionTest -vvv
 ```
 
 ### Integration Tests
@@ -877,18 +877,18 @@ forge coverage --report lcov
 ### Access Control Matrix
 | Contract | Role | Functions | Multi-sig Required |
 |----------|------|-----------|-------------------|
-| RDAT_V2 | DEFAULT_ADMIN | setPoCContract, setDataRefiner, setRevenueCollector | Yes (3/5) |
-| RDAT_V2 | PAUSER | pause, unpause | Yes (2/5) |
-| RDAT_V2 | MINTER | mint | Yes (Bridge only) |
-| vRDAT_V2 | MINTER | mint | No (Staking only) |
-| vRDAT_V2 | BURNER | burn, burnForVoting | No (Governance only) |
-| StakingV2 | PAUSER | pause, unpause | Yes (2/5) |
+| RDAT | DEFAULT_ADMIN | setPoCContract, setDataRefiner, setRevenueCollector | Yes (3/5) |
+| RDAT | PAUSER | pause, unpause | Yes (2/5) |
+| RDAT | MINTER | mint | Yes (Bridge only) |
+| vRDAT | MINTER | mint | No (Staking only) |
+| vRDAT | BURNER | burn, burnForVoting | No (Governance only) |
+| Staking | PAUSER | pause, unpause | Yes (2/5) |
 | MigrationBridge | VALIDATOR | submitMigration, validateMigration | No (2/3 required) |
 | RevenueCollector | DISTRIBUTOR | distributeRevenue | Yes (2/5) |
 | ProofOfContribution | VALIDATOR | validateContribution | No (Oracle) |
 | ProofOfContribution | REGISTRAR | registerContributor | Yes (2/5) |
 
-### Known Limitations (V2 Beta)
+### Known Limitations
 1. No upgradability (UUPS deferred to Phase 3)
 2. No on-chain governance (using Snapshot)
 3. No NFT staking positions (simple mapping)
@@ -930,10 +930,10 @@ forge coverage --report lcov
    - Base: `0x90013583c66D2bf16327cB5Bc4a647AcceCF4B9A`
 2. Deploy contracts in order:
    - EmergencyPause
-   - RDAT_V2
-   - vRDAT_V2
-   - StakingV2
-   - MigrationBridge_V2
+   - RDAT
+   - vRDAT
+   - Staking
+   - MigrationBridge
 3. Configure all roles and permissions
 4. Transfer ownership to Gnosis Safe
 
@@ -950,7 +950,7 @@ forge coverage --report lcov
 
 ---
 
-## 📋 Summary of V2 Beta Updates
+## 📋 Summary of Updates
 
 ### Security Enhancements Added:
 1. **Reentrancy Guards**: All contracts with value transfers

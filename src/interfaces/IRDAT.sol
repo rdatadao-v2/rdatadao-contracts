@@ -3,7 +3,7 @@ pragma solidity 0.8.23;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface IRDAT_V2 is IERC20 {
+interface IRDAT is IERC20 {
     // Events
     event VRCContractSet(string contractType, address indexed contractAddress);
     
