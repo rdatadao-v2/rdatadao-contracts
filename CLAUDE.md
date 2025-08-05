@@ -26,6 +26,11 @@ forge test -vvv  # Shows stack traces for failing tests
 forge test -vvvv # Shows execution traces for all tests
 ```
 
+**Test coverage:**
+```shell
+forge coverage
+```
+
 **Format code:**
 ```shell
 forge fmt
@@ -43,7 +48,12 @@ forge snapshot
 
 **Deploy contracts:**
 ```shell
-forge script script/Counter.s.sol:CounterScript --rpc-url <RPC_URL> --private-key <PRIVATE_KEY>
+forge script script/Deploy.s.sol --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> --broadcast --verify
+```
+
+**Check deployment readiness:**
+```shell
+forge script script/CheckDeploymentReadiness.s.sol --rpc-url $VANA_MOKSHA_RPC_URL --sender $DEPLOYER_ADDRESS
 ```
 
 **Generate ABI files for frontend:**
@@ -55,13 +65,14 @@ forge script script/Counter.s.sol:CounterScript --rpc-url <RPC_URL> --private-ke
 forge inspect MockRDAT abi > abi/MockRDAT.json
 ```
 
-**Frontend integration with wagmi:**
+**Check balances across chains:**
 ```shell
-# Set up example frontend structure
-./scripts/setup-frontend.sh
+./script/check-balances.sh
+```
 
-# In frontend project, generate TypeScript types
-npx wagmi generate
+**View deployment summary:**
+```shell
+./script/deployment-summary.sh
 ```
 
 **Local development chain (single):**
@@ -101,20 +112,37 @@ anvil
 
 ## Project Architecture
 
-This is a multi-chain Foundry smart contract project supporting deployments to both Base and Vana blockchains. The project follows an organized structure for chain-specific deployments:
+This is the r/datadao V2 smart contract repository, implementing a cross-chain migration from Base to Vana blockchain with expanded tokenomics (30M → 100M supply).
+
+### Core Contracts (V2 Beta)
+1. **RDAT** - Main ERC-20 token with VRC-20 compliance (100M supply)
+2. **vRDAT** - Soul-bound governance token earned through staking
+3. **Staking** - Time-lock staking system with multipliers
+4. **MigrationBridge** - Secure V1→V2 cross-chain migration
+5. **EmergencyPause** - Shared emergency response system
+6. **RevenueCollector** - Fee distribution mechanism (50/30/20 split)
+7. **ProofOfContribution** - Vana DLP compliance stub
 
 ### Directory Structure
-- `src/`: Contains Solidity smart contracts
-  - `src/base/`: Base-specific contracts (only deployable on Base)
-  - `src/vana/`: Vana-specific contracts (only deployable on Vana)
-  - `src/shared/`: Multi-chain contracts (deployable on both chains)
-- `test/`: Contains test files using forge-std testing framework
-- `script/`: Contains deployment scripts
-  - `script/base/`: Base-specific deployment scripts
-  - `script/vana/`: Vana-specific deployment scripts
-  - `script/shared/`: Shared deployment infrastructure and multi-chain scripts
-- `lib/`: Contains dependencies (currently forge-std testing library)
-- `out/`: Compilation artifacts (gitignored)
+- `src/`: Solidity smart contracts
+  - `interfaces/`: Contract interfaces (IRDAT, IStaking, etc.)
+  - `libraries/`: Shared libraries
+  - `mocks/`: Test mock contracts
+- `test/`: Test files using forge-std
+  - `unit/`: Unit tests for individual contracts
+  - `integration/`: Multi-contract interaction tests
+  - `fuzz/`: Fuzz testing
+- `script/`: Deployment and utility scripts
+  - `base/`: Base-specific deployment scripts
+  - `vana/`: Vana-specific deployment scripts
+  - `shared/`: Shared deployment infrastructure
+  - `staking/`: Staking-related scripts
+  - `mocks/`: Mock deployment scripts
+- `docs/`: Technical documentation
+  - `SPECIFICATIONS.md`: Complete system specs
+  - `TESTING_REQUIREMENTS.md`: Testing guidelines
+  - `DEPLOYMENT_GUIDE.md`: Deployment procedures
+- `lib/`: Dependencies (forge-std, openzeppelin)
 
 ### Chain Configuration
 The project uses Foundry profiles for different chains:
@@ -126,45 +154,60 @@ The project uses Foundry profiles for different chains:
 - `vana`: Vana mainnet (chain ID: 1480)
 - `vana-moksha`: Vana Moksha testnet (chain ID: 14800)
 
-### Multi-Chain Deployment
-
-**Environment Setup:**
+### Environment Setup
 ```shell
 cp .env.example .env
-# Edit .env with your private key and RPC URLs
+# Edit .env with:
+# - RPC URLs for each chain
+# - Deployer private key
+# - Multisig addresses
+# - Etherscan API keys
 ```
 
-**Deploy to specific chains using profiles:**
-```shell
-# Base deployments
-forge script script/base/DeployCounter.s.sol:DeployCounterBase --rpc-url $BASE_RPC_URL --broadcast
-forge script script/base/DeployBaseOnly.s.sol:DeployBaseOnly --rpc-url $BASE_SEPOLIA_RPC_URL --broadcast
+### Key Addresses
+- **Vana Multisig**: `0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319`
+- **Base Multisig**: `0x90013583c66D2bf16327cB5Bc4a647AcceCF4B9A`
+- **Deployer**: `0x58eCB94e6F5e6521228316b55c465ad2A2938FbB`
 
-# Vana deployments
-forge script script/vana/DeployCounter.s.sol:DeployCounterVana --rpc-url $VANA_RPC_URL --broadcast
-forge script script/vana/DeployVanaData.s.sol:DeployVanaData --rpc-url $VANA_TESTNET_RPC_URL --broadcast
+### Deployment Workflow
 
-# Multi-chain contracts (deploy to either chain)
-forge script script/shared/DeployMultiChainRegistry.s.sol:DeployMultiChainRegistry --rpc-url $BASE_RPC_URL --broadcast
-```
-
-**Using the deployment helper script:**
+**Using the deployment helper:**
 ```shell
 ./script/deploy.sh [chain] [contract]
 
 # Examples:
-./script/deploy.sh base-sepolia Counter
-./script/deploy.sh vana-moksha VanaData
-./script/deploy.sh base Registry
+./script/deploy.sh vana-moksha RDAT
+./script/deploy.sh base-sepolia MigrationBridge
 ```
 
-### Contract Types
-1. **Chain-specific contracts**: Include chain ID validation in constructor
-2. **Multi-chain contracts**: Detect chain ID and adjust behavior accordingly
-3. **Shared utilities**: BaseDeployScript provides common deployment infrastructure
+**Direct deployment scripts:**
+```shell
+# Deploy V2 system to Vana testnet
+forge script script/Deploy.s.sol --rpc-url $VANA_MOKSHA_RPC_URL --broadcast --verify
 
-The project uses:
-- Solidity ^0.8.13
-- forge-std for testing framework which provides Test base contract, console logging, and cheat codes (vm)
-- Foundry's built-in testing with support for fuzz testing and invariant testing
-- Environment-based configuration for multi-chain deployments
+# Deploy specific contracts
+forge script script/vana/DeployRDATWithVesting.s.sol --rpc-url $VANA_RPC_URL --broadcast
+forge script script/staking/DeployStaking.s.sol --rpc-url $VANA_MOKSHA_RPC_URL --broadcast
+```
+
+### Security Features
+- Multi-signature control (3/5 for critical, 2/5 for pause)
+- Emergency pause with 72-hour auto-expiry
+- Reentrancy guards on all state-changing functions
+- Flash loan protection with 48-hour delays
+- Daily migration limits
+- 2-of-3 validator consensus for bridge
+
+### Testing Requirements
+- Target: 100% test coverage
+- Unit tests for all functions
+- Integration tests for contract interactions
+- Fuzz tests for edge cases
+- Invariant tests for system properties
+- Gas optimization benchmarks
+
+### Contract Dependencies
+- OpenZeppelin Contracts v5.0.0
+- OpenZeppelin Contracts Upgradeable v5.0.0
+- Foundry forge-std
+- Solidity 0.8.23
