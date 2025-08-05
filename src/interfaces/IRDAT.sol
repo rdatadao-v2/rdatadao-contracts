@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IRDAT is IERC20 {
     // Events
-    event VRCContractSet(string contractType, address indexed contractAddress);
     event RevenueCollectorSet(address indexed collector);
     
     // Functions

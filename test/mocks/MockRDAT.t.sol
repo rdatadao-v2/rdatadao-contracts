@@ -118,17 +118,17 @@ contract MockRDATTest is Test {
     function test_OnlyOwnerFunctions() public {
         // Non-owner cannot mint
         vm.prank(user1);
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("OwnableUnauthorizedAccount(address)")), user1));
         mockRDAT.mint(user2, 1000 * 10**18);
         
         // Non-owner cannot change admin
         vm.prank(user1);
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("OwnableUnauthorizedAccount(address)")), user1));
         mockRDAT.changeAdmin(admin);
         
         // Non-owner cannot block minting
         vm.prank(user1);
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("OwnableUnauthorizedAccount(address)")), user1));
         mockRDAT.blockMint();
     }
     
@@ -149,8 +149,14 @@ contract MockRDATTest is Test {
     }
     
     function test_Permit() public {
+        uint256 privateKey = 0xBEEF;
+        address permitOwner = vm.addr(privateKey);
         uint256 amount = 1000 * 10**18;
         uint256 deadline = block.timestamp + 1 hours;
+        
+        // Give permitOwner some tokens
+        vm.prank(owner);
+        mockRDAT.transfer(permitOwner, amount);
         
         // Create permit signature
         bytes32 permitHash = keccak256(
@@ -160,22 +166,22 @@ contract MockRDATTest is Test {
                 keccak256(
                     abi.encode(
                         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
-                        owner,
+                        permitOwner,
                         user1,
                         amount,
-                        mockRDAT.nonces(owner),
+                        mockRDAT.nonces(permitOwner),
                         deadline
                     )
                 )
             )
         );
         
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, permitHash); // Using private key 1 for owner
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, permitHash);
         
         // Execute permit
-        mockRDAT.permit(owner, user1, amount, deadline, v, r, s);
+        mockRDAT.permit(permitOwner, user1, amount, deadline, v, r, s);
         
-        assertEq(mockRDAT.allowance(owner, user1), amount);
+        assertEq(mockRDAT.allowance(permitOwner, user1), amount);
     }
     
     function test_Votes() public {

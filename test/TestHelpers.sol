@@ -37,16 +37,14 @@ contract TestHelpers is Test {
         vm.roll(block.number + blocks);
     }
     
-    function expectAccessControlRevert(bytes32 role) internal {
-        bytes memory revertMsg = bytes(
-            string.concat(
-                "AccessControl: account ",
-                Strings.toHexString(uint160(msg.sender), 20),
-                " is missing role ",
-                Strings.toHexString(uint256(role), 32)
+    function expectAccessControlRevert(address account, bytes32 role) internal {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                bytes4(keccak256("AccessControlUnauthorizedAccount(address,bytes32)")),
+                account,
+                role
             )
         );
-        vm.expectRevert(revertMsg);
     }
     
     /**
