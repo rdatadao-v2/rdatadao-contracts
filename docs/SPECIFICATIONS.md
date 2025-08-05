@@ -172,31 +172,53 @@ contract SecureMigrationBridge {
 3. **Migration Verification**: Ensure seamless transition for existing holders
 4. **Post-Migration**: Base contracts become legacy after migration period
 
-## 📦 Smart Contracts Required (7 Total for V2 Beta)
+## 📦 Smart Contracts Required (8 Total for V2 Beta)
 
 ### Core Contracts
-1. **RDAT.sol** - Main token contract with VRC-20 stubs
+1. **RDATUpgradeable.sol** - Main token contract with VRC-20 stubs (UUPS upgradeable)
 2. **vRDAT.sol** - Soul-bound governance token
 3. **Staking.sol** - Enhanced staking with reentrancy protection
 4. **MigrationBridge.sol** - Secure cross-chain migration
 5. **EmergencyPause.sol** - Emergency response system
 6. **RevenueCollector.sol** (NEW) - Fee distribution mechanism
 7. **ProofOfContribution.sol** (NEW) - Vana DLP compliance
+8. **Create2Factory.sol** (NEW) - Deterministic deployment factory
 
-### 1. Core Token Contract: `RDAT.sol`
+### 🔄 Upgradeability Architecture
 
-**Phase 1 V2 Beta Implementation:**
+**Pattern**: UUPS (Universal Upgradeable Proxy Standard)
+- **Proxy Contract**: Holds state and delegates calls to implementation
+- **Implementation Contract**: Contains upgradeable logic
+- **Upgrade Authorization**: Restricted to UPGRADER_ROLE
+- **Storage Safety**: Uses OpenZeppelin's upgradeable contracts
+
+**Benefits**:
+- Future improvements without token migration
+- Gas-efficient proxy pattern
+- Reduced upgrade complexity
+- Deterministic deployment addresses
+
+### 1. Core Token Contract: `RDATUpgradeable.sol`
+
+**Phase 1 V2 Beta Implementation (UPDATED):**
 ```solidity
-// Enhanced with security measures
-contract RDAT is 
-    ERC20,
-    ERC20Burnable,
-    ERC20Pausable,
-    ERC20Permit,
-    AccessControl,
-    ReentrancyGuard,
+// Enhanced with security measures and upgradeability
+contract RDATUpgradeable is 
+    Initializable,
+    ERC20Upgradeable,
+    ERC20BurnableUpgradeable,
+    ERC20PausableUpgradeable,
+    ERC20PermitUpgradeable,
+    AccessControlUpgradeable,
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable,
     IVRC20Basic  // Simplified VRC compliance for Phase 1
 ```
+
+**Key Changes:**
+- ✅ **UUPS Upgradeable Pattern**: Allows future contract improvements without migration
+- ✅ **CREATE2 Deployment**: Deterministic addresses across chains
+- ✅ **Proxy Pattern**: Separates logic from storage for upgradeability
 
 **Phase 3 Full Implementation:**
 ```solidity

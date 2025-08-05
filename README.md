@@ -11,11 +11,14 @@ RDAT represents a major upgrade from V1, expanding token supply from 30M to 100M
 ## 🏗️ Architecture
 
 ### Core Contracts
-- **RDAT**: Main ERC-20 token with VRC-20 compliance (100M supply)
+- **RDATUpgradeable**: Main ERC-20 token with VRC-20 compliance (100M supply, UUPS upgradeable)
 - **vRDAT**: Soul-bound governance token earned through staking
 - **Staking**: Simplified staking system with time-lock multipliers
 - **MigrationBridge**: Secure V1→V2 cross-chain migration
 - **EmergencyPause**: Shared emergency response system
+- **RevenueCollector**: Fee distribution mechanism (50/30/20 split)
+- **ProofOfContribution**: Vana DLP compliance stub
+- **Create2Factory**: Deterministic deployment factory
 
 ### Key Addresses
 - **Vana Multisig**: `0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319`
@@ -72,9 +75,27 @@ forge script script/Deploy.s.sol --rpc-url http://localhost:8546 --broadcast
 
 ## 📦 Deployment
 
+### Architecture
+RDAT V2 uses an upgradeable architecture with:
+- **UUPS Proxy Pattern**: Allows future improvements without token migration
+- **CREATE2 Factory**: Ensures deterministic addresses across chains
+- **Multi-chain Strategy**: V2 tokens on Vana, migration bridge on Base
+
+### Deployment Overview
+```bash
+# Check deployment addresses across all chains
+forge script script/ShowDeploymentAddresses.s.sol
+```
+
 ### Testnet Deployment (Vana Moksha)
 ```bash
-forge script script/Deploy.s.sol \
+# Dry run first
+forge script script/vana/DeployRDATUpgradeable.s.sol \
+  --rpc-url $VANA_MOKSHA_RPC_URL \
+  --sig "dryRun()"
+
+# Deploy with broadcast
+forge script script/vana/DeployRDATUpgradeable.s.sol \
   --rpc-url $VANA_MOKSHA_RPC_URL \
   --private-key $DEPLOYER_PRIVATE_KEY \
   --broadcast \
@@ -83,12 +104,28 @@ forge script script/Deploy.s.sol \
 
 ### Mainnet Deployment (Vana)
 ```bash
-forge script script/Deploy.s.sol \
+# Dry run first
+forge script script/vana/DeployRDATUpgradeable.s.sol \
+  --rpc-url $VANA_RPC_URL \
+  --sig "dryRun()"
+
+# Deploy with broadcast
+forge script script/vana/DeployRDATUpgradeable.s.sol \
   --rpc-url $VANA_RPC_URL \
   --private-key $DEPLOYER_PRIVATE_KEY \
   --broadcast \
   --verify \
   --slow
+```
+
+### Migration Bridge (Base Networks)
+```bash
+# Base contracts only receive migration bridge
+# RDAT V2 is NOT deployed to Base
+forge script script/base/DeployMigrationBridge.s.sol \
+  --rpc-url $BASE_RPC_URL \
+  --private-key $DEPLOYER_PRIVATE_KEY \
+  --broadcast
 ```
 
 ## 🔒 Security
