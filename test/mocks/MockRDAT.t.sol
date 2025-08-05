@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test, console2} from "forge-std/Test.sol";
 import {MockRDAT} from "../../src/mocks/MockRDAT.sol";
 
 contract MockRDATTest is Test {
@@ -13,7 +13,7 @@ contract MockRDATTest is Test {
     address public blockedUser;
     
     // Base mainnet RDAT constants for verification
-    address constant BASE_MAINNET_RDAT = 0x4498cd8ba045e00673402353f5a4347562707e7d;
+    address constant BASE_MAINNET_RDAT = 0x4498cd8Ba045E00673402353f5a4347562707e7D;
     uint256 constant TOTAL_SUPPLY = 30_000_000 * 10**18; // 30 million tokens
     
     function setUp() public {
@@ -222,11 +222,11 @@ contract MockRDATTest is Test {
         assertEq(mockRDAT.allowance(user1, migrationContract), migrationAmount);
         assertEq(mockRDAT.allowance(user2, migrationContract), migrationAmount * 2);
         
-        console.log("Migration scenario setup complete");
-        console.log("User1 balance:", mockRDAT.balanceOf(user1));
-        console.log("User2 balance:", mockRDAT.balanceOf(user2));
-        console.log("User1 allowance:", mockRDAT.allowance(user1, migrationContract));
-        console.log("User2 allowance:", mockRDAT.allowance(user2, migrationContract));
+        console2.log("Migration scenario setup complete");
+        console2.log("User1 balance:", mockRDAT.balanceOf(user1));
+        console2.log("User2 balance:", mockRDAT.balanceOf(user2));
+        console2.log("User1 allowance:", mockRDAT.allowance(user1, migrationContract));
+        console2.log("User2 allowance:", mockRDAT.allowance(user2, migrationContract));
     }
     
     function testFuzz_Transfer(address to, uint256 amount) public {
