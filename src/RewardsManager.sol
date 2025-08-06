@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./interfaces/IRewardsManager.sol";
 import "./interfaces/IRewardModule.sol";
-import "./interfaces/IStakingManager.sol";
+import "./interfaces/IStakingPositions.sol";
 
 /**
  * @title RewardsManager
@@ -215,8 +215,8 @@ contract RewardsManager is
     ) external override onlyStakingManager {
         emit UnstakeNotified(user, stakeId, emergency);
         
-        // Get stake info from StakingManager for amount
-        IStakingManager.StakeInfo memory stakeInfo = IStakingManager(stakingManager).getStake(user, stakeId);
+        // Get position info from StakingPositions for amount
+        IStakingPositions.Position memory position = IStakingPositions(stakingManager).getPosition(stakeId);
         
         // Notify all active programs
         for (uint256 i = 0; i < programIds.length; i++) {
@@ -224,7 +224,7 @@ contract RewardsManager is
             RewardProgram memory program = programs[programId];
             
             if (program.rewardModule != address(0)) {
-                try IRewardModule(program.rewardModule).onUnstake(user, stakeId, stakeInfo.amount, emergency) {
+                try IRewardModule(program.rewardModule).onUnstake(user, stakeId, position.amount, emergency) {
                     // Success
                 } catch {
                     // Continue even if one module fails
@@ -395,7 +395,7 @@ contract RewardsManager is
         override 
         returns (uint256[] memory amounts, address[] memory tokens) 
     {
-        uint256[] memory stakeIds = IStakingManager(stakingManager).getUserActiveStakeIds(user);
+        uint256[] memory stakeIds = IStakingPositions(stakingManager).getUserPositions(user);
         uint256 activePrograms = _countActivePrograms();
         
         amounts = new uint256[](activePrograms);
@@ -474,6 +474,32 @@ contract RewardsManager is
         }
         
         return claimableIds;
+    }
+    
+    // Revenue Distribution Integration
+    
+    /**
+     * @notice Notify the RewardsManager of revenue to distribute
+     * @param amount Amount of tokens to distribute to stakers
+     * @dev Called by RevenueCollector when distributing fees
+     */
+    function notifyRevenueReward(uint256 amount) external override {
+        // Find the RDAT rewards module and notify it
+        for (uint256 i = 0; i < programIds.length; i++) {
+            uint256 programId = programIds[i];
+            RewardProgram memory program = programs[programId];
+            
+            // Look for RDAT reward module
+            if (_isProgramActive(program) && 
+                keccak256(bytes(program.name)) == keccak256(bytes("RDAT Staking Rewards"))) {
+                try IRewardModule(program.rewardModule).notifyRewardAmount(amount) {
+                    emit RevenueDistributed(programId, amount);
+                    break; // Only notify the first matching module
+                } catch {
+                    // Continue if notification fails
+                }
+            }
+        }
     }
     
     // Admin Functions

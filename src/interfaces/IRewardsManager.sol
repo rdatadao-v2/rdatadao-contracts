@@ -64,6 +64,7 @@ interface IRewardsManager {
 
     event EmergencyPauseTriggered(uint256 indexed programId);
     event EmergencyPauseLifted(uint256 indexed programId);
+    event RevenueDistributed(uint256 indexed programId, uint256 amount);
 
     // Errors
     error ProgramNotFound();
@@ -125,4 +126,7 @@ interface IRewardsManager {
     // Configuration
     function stakingManager() external view returns (address);
     function setStakingManager(address _stakingManager) external;
+    
+    // Revenue distribution
+    function notifyRevenueReward(uint256 amount) external;
 }
