@@ -30,25 +30,24 @@ contract MigrationBonusVestingTest is Test {
     uint256 public constant BONUS_ALLOCATION = 2_000_000e18;
     
     function setUp() public {
-        // Deploy RDAT
+        // Step 1: Deploy implementations
         RDATUpgradeable rdatImpl = new RDATUpgradeable();
-        
-        // First deploy treasury implementation
         TreasuryWallet treasuryImpl = new TreasuryWallet();
         
-        // Calculate future RDAT proxy address
-        address expectedRdatAddress = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 2);
+        // Step 2: Calculate future addresses
+        uint256 currentNonce = vm.getNonce(address(this));
+        address expectedRdatProxy = vm.computeCreateAddress(address(this), currentNonce + 1);
         
-        // Deploy treasury proxy with expected RDAT address
+        // Step 3: Deploy treasury proxy with expected RDAT address
         bytes memory treasuryInitData = abi.encodeWithSelector(
             TreasuryWallet.initialize.selector,
             treasuryAdmin,
-            expectedRdatAddress
+            expectedRdatProxy
         );
         ERC1967Proxy treasuryProxy = new ERC1967Proxy(address(treasuryImpl), treasuryInitData);
         treasury = TreasuryWallet(payable(address(treasuryProxy)));
         
-        // Deploy RDAT proxy
+        // Step 4: Deploy RDAT proxy with treasury address
         bytes memory rdatInitData = abi.encodeWithSelector(
             RDATUpgradeable.initialize.selector,
             address(treasury),
@@ -58,8 +57,8 @@ contract MigrationBonusVestingTest is Test {
         ERC1967Proxy rdatProxy = new ERC1967Proxy(address(rdatImpl), rdatInitData);
         rdat = RDATUpgradeable(address(rdatProxy));
         
-        // Verify RDAT address matches expected
-        require(address(rdat) == expectedRdatAddress, "RDAT address mismatch");
+        // Verify addresses match
+        require(address(rdat) == expectedRdatProxy, "RDAT proxy address mismatch");
         
         // Deploy migration bridge
         address[] memory validators = new address[](3);
@@ -84,6 +83,13 @@ contract MigrationBonusVestingTest is Test {
         treasury.distribute(address(bridge), MIGRATION_ALLOCATION, "Migration allocation");
         // Fund vesting contract with 2M for bonuses
         treasury.distribute(address(vesting), BONUS_ALLOCATION, "Migration bonus incentives");
+        vm.stopPrank();
+        
+        // Configure liquidity pool and enable bonus claiming
+        vm.startPrank(admin);
+        // For testing, we'll use the RDAT token itself as LP token
+        vesting.configureLiquidityPool(address(rdat));
+        vesting.enableBonusClaiming();
         vm.stopPrank();
     }
     
