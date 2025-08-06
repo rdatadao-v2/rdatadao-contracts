@@ -9,6 +9,8 @@
 
 TreasuryWallet is a critical infrastructure contract that receives 70M RDAT at deployment and manages the distribution according to DAO-approved allocations. It handles complex vesting schedules, phase-gated releases, and provides on-chain transparency for all distributions.
 
+**Key Design Decision**: The TreasuryWallet holds all funds after receiving from RDAT mint until the admin manually triggers distributions. This allows verification of the migration setup before releasing any funds.
+
 ## Contract Design
 
 ```solidity
@@ -90,7 +92,10 @@ contract TreasuryWallet is
             initialized: true
         });
         
-        // Treasury & Ecosystem: 25M, 10% TGE, 6mo cliff, 18mo vest
+        // Treasury & Ecosystem: 25M total
+        // - 10M for team (requires DAO vote to transfer to TokenVesting)
+        // - 2.5M TGE unlock (10%)
+        // - 12.5M for general treasury operations
         vestingSchedules[TREASURY_ECOSYSTEM] = VestingSchedule({
             total: 25_000_000e18,
             released: 0,
@@ -103,13 +108,15 @@ contract TreasuryWallet is
             initialized: true
         });
         
-        // Liquidity & Staking: 15M, 33% TGE
+        // Liquidity & Staking: 15M total
+        // - 4.95M at TGE for liquidity (exactly 33%)
+        // - 10.05M for staking incentives (LP rewards, vRDAT boosts, etc.)
         vestingSchedules[LIQUIDITY_STAKING] = VestingSchedule({
             total: 15_000_000e18,
             released: 0,
-            tgeUnlock: 4_950_000e18, // 33% at TGE
+            tgeUnlock: 4_950_000e18, // Exactly 33% at TGE
             cliffDuration: 0,
-            vestingDuration: 0, // Remainder for staking incentives
+            vestingDuration: 0, // Remainder available for staking incentives
             vestingStart: block.timestamp,
             lastRelease: block.timestamp,
             isPhase3Gated: false,
@@ -266,12 +273,15 @@ contract TreasuryWallet is
 
 ## Initial State at Deployment
 
-### Immediate Actions (TGE):
-1. Receive 70M RDAT from token contract
-2. Process TGE unlocks via `checkAndRelease()`:
-   - 2.5M available for Treasury/Ecosystem
-   - 4.95M available for Liquidity
-3. Admin calls `distribute()` to send liquidity allocation
+### Deployment and Initial Distribution Process:
+1. RDAT contract mints 70M to TreasuryWallet
+2. TreasuryWallet holds all funds initially
+3. Admin verifies migration bridge setup
+4. Admin manually triggers distributions:
+   - Calls `checkAndRelease()` to process TGE unlocks
+   - Calls `distribute()` to send 4.95M RDAT to liquidity provider
+   - 2.5M available for ecosystem use
+5. Team allocation (10M) requires DAO vote before transfer to TokenVesting
 
 ### Vesting Schedules:
 - **Future Rewards**: Locked until Phase 3 activation
@@ -283,16 +293,25 @@ contract TreasuryWallet is
 ### With RDATUpgradeable:
 ```solidity
 // In RDATUpgradeable.initialize()
+// Note: treasuryWallet address comes from regular deployment
+// RDAT address is calculated via CREATE2 before deployment
 _mint(treasuryWallet, 70_000_000e18);
 ```
 
 ### With RDATRewardModule (Phase 3):
 ```solidity
-// After Phase 3 activation
+// After Phase 3 activation and DAO vote on split
+// Example: If DAO votes 20M for staking, 10M for data
 treasuryWallet.distribute(
     rdatRewardModule, 
-    30_000_000e18, 
-    "Fund staking rewards"
+    20_000_000e18, // Amount per DAO vote
+    "Fund staking rewards per DAO proposal #X"
+);
+
+treasuryWallet.distribute(
+    dataContributorRewards,
+    10_000_000e18, // Amount per DAO vote
+    "Fund data contributor rewards per DAO proposal #X"
 );
 ```
 
