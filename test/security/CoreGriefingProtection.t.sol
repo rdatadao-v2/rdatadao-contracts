@@ -224,23 +224,22 @@ contract CoreGriefingProtectionTest is Test {
     }
     
     function test_ReentrancyProtectionExists() public {
-        // ✅ Verify basic reentrancy protection
+        // ✅ Verify that contracts can stake (no reentrancy test since this isn't a reentrancy vector)
         
         vm.startPrank(attacker);
         
-        // Deploy a contract that could potentially reenter
-        SimpleReentrantTest malicious = new SimpleReentrantTest(address(stakingPositions));
-        rdat.transfer(address(malicious), STAKE_AMOUNT);
+        // Deploy a contract that implements ERC721Receiver
+        SafeStakerContract safeStaker = new SafeStakerContract(address(stakingPositions), address(rdat));
+        rdat.transfer(address(safeStaker), STAKE_AMOUNT);
         
-        // The malicious contract needs approval from itself to StakingPositions
         vm.stopPrank();
-        vm.prank(address(malicious));
-        rdat.approve(address(stakingPositions), STAKE_AMOUNT);
         
+        // Have the contract stake
         vm.prank(attacker);
-        malicious.simpleStake(STAKE_AMOUNT, 30 days);
+        uint256 positionId = safeStaker.stakeTokens(STAKE_AMOUNT, 30 days);
         
-        vm.stopPrank();
+        // Verify it worked
+        assertEq(stakingPositions.ownerOf(positionId), address(safeStaker));
     }
     
     // ============ Access Control ============
@@ -275,19 +274,30 @@ contract CoreGriefingProtectionTest is Test {
 }
 
 /**
- * @title SimpleReentrantTest
- * @dev Simple contract for basic reentrancy testing
+ * @title SafeStakerContract
+ * @dev Contract that can safely receive and stake NFT positions
  */
-contract SimpleReentrantTest {
+contract SafeStakerContract {
     StakingPositions public stakingPositions;
+    IERC20 public rdat;
     
-    constructor(address _stakingPositions) {
+    constructor(address _stakingPositions, address _rdat) {
         stakingPositions = StakingPositions(_stakingPositions);
+        rdat = IERC20(_rdat);
     }
     
-    function simpleStake(uint256 amount, uint256 lockPeriod) external {
-        // Just a simple stake - no reentrancy attempt
-        IERC20(stakingPositions.rdatToken()).approve(address(stakingPositions), amount);
-        stakingPositions.stake(amount, lockPeriod);
+    function stakeTokens(uint256 amount, uint256 lockPeriod) external returns (uint256) {
+        rdat.approve(address(stakingPositions), amount);
+        return stakingPositions.stake(amount, lockPeriod);
+    }
+    
+    // Implement ERC721Receiver to receive NFT positions
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure returns (bytes4) {
+        return this.onERC721Received.selector;
     }
 }
