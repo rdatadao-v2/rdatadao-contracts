@@ -50,6 +50,7 @@ interface IStakingPositions {
         uint256 month6, 
         uint256 month12
     );
+    event RewardsManagerUpdated(address indexed newRewardsManager);
     
     // Errors
     error ZeroAmount();

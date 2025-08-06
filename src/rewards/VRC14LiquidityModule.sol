@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IRewardModule.sol";
-import "../interfaces/IStakingManager.sol";
+import "../interfaces/IStakingPositions.sol";
 import "../interfaces/IUniswapV3.sol";
 
 /**
@@ -53,7 +53,7 @@ contract VRC14LiquidityModule is IRewardModule, AccessControl, ReentrancyGuard {
     IUniswapV3Pool public rdatVanaPool;
     
     // Staking integration
-    IStakingManager public immutable stakingManager;
+    IStakingPositions public immutable stakingManager;
     address public rewardsManager;
     
     // Program state
@@ -110,7 +110,7 @@ contract VRC14LiquidityModule is IRewardModule, AccessControl, ReentrancyGuard {
         require(_admin != address(0), "Invalid admin");
         
         rdatToken = IERC20(_rdatToken);
-        stakingManager = IStakingManager(_stakingManager);
+        stakingManager = IStakingPositions(_stakingManager);
         
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(ADMIN_ROLE, _admin);
@@ -251,7 +251,8 @@ contract VRC14LiquidityModule is IRewardModule, AccessControl, ReentrancyGuard {
         // Calculate claimable shares from all executed tranches
         for (uint256 i = 0; i < currentTranche; i++) {
             if (!hasClaimedTranche[user][i]) {
-                uint256 userStake = stakingManager.userTotalStaked(user);
+                // TODO: Calculate user's total staked across all positions
+                uint256 userStake = 0; // Placeholder - needs implementation
                 uint256 totalStake = trancheTotalStaked[i];
                 
                 if (totalStake > 0 && userStake > 0) {
@@ -355,7 +356,8 @@ contract VRC14LiquidityModule is IRewardModule, AccessControl, ReentrancyGuard {
         uint256 /* stakeId */
     ) public view override returns (uint256) {
         uint256 totalShares = 0;
-        uint256 userStake = stakingManager.userTotalStaked(user);
+        // TODO: Calculate user's total staked across all positions
+        uint256 userStake = 0; // Placeholder - needs implementation
         
         for (uint256 i = 0; i < currentTranche; i++) {
             if (!hasClaimedTranche[user][i] && trancheTotalStaked[i] > 0 && userStake > 0) {

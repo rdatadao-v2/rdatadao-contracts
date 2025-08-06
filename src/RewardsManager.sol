@@ -272,7 +272,7 @@ contract RewardsManager is
         nonReentrant 
         returns (ClaimInfo[] memory) 
     {
-        uint256[] memory stakeIds = IStakingManager(stakingManager).getUserActiveStakeIds(msg.sender);
+        uint256[] memory stakeIds = IStakingPositions(stakingManager).getUserPositions(msg.sender);
         uint256 totalClaims = 0;
         
         // First pass: count total claims
@@ -492,11 +492,13 @@ contract RewardsManager is
             // Look for RDAT reward module
             if (_isProgramActive(program) && 
                 keccak256(bytes(program.name)) == keccak256(bytes("RDAT Staking Rewards"))) {
-                try IRewardModule(program.rewardModule).notifyRewardAmount(amount) {
+                // Use low-level call since notifyRewardAmount is not in base interface
+                (bool success,) = program.rewardModule.call(
+                    abi.encodeWithSignature("notifyRewardAmount(uint256)", amount)
+                );
+                if (success) {
                     emit RevenueDistributed(programId, amount);
                     break; // Only notify the first matching module
-                } catch {
-                    // Continue if notification fails
                 }
             }
         }

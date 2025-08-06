@@ -122,7 +122,7 @@ contract ProofOfContribution is IProofOfContribution, IProofOfContributionIntegr
         address contributor,
         uint256 score,
         bytes32 dataHash
-    ) external override nonReentrant whenNotPaused {
+    ) external override nonReentrant whenNotPaused returns (bool) {
         if (!_isActive) revert ContractNotActive();
         if (score > MAX_QUALITY_SCORE) revert InvalidScore();
         if (contributor == address(0)) revert InvalidContribution();
@@ -144,6 +144,7 @@ contract ProofOfContribution is IProofOfContribution, IProofOfContributionIntegr
         _contributions[contributor].push(contribution);
         
         emit ContributionRecorded(contributor, score, dataHash);
+        return true;
     }
 
     /**

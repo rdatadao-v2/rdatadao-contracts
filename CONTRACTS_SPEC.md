@@ -15,7 +15,7 @@ This document provides the complete smart contract specifications for RDAT V2 wi
 
 ## 🎯 Contract Scope & Implementation Status
 
-### Core Layer Contracts (14 Total)
+### Core Layer Contracts (11 Total)
 
 #### Token Layer
 1. **RDATUpgradeable.sol** - Main token with full VRC-20 compliance (UUPS) ✅
@@ -23,28 +23,24 @@ This document provides the complete smart contract specifications for RDAT V2 wi
 3. **MockRDAT.sol** - V1 token mock for testing ✅
 
 #### Staking Layer
-4. **StakingPositions.sol** - NFT-based multi-position staking ✅
+4. **StakingPositions.sol** - NFT-based multi-position staking (non-upgradeable) ✅
 
 #### Rewards Layer
 5. **RewardsManager.sol** - Rewards orchestrator (upgradeable) ✅
 6. **vRDATRewardModule.sol** - Proportional governance distribution ✅
 7. **RDATRewardModule.sol** - Time-based staking rewards ✅
-8. **VRC14LiquidityModule.sol** - VANA liquidity incentives 🆕
+8. **VRC14LiquidityModule.sol** - VANA liquidity incentives (reward module) 🎯
 
 #### Infrastructure
 9. **MigrationBridge.sol** - V1→V2 cross-chain bridge 🎯
 10. **RevenueCollector.sol** - Fee distribution (50/30/20) 🎯
-11. **ProofOfContribution.sol** - Full Vana DLP implementation 🎯
-12. **EmergencyPause.sol** - Shared emergency system 🎯
+11. **ProofOfContribution.sol** - Full Vana DLP implementation ✅
 
-#### VRC Compliance
-13. **DataPoolManager.sol** - VRC-20 data pool management 🆕
-14. **RDATVesting.sol** - Team token vesting (6-month cliff) 🆕
 
 ### 🏭 Architecture Benefits
 
 **Separation of Concerns**
-- StakingManager: Only handles core staking state (immutable)
+- StakingPositions: NFT-based staking with lock periods (non-upgradeable)
 - RewardsManager: Orchestrates reward programs (upgradeable)
 - Reward Modules: Pluggable contracts for different rewards
 
@@ -55,7 +51,7 @@ This document provides the complete smart contract specifications for RDAT V2 wi
 - Retroactive reward distributions
 
 **Security**
-- Immutable staking protects user funds
+- Non-upgradeable staking protects user funds
 - Isolated reward modules limit risk
 - Emergency pause per program
 - Clean migration path for staking upgrades

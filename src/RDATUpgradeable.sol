@@ -471,16 +471,9 @@ contract RDATUpgradeable is
         }
         
         // Calculate proportional share
-        uint256 epochRewards = _epochRewardTotals[epoch];
-        uint256 userReward = (epochRewards * userScore) / totalScore;
+        uint256 epochRewardAmount = _epochRewardTotals[epoch];
+        uint256 userReward = (epochRewardAmount * userScore) / totalScore;
         
         return userReward;
     }
-}
-
-// Interface for ProofOfContribution integration
-interface IProofOfContributionIntegration {
-    function recordContribution(address contributor, uint256 score, bytes32 dataHash) external;
-    function getEpochScore(address contributor, uint256 epoch) external view returns (uint256);
-    function epochTotalScores(uint256 epoch) external view returns (uint256);
 }

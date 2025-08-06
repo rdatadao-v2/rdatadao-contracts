@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IRewardModule.sol";
-import "../interfaces/IStakingManager.sol";
+import "../interfaces/IStakingPositions.sol";
 
 /**
  * @title RDATRewardModule
@@ -41,7 +41,7 @@ contract RDATRewardModule is IRewardModule, AccessControl, ReentrancyGuard {
     
     // State variables
     IERC20 public immutable rdatToken;
-    IStakingManager public immutable stakingManager;
+    IStakingPositions public immutable stakingManager;
     address public rewardsManager;
     
     bool public isActiveFlag;
@@ -90,7 +90,7 @@ contract RDATRewardModule is IRewardModule, AccessControl, ReentrancyGuard {
         }
         
         rdatToken = IERC20(_rdatToken);
-        stakingManager = IStakingManager(_stakingManager);
+        stakingManager = IStakingPositions(_stakingManager);
         rewardsManager = _rewardsManager;
         totalAllocation = _totalAllocation;
         rewardRate = _rewardRate;
@@ -191,12 +191,11 @@ contract RDATRewardModule is IRewardModule, AccessControl, ReentrancyGuard {
             return reward.accumulated;
         }
         
-        // Check if stake still exists in StakingManager
-        try stakingManager.isStakeActive(user, stakeId) returns (bool stakeActive) {
-            if (!stakeActive) {
-                return reward.accumulated;
-            }
+        // Check if stake still exists by trying to get position data
+        try stakingManager.getPosition(stakeId) returns (IStakingPositions.Position memory) {
+            // Position exists, continue with calculation
         } catch {
+            // Position doesn't exist, return accumulated only
             return reward.accumulated;
         }
         
@@ -354,6 +353,16 @@ contract RDATRewardModule is IRewardModule, AccessControl, ReentrancyGuard {
         // Grant new manager role
         rewardsManager = _rewardsManager;
         _grantRole(REWARDS_MANAGER_ROLE, _rewardsManager);
+    }
+    
+    /**
+     * @notice Notify module of revenue rewards to distribute
+     * @param amount Amount of RDAT tokens to add to allocation
+     */
+    function notifyRewardAmount(uint256 amount) external onlyRole(REWARDS_MANAGER_ROLE) {
+        require(amount > 0, "Zero amount");
+        totalAllocation += amount;
+        emit AllocationIncreased(amount);
     }
     
     /**

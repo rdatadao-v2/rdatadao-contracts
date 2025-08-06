@@ -5,10 +5,12 @@
 **Audit Target**: August 12-13, 2025  
 **Framework**: Foundry/Forge  
 **Deliverables**: 11 Core Contracts (Modular Architecture) + Full Test Coverage  
-**Architecture**: Triple-layer design (Token + Staking + Rewards)
+**Architecture**: Triple-layer design (Token + NFT Staking + Rewards)
 
 ## ⚡ Schedule Updates
 **Day 2 (August 6)**: Added upgradeability pattern (UUPS) and CREATE2 factory per user request. This work was originally planned for later but was pulled forward to ensure all contracts follow the upgradeable pattern from the start.
+
+**Day 3 (August 6)**: Major architecture pivot - chose StakingPositions (NFT-based) over StakingManager for better UX. Implemented conditional transfer logic to prevent zombie positions where NFT and vRDAT are in different wallets. Reduced total contracts from 14 to 11.
 
 ## 🎯 Sprint Overview
 
@@ -86,33 +88,51 @@ This 13-day sprint focuses on developing, testing, and preparing for audit the c
 - ✅ Complete unit tests
 - ✅ Technical FAQ document for architectural decisions
 
-### Day 4 (August 8) - Modular Rewards Architecture ✅
-**Goals**: Design and implement modular staking/rewards system
+### Day 4-5 (August 8-9) - Modular Rewards Architecture & StakingPositions ✅
+**Goals**: Design and implement modular staking/rewards system with NFT positions
 
-**Major Design Change**: Pivoted from monolithic staking to modular rewards architecture
+**Major Design Changes**: 
+- Pivoted from monolithic staking to modular rewards architecture
+- Chose StakingPositions (NFT-based) over StakingManager for better UX
+- Implemented conditional transfer logic to prevent zombie positions
 
 **Tasks**:
-- [x] ✅ Design triple-layer architecture: Token + Staking + Rewards
-- [x] ✅ Implement StakingManager.sol (immutable, positions only)
+- [x] ✅ Design triple-layer architecture: Token + NFT Staking + Rewards
+- [x] ✅ Implement StakingPositions.sol (non-upgradeable, NFT-based)
 - [x] ✅ Implement RewardsManager.sol (UUPS upgradeable orchestrator)
 - [x] ✅ Implement vRDATRewardModule.sol (first reward module)
 - [x] ✅ Implement RDATRewardModule.sol (time-based rewards)
-- [x] ✅ Define IStakingManager, IRewardsManager, IRewardModule interfaces
-- [x] ✅ Write MODULAR_REWARDS_ARCHITECTURE.md specification
-- [x] ✅ Update all documentation to reflect new architecture
+- [x] ✅ Add conditional transfer logic (prevent transfers with active vRDAT)
+- [x] ✅ Define IStakingPositions, IRewardsManager, IRewardModule interfaces
+- [x] ✅ Write comprehensive architecture documentation
+- [x] ✅ Update all contracts to use StakingPositions instead of StakingManager
 - [x] ✅ Configure vRDAT minting through reward module only
 
 **Deliverables**:
-- ✅ Complete modular rewards system (5 new contracts)
+- ✅ Complete modular rewards system with NFT staking
 - ✅ Clean separation of staking and rewards logic
 - ✅ vRDAT distribution as first reward module
+- ✅ Conditional transfers preventing zombie positions
 - ✅ Architecture supports unlimited future reward programs
 - ✅ No migration needed for new rewards
 
 **Impact**: Revolutionary flexibility - add rewards without touching staking
 
-### Day 5 (August 9) - Migration Bridge (Part 1)
-**Goals**: Implement Base-side migration contract
+### Day 6 (August 10) - ProofOfContribution & Integration Fixes ✅
+**Goals**: Complete ProofOfContribution and fix integration issues
+
+**Tasks**:
+- [x] ✅ Implement ProofOfContribution.sol with full DLP features
+- [x] ✅ Create IProofOfContributionIntegration interface
+- [x] ✅ Fix RDATUpgradeable _calculateEpochReward function
+- [x] ✅ Complete RewardsManager notifyRevenueReward function
+- [x] ✅ Fix integration between all contracts
+- [x] ✅ Update all documentation with architecture decisions
+
+**Deliverables**:
+- ✅ ProofOfContribution.sol fully implemented
+- ✅ All integration issues resolved
+- ✅ Complete test coverage for new contracts
 
 **Tasks**:
 - [ ] Implement MigrationBridge.sol for Base
@@ -127,8 +147,8 @@ This 13-day sprint focuses on developing, testing, and preparing for audit the c
 - Migration flow tests
 - Rate limiting tests
 
-### Day 6 (August 10) - Migration Bridge (Part 2)
-**Goals**: Implement Vana-side migration and validator system
+### Day 7 (August 11) - Migration Bridge (Part 1)
+**Goals**: Implement Base-side migration contract
 
 **Tasks**:
 - [ ] Implement Vana-side migration contract
@@ -143,8 +163,8 @@ This 13-day sprint focuses on developing, testing, and preparing for audit the c
 - Validator consensus tests
 - End-to-end migration tests
 
-### Day 7 (August 11) - Revenue & PoC Contracts
-**Goals**: Implement revenue distribution and Vana compliance
+### Day 8 (August 12) - Migration Bridge (Part 2) & Revenue
+**Goals**: Complete migration system and revenue distribution
 
 **Tasks**:
 - [ ] Implement RevenueCollector.sol (50/30/20 split)
@@ -256,9 +276,9 @@ This 13-day sprint focuses on developing, testing, and preparing for audit the c
 
 ## 🚨 Critical Milestones
 
-1. **Day 4**: Core token system complete (RDAT + vRDAT + Staking)
-2. **Day 6**: Migration bridge fully implemented
-3. **Day 7**: All contracts code-complete
+1. **Day 5**: Core token system complete (RDAT + vRDAT + StakingPositions)
+2. **Day 8**: Migration bridge fully implemented
+3. **Day 8**: All contracts code-complete
 4. **Day 9**: Security audit ready
 5. **Day 11**: Testnet deployments complete
 6. **Day 13**: Production-ready release
@@ -296,8 +316,8 @@ Each day should include:
 
 ## 🎯 Success Criteria
 
-- [x] 7 of 11 core contracts implemented
-- [ ] 4 remaining contracts (RewardsManager, RDATRewardModule, MigrationBridge, RevenueCollector)
+- [x] 8 of 11 core contracts implemented
+- [ ] 3 remaining contracts (MigrationBridge, RevenueCollector, VRC14LiquidityModule)
 - [ ] 100% test coverage achieved
 - [ ] Security audit passed
 - [x] Gas optimization completed (EnumerableSet)

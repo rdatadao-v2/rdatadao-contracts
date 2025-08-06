@@ -22,12 +22,6 @@ interface IProofOfContribution {
     }
     
     // Functions
-    function recordContribution(
-        address contributor,
-        uint256 score,
-        bytes32 dataHash
-    ) external;
-    
     function validateContribution(
         address contributor,
         uint256 contributionId

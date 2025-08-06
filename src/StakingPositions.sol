@@ -13,6 +13,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./interfaces/IStakingPositions.sol";
 import "./interfaces/IRDAT.sol";
 import "./interfaces/IvRDAT.sol";
+import "./interfaces/IRewardsManager.sol";
 
 /**
  * @title StakingPositions
@@ -66,9 +67,10 @@ contract StakingPositions is
     uint256 public totalRewardsDistributed;
     uint256 public rewardRate; // Rewards per second per token staked (with precision)
     uint256 public pendingRevenueRewards; // Revenue rewards from RevenueCollector
+    address public rewardsManager; // RewardsManager contract for notifications
     
     // Storage gap for upgradeability
-    uint256[41] private __gap;
+    uint256[40] private __gap;
     
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -161,6 +163,11 @@ contract StakingPositions is
         _vrdatToken.mint(msg.sender, vrdatAmount);
         
         emit Staked(msg.sender, positionId, amount, lockPeriod, lockMultipliers[lockPeriod]);
+        
+        // Notify rewards manager if set
+        if (rewardsManager != address(0)) {
+            IRewardsManager(rewardsManager).notifyStake(msg.sender, positionId, amount, lockPeriod);
+        }
     }
     
     /**
@@ -199,6 +206,11 @@ contract StakingPositions is
         _rdatToken.safeTransfer(msg.sender, position.amount);
         
         emit Unstaked(msg.sender, positionId, position.amount, position.vrdatMinted);
+        
+        // Notify rewards manager if set
+        if (rewardsManager != address(0)) {
+            IRewardsManager(rewardsManager).notifyUnstake(msg.sender, positionId, false);
+        }
     }
     
     /**
@@ -262,6 +274,11 @@ contract StakingPositions is
         // Penalty stays in contract for treasury rescue
         
         emit EmergencyWithdraw(msg.sender, positionId, withdrawAmount, penalty);
+        
+        // Notify rewards manager if set
+        if (rewardsManager != address(0)) {
+            IRewardsManager(rewardsManager).notifyUnstake(msg.sender, positionId, true);
+        }
     }
     
     /**
@@ -463,6 +480,15 @@ contract StakingPositions is
     function rescueTokens(address token, uint256 amount) external override onlyRole(ADMIN_ROLE) {
         require(token != address(_rdatToken), "Cannot rescue RDAT");
         IERC20(token).safeTransfer(msg.sender, amount);
+    }
+    
+    /**
+     * @dev Set the rewards manager address
+     * @param _rewardsManager New rewards manager address
+     */
+    function setRewardsManager(address _rewardsManager) external onlyRole(ADMIN_ROLE) {
+        rewardsManager = _rewardsManager;
+        emit RewardsManagerUpdated(_rewardsManager);
     }
     
     /**

@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../interfaces/IRewardModule.sol";
 import "../interfaces/IvRDAT.sol";
-import "../interfaces/IStakingManager.sol";
+import "../interfaces/IStakingPositions.sol";
 
 /**
  * @title vRDATRewardModule
@@ -27,7 +27,7 @@ contract vRDATRewardModule is IRewardModule, AccessControl, ReentrancyGuard {
     
     // State variables
     IvRDAT public immutable vrdatToken;
-    IStakingManager public immutable stakingManager;
+    IStakingPositions public immutable stakingManager;
     address public rewardsManager;
     
     bool public isActiveFlag;
@@ -69,7 +69,7 @@ contract vRDATRewardModule is IRewardModule, AccessControl, ReentrancyGuard {
         }
         
         vrdatToken = IvRDAT(_vrdatToken);
-        stakingManager = IStakingManager(_stakingManager);
+        stakingManager = IStakingPositions(_stakingManager);
         rewardsManager = _rewardsManager;
         
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);

@@ -82,4 +82,8 @@ contract MockRewardsManager is IRewardsManager {
     function setStakingManager(address _stakingManager) external override {
         stakingManager = _stakingManager;
     }
+    
+    function notifyRevenueReward(uint256 amount) external override {
+        // Mock implementation - does nothing
+    }
 }

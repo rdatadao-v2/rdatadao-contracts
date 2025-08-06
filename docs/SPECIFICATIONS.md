@@ -5,7 +5,7 @@
 **Context**: Upgrade from V1 (30M RDAT on Base) to V2 (100M RDAT on Vana)  
 **Approach**: Modular rewards system with full VRC-14/15/20 compliance  
 **Risk Reduction**: $85M+ → ~$10M through major design flaw resolution  
-**Contracts**: 14 total (expanded from 11 for VRC compliance)
+**Contracts**: 11 total (reduced from 14 with new architecture)
 
 ### 📊 Progress Update (August 5, 2025)
 **Status**: ✅ Major architecture completed - Core contracts implemented  
@@ -258,25 +258,20 @@ contract SecureMigrationBridge {
 3. **Migration Verification**: Ensure seamless transition for existing holders
 4. **Post-Migration**: Base contracts become legacy after migration period
 
-## 📦 Smart Contracts Required (14 Total for Full VRC Compliance)
+## 📦 Smart Contracts Required (11 Total)
 
 ### Core Contracts (V2 Modular Architecture)
 1. **RDATUpgradeable.sol** - Main token with full VRC-20 compliance (UUPS upgradeable)
 2. **vRDAT.sol** - Soul-bound governance token (non-upgradeable)
-3. **StakingPositions.sol** - NFT-based staking with conditional transfers (UUPS upgradeable)
+3. **StakingPositions.sol** - NFT-based staking with conditional transfers (non-upgradeable)
 4. **RewardsManager.sol** - Orchestrates reward modules (upgradeable for flexibility)
 5. **vRDATRewardModule.sol** - Immediate governance token distribution
 6. **RDATRewardModule.sol** - Time-based staking rewards
 7. **MigrationBridge.sol** - Secure cross-chain migration
 8. **EmergencyPause.sol** - Emergency response system
 9. **RevenueCollector.sol** - Fee distribution mechanism
-10. **ProofOfContribution.sol** - Full Vana DLP implementation (not stub)
-11. **Create2Factory.sol** - Deterministic deployment factory
-
-### VRC Compliance Contracts (New)
-12. **VRC14LiquidityModule.sol** - VANA liquidity incentives (90-day tranches)
-13. **DataPoolManager.sol** - VRC-20 data pool management
-14. **RDATVesting.sol** - Team token vesting (6-month cliff)
+10. **ProofOfContribution.sol** - Full Vana DLP implementation
+11. **VRC14LiquidityModule.sol** - VANA liquidity incentives as reward module
 
 ### 🔄 Architecture Approach
 
