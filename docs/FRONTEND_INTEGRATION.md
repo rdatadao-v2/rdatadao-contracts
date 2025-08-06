@@ -44,7 +44,7 @@ export default defineConfig({
       project: '../rdatadao-contracts', // Path to contracts
       include: [
         // V2 Beta Core Contracts (7 total)
-        'RDAT.sol/RDAT.json',
+        'RDATUpgradeable.sol/RDATUpgradeable.json',
         'vRDAT.sol/vRDAT.json',
         'Staking.sol/Staking.json',
         'MigrationBridge.sol/MigrationBridge.json',

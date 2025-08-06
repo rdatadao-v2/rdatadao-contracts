@@ -49,7 +49,7 @@ export default defineConfig({
       include: [
         // Token contracts
         'MockRDAT.sol/MockRDAT.json',
-        'Rdat.sol/Rdat.json',
+        'RDATUpgradeable.sol/RDATUpgradeable.json',
         
         // Migration contracts
         'RdatMigration.sol/RdatMigration.json',

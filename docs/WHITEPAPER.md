@@ -1,11 +1,11 @@
 # 📊 r/datadao Whitepaper: Democratic Data Economy Through Fair Tokenomics
 
-**Version**: 1.0  
-**Date**: November 2024  
+**Version**: 1.1  
+**Date**: August 2025  
 **Authors**: r/datadao Core Team  
-**Abstract**: A comprehensive framework for democratizing data ownership through fair tokenomics, quadratic voting governance, and merit-based reward systems.
+**Abstract**: A comprehensive framework for democratizing data ownership through modular rewards architecture, proportional governance distribution, and sustainable tokenomics.
 
-> **V2 Beta Update (August 2025)**: Implementation now includes 7 core contracts with enhanced security measures, reducing risk from $85M+ to ~$15M. Key additions include RevenueCollector for sustainable tokenomics and ProofOfContribution for Vana DLP compliance. See CONTRACTS_SPEC.md for technical details.
+> **V2 Beta Update (August 2025)**: Implementation now includes 11 core contracts with modular rewards architecture, reducing risk from $85M+ to ~$10M. Key innovations include separated staking/rewards layers, proportional vRDAT distribution (days/365), and dynamic reward rate adjustment for 2-year sustainability. See CONTRACTS_SPEC.md for technical details.
 
 ---
 
@@ -83,7 +83,7 @@ graph TD
 ### Ecosystem Components
 
 1. **Base Layer**: Secure migration with multi-validator consensus and 6-hour challenge periods
-2. **Staking Layer**: Soulbound NFT positions during lock, liquid staking derivatives (rdatSTAKED)
+2. **Staking Layer**: Triple-layer architecture (Token + Staking + Rewards) with immutable StakingManager, upgradeable RewardsManager, and pluggable reward modules for unlimited flexibility
 3. **Contribution Layer**: Decentralized validation with Kismet reputation multipliers
 4. **Governance Layer**: Quadratic voting with flash loan protection and proposal bonds
 5. **Marketplace Layer**: Dynamic pricing oracle with automated revenue distribution
@@ -98,8 +98,9 @@ graph TD
 | Allocation | Amount | Percentage | Purpose | Vesting |
 |------------|--------|-------------|---------|---------|
 | **Migration** | 30M | 30% | Base holder transition | Immediate |
-| **Future Rewards** | 30M | 30% | Data contributions & staking | Earned over time |
-| **Treasury** | 25M | 25% | DAO operations & partnerships | DAO-controlled |
+| **Staking Rewards** | 20M | 20% | 2-year staking program | Dynamic rate |
+| **Ecosystem Fund** | 10M | 10% | Partnerships & integrations | DAO-controlled |
+| **Treasury** | 25M | 25% | DAO operations | DAO-controlled |
 | **Liquidity** | 15M | 15% | DEX liquidity provision | 6-month linear |
 
 ### Token Utility & Value Accrual
@@ -118,14 +119,25 @@ graph TD
 
 ### vRDAT: Soul-Bound Governance Tokens
 
-#### Distribution Formula
+#### Distribution Formula (Anti-Gaming Design)
 ```
-vRDAT = Staked_RDAT × Time_Multiplier × Lock_Multiplier
+vRDAT = Staked_RDAT × (Lock_Days / 365)
 ```
 
-- **Base Distribution**: 1 vRDAT per 1 RDAT staked
-- **Time Multiplier**: 10% bonus per month (capped at 100%)
-- **Lock Multiplier**: 1x (30d) to 4x (365d) based on commitment
+- **Base Distribution**: 1:1 vRDAT ONLY for 365-day locks
+- **Proportional System**: Shorter locks receive proportionally less
+- **Lock Period Ratios**:
+  - 365 days: 100% (1:1 ratio)
+  - 180 days: 49.3% (0.493:1 ratio)
+  - 90 days: 24.7% (0.247:1 ratio)
+  - 30 days: 8.3% (0.083:1 ratio)
+
+#### Anti-Gaming Mechanics
+This proportional system prevents several attack vectors:
+- **Sequential Staking**: 12x 30-day stakes = 12 × 8.3% = 99.6% (less than one 365-day stake)
+- **Quick Unlock/Relock**: No benefit since ratio is based on lock duration
+- **Sybil Attacks**: Splitting stakes across addresses provides no advantage
+- **Optimal Strategy**: Always stake for maximum duration for governance power
 
 #### Non-Transferable Properties
 - **Vote Buying Prevention**: Tokens cannot be sold or transferred
@@ -327,7 +339,7 @@ uint256 public constant BURN_SHARE = 2000;      // 20% burned
 - **Burn Mechanisms**: 20% of all fees permanently burned
 - **Liquidity Bootstrapping**: Balancer LBP for fair launch (80/20 → 50/50)
 - **Migration Incentives**: 5% → 3% → 1% bonuses for early migrators
-- **Staking Multipliers**: 1x (30d) to 4x (365d) for lock periods
+- **Staking Multipliers**: 1x (30d) to 1.75x (365d) for sustainable rewards
 
 ### Sustainability Metrics
 

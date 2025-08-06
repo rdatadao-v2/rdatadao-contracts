@@ -1,9 +1,9 @@
 # 🚀 RDAT V2 Beta Deployment Guide
 
-**Version**: 1.1 (Updated with 7 Contracts)  
+**Version**: 2.0 (Modular Rewards Architecture)  
 **Sprint**: August 5-18, 2025  
 **Target Chains**: Vana (Primary), Base (Migration Only)  
-**Contract Count**: 7 Core Contracts (expanded from 5)
+**Contract Count**: 11 Core Contracts (modular architecture)
 
 ## 🔑 Deployment Addresses
 
@@ -27,14 +27,18 @@
 - [ ] Deployer wallet funded on target chains
 
 ### Contract Verification
-- [ ] All 7 contracts compiled successfully:
-  - [ ] RDAT.sol (with reentrancy guards)
+- [ ] All 11 contracts compiled successfully:
+  - [ ] RDATUpgradeable.sol (UUPS upgradeable with reentrancy guards)
   - [ ] vRDAT.sol (with quadratic voting)
-  - [ ] Staking.sol
+  - [ ] StakingManager.sol (immutable core staking logic)
+  - [ ] RewardsManager.sol (UUPS upgradeable orchestrator)
+  - [ ] vRDATRewardModule.sol (soul-bound governance rewards)
+  - [ ] RDATRewardModule.sol (time-based RDAT rewards)
   - [ ] MigrationBridge.sol
   - [ ] EmergencyPause.sol
-  - [ ] RevenueCollector.sol (NEW)
-  - [ ] ProofOfContribution.sol (NEW)
+  - [ ] RevenueCollector.sol
+  - [ ] ProofOfContribution.sol
+  - [ ] FutureRewardModules.sol (placeholder for expansion)
 - [ ] Tests passing with 100% coverage
 - [ ] Security review completed (reentrancy, flash loans)
 - [ ] Gas optimization targets met
@@ -81,16 +85,20 @@ forge script script/DeployMockRDAT.s.sol \
 
 **Note**: Base is ONLY used for V1 token migration. No V2 contracts deployed here.
 
-## 📦 Deployment Order (7 Contracts)
+## 📦 Deployment Order (11 Contracts)
 
 ### Contract Dependencies
 1. **EmergencyPause** (no dependencies)
-2. **RDAT** (depends on treasury address)
+2. **RDATUpgradeable** (depends on treasury address) 
 3. **vRDAT** (no dependencies)
 4. **ProofOfContribution** (no dependencies)
-5. **RevenueCollector** (depends on RDAT and treasury)
-6. **Staking** (depends on RDAT and vRDAT)
-7. **MigrationBridge** (depends on RDAT)
+5. **StakingManager** (immutable, depends on RDAT)
+6. **RewardsManager** (upgradeable, no initial dependencies)
+7. **vRDATRewardModule** (depends on vRDAT, StakingManager, RewardsManager)
+8. **RDATRewardModule** (depends on RDAT, StakingManager, RewardsManager)
+9. **RevenueCollector** (depends on RDAT and treasury)
+10. **MigrationBridge** (depends on RDAT)
+11. **Future Reward Modules** (as needed)
 
 ### Phase 1: Testnet (Days 3-4)
 
@@ -104,7 +112,7 @@ forge script script/DeployMockRDAT.s.sol \
 
 2. **Verify Contracts**
    ```bash
-   forge verify-contract <RDAT_ADDRESS> src/RDAT.sol:RDAT --chain-id 14800
+   forge verify-contract <RDAT_PROXY_ADDRESS> src/RDATUpgradeable.sol:RDATUpgradeable --chain-id 14800
    forge verify-contract <vRDAT_ADDRESS> src/vRDAT.sol:vRDAT --chain-id 14800
    # ... repeat for all contracts
    ```
@@ -114,6 +122,31 @@ forge script script/DeployMockRDAT.s.sol \
    # Add migration bridge validators (need 3)
    cast send <BRIDGE_ADDRESS> "grantRole(bytes32,address)" \
      $(cast sig "VALIDATOR_ROLE()") <VALIDATOR_1> \
+     --rpc-url $VANA_MOKSHA_RPC_URL \
+     --private-key $DEPLOYER_PRIVATE_KEY
+   ```
+
+4. **Configure Modular Rewards System**
+   ```bash
+   # Grant vRDATRewardModule minting/burning roles on vRDAT
+   cast send <vRDAT_ADDRESS> "grantRole(bytes32,address)" \
+     $(cast sig "MINTER_ROLE()") <vRDAT_REWARD_MODULE_ADDRESS> \
+     --rpc-url $VANA_MOKSHA_RPC_URL \
+     --private-key $DEPLOYER_PRIVATE_KEY
+   
+   cast send <vRDAT_ADDRESS> "grantRole(bytes32,address)" \
+     $(cast sig "BURNER_ROLE()") <vRDAT_REWARD_MODULE_ADDRESS> \
+     --rpc-url $VANA_MOKSHA_RPC_URL \
+     --private-key $DEPLOYER_PRIVATE_KEY
+   
+   # Register reward programs
+   cast send <REWARDS_MANAGER> "registerProgram(address,string,uint256,uint256)" \
+     <vRDAT_REWARD_MODULE_ADDRESS> "vRDAT Governance Rewards" $(date +%s) 0 \
+     --rpc-url $VANA_MOKSHA_RPC_URL \
+     --private-key $DEPLOYER_PRIVATE_KEY
+   
+   cast send <REWARDS_MANAGER> "registerProgram(address,string,uint256,uint256)" \
+     <RDAT_REWARD_MODULE_ADDRESS> "RDAT Staking Rewards" $(date +%s) 63072000 \
      --rpc-url $VANA_MOKSHA_RPC_URL \
      --private-key $DEPLOYER_PRIVATE_KEY
    ```
@@ -167,18 +200,20 @@ forge script script/DeployMockRDAT.s.sol \
    - Only used for monitoring V1 token burns
    - Not involved in V2 operations
 
-### Role Assignment (Updated for 7 Contracts)
+### Role Assignment (Updated for 11 Contracts - Modular Architecture)
 ```solidity
 // Critical roles requiring multisig
 DEFAULT_ADMIN_ROLE -> Gnosis Safe (all contracts)
 PAUSER_ROLE -> Gnosis Safe + Emergency addresses
 MINTER_ROLE -> MigrationBridge (for RDAT)
-MINTER_ROLE -> Staking (for vRDAT)
-BURNER_ROLE -> Governance contracts (for vRDAT quadratic voting)
+MINTER_ROLE -> vRDATRewardModule ONLY (for vRDAT)
+BURNER_ROLE -> vRDATRewardModule ONLY (for vRDAT emergency burns)
 VALIDATOR_ROLE -> 3 independent validators (MigrationBridge)
 VALIDATOR_ROLE -> Oracle validators (ProofOfContribution)
 REGISTRAR_ROLE -> Gnosis Safe (ProofOfContribution)
 DISTRIBUTOR_ROLE -> Gnosis Safe + Automation (RevenueCollector)
+REWARDS_MANAGER_ROLE -> RewardsManager (on all reward modules)
+STAKING_NOTIFIER_ROLE -> StakingManager (on RewardsManager)
 ```
 
 ### Emergency Contacts

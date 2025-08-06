@@ -2,6 +2,8 @@
 pragma solidity 0.8.23;
 
 import "../StakingPositions.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title StakingPositionsV2Example
@@ -9,6 +11,8 @@ import "../StakingPositions.sol";
  * @dev Shows how to add new features while preserving NFT positions
  */
 contract StakingPositionsV2Example is StakingPositions {
+    using SafeERC20 for IERC20;
+    
     // New state variables (using storage gap space)
     uint256 public constant VERSION = 2;
     
@@ -50,7 +54,7 @@ contract StakingPositionsV2Example is StakingPositions {
         uint256 amount,
         uint256 lockPeriod,
         address referrer
-    ) external nonReentrant whenNotPaused returns (uint256 positionId) {
+    ) external whenNotPaused returns (uint256 positionId) {
         // Set referrer if not already set
         if (referrers[msg.sender] == address(0) && referrer != address(0) && referrer != msg.sender) {
             referrers[msg.sender] = referrer;

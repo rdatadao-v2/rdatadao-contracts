@@ -1,10 +1,10 @@
 # 🧪 RDAT V2 Beta Testing Requirements
 
-**Version**: 1.1 (Updated for 7 Contracts)  
+**Version**: 2.0 (Modular Rewards Architecture)  
 **Framework**: Foundry/Forge  
 **Coverage Target**: 100%  
 **Sprint Days**: 5-8 (Testing Focus)  
-**Contract Count**: 7 Core Contracts
+**Contract Count**: 11 Core Contracts (modular architecture)
 
 ## 📋 Testing Overview
 
@@ -159,9 +159,231 @@ contract vRDATTest is Test {
 }
 ```
 
-### 3. Staking Tests
+### 3. StakingManager Tests (NEW - Modular Architecture)
 
-#### Integration Tests (`test/integration/Staking.t.sol`)
+#### Unit Tests (`test/unit/StakingManager.t.sol`)
+
+```solidity
+contract StakingManagerTest is Test {
+    StakingManager public stakingManager;
+    RDAT public rdat;
+    address public user = makeAddr("user");
+    address public treasury = makeAddr("treasury");
+    
+    function setUp() public {
+        rdat = new RDAT(treasury);
+        stakingManager = new StakingManager(address(rdat));
+        
+        // Fund user
+        vm.prank(treasury);
+        rdat.transfer(user, 100_000e18);
+    }
+    
+    function test_MultipleStakes() public {
+        vm.startPrank(user);
+        rdat.approve(address(stakingManager), 100_000e18);
+        
+        // Create multiple stakes
+        uint256 stakeId1 = stakingManager.stake(10_000e18, 30 days);
+        uint256 stakeId2 = stakingManager.stake(20_000e18, 90 days);
+        uint256 stakeId3 = stakingManager.stake(30_000e18, 365 days);
+        
+        // Verify stake IDs are unique
+        assertTrue(stakeId1 != stakeId2);
+        assertTrue(stakeId2 != stakeId3);
+        
+        // Verify user stakes
+        uint256[] memory userStakes = stakingManager.getUserStakes(user);
+        assertEq(userStakes.length, 3);
+        assertEq(userStakes[0], stakeId1);
+        assertEq(userStakes[1], stakeId2);
+        assertEq(userStakes[2], stakeId3);
+        
+        // Verify total staked
+        assertEq(stakingManager.userTotalStaked(user), 60_000e18);
+        assertEq(stakingManager.totalStaked(), 60_000e18);
+        vm.stopPrank();
+    }
+    
+    function test_EmergencyWithdraw() public {
+        vm.startPrank(user);
+        rdat.approve(address(stakingManager), 10_000e18);
+        uint256 stakeId = stakingManager.stake(10_000e18, 365 days);
+        
+        // Emergency withdraw immediately
+        uint256 balanceBefore = rdat.balanceOf(user);
+        stakingManager.emergencyWithdraw(stakeId);
+        
+        // Verify tokens returned
+        assertEq(rdat.balanceOf(user), balanceBefore + 10_000e18);
+        
+        // Verify stake is inactive
+        IStakingManager.StakeInfo memory stake = stakingManager.getStake(user, stakeId);
+        assertFalse(stake.active);
+        assertTrue(stake.emergencyUnlocked);
+        vm.stopPrank();
+    }
+}
+```
+
+### 4. RewardsManager Tests (NEW - Modular Architecture)
+
+#### Integration Tests (`test/integration/RewardsManager.t.sol`)
+
+```solidity
+contract RewardsManagerTest is Test {
+    StakingManager public stakingManager;
+    RewardsManager public rewardsManager;
+    vRDATRewardModule public vrdatModule;
+    RDATRewardModule public rdatModule;
+    RDAT public rdat;
+    vRDAT public vrdat;
+    
+    address public user = makeAddr("user");
+    address public treasury = makeAddr("treasury");
+    
+    function setUp() public {
+        // Deploy core contracts
+        rdat = new RDAT(treasury);
+        vrdat = new vRDAT(address(this));
+        stakingManager = new StakingManager(address(rdat));
+        rewardsManager = new RewardsManager();
+        
+        // Deploy reward modules
+        vrdatModule = new vRDATRewardModule(
+            address(vrdat),
+            address(stakingManager),
+            address(rewardsManager),
+            address(this)
+        );
+        
+        rdatModule = new RDATRewardModule(
+            address(rdat),
+            address(stakingManager),
+            address(rewardsManager),
+            address(this)
+        );
+        
+        // Configure roles
+        vrdat.grantRole(vrdat.MINTER_ROLE(), address(vrdatModule));
+        vrdat.grantRole(vrdat.BURNER_ROLE(), address(vrdatModule));
+        
+        // Register programs
+        rewardsManager.registerProgram(
+            address(vrdatModule),
+            "vRDAT Governance",
+            block.timestamp,
+            0 // Perpetual
+        );
+        
+        rewardsManager.registerProgram(
+            address(rdatModule),
+            "RDAT Rewards",
+            block.timestamp,
+            365 days
+        );
+        
+        // Fund contracts
+        vm.prank(treasury);
+        rdat.transfer(address(rdatModule), 10_000_000e18);
+        
+        // Fund user
+        vm.prank(treasury);
+        rdat.transfer(user, 100_000e18);
+    }
+    
+    function test_ModularRewardFlow() public {
+        vm.startPrank(user);
+        rdat.approve(address(stakingManager), 10_000e18);
+        
+        // Stake triggers reward modules
+        uint256 stakeId = stakingManager.stake(10_000e18, 180 days);
+        
+        // Verify vRDAT minted immediately (2x multiplier for 6 months)
+        assertEq(vrdat.balanceOf(user), 20_000e18);
+        
+        // Advance time and check RDAT rewards
+        skip(30 days);
+        
+        uint256[] memory rewards = rewardsManager.calculateRewards(user, stakeId);
+        assertGt(rewards[1], 0); // RDAT rewards accumulated
+        
+        // Claim rewards
+        uint256 balanceBefore = rdat.balanceOf(user);
+        rewardsManager.claimRewards(stakeId);
+        assertGt(rdat.balanceOf(user), balanceBefore);
+        
+        vm.stopPrank();
+    }
+    
+    function test_EmergencyWithdrawBurnsVRDAT() public {
+        vm.startPrank(user);
+        rdat.approve(address(stakingManager), 10_000e18);
+        uint256 stakeId = stakingManager.stake(10_000e18, 365 days);
+        
+        // Verify vRDAT minted (4x multiplier)
+        assertEq(vrdat.balanceOf(user), 40_000e18);
+        
+        // Emergency withdraw
+        stakingManager.emergencyWithdraw(stakeId);
+        
+        // Verify vRDAT burned
+        assertEq(vrdat.balanceOf(user), 0);
+        vm.stopPrank();
+    }
+}
+```
+
+### 5. Reward Module Tests (NEW)
+
+#### Unit Tests for vRDATRewardModule (`test/unit/vRDATRewardModule.t.sol`)
+
+```solidity
+contract vRDATRewardModuleTest is Test {
+    vRDATRewardModule public module;
+    vRDAT public vrdat;
+    address public rewardsManager = makeAddr("rewardsManager");
+    address public user = makeAddr("user");
+    
+    function setUp() public {
+        vrdat = new vRDAT(address(this));
+        module = new vRDATRewardModule(
+            address(vrdat),
+            address(0), // Mock staking manager
+            rewardsManager,
+            address(this)
+        );
+        
+        vrdat.grantRole(vrdat.MINTER_ROLE(), address(module));
+        vrdat.grantRole(vrdat.BURNER_ROLE(), address(module));
+    }
+    
+    function test_MultiplierCalculations() public {
+        vm.prank(rewardsManager);
+        
+        // Test different lock periods
+        module.onStake(user, 1, 10_000e18, 30 days);
+        assertEq(vrdat.balanceOf(user), 10_000e18); // 1x
+        
+        skip(48 hours); // Mint delay
+        
+        module.onStake(user, 2, 10_000e18, 90 days);
+        assertEq(vrdat.balanceOf(user), 25_000e18); // +1.5x
+        
+        skip(48 hours);
+        
+        module.onStake(user, 3, 10_000e18, 180 days);
+        assertEq(vrdat.balanceOf(user), 45_000e18); // +2x
+        
+        skip(48 hours);
+        
+        module.onStake(user, 4, 10_000e18, 365 days);
+        assertEq(vrdat.balanceOf(user), 85_000e18); // +4x
+    }
+}
+```
+
+### 6. Old Staking Tests (Legacy - Will be deprecated)
 
 ```solidity
 contract StakingIntegrationTest is Test {
