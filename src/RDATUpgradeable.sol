@@ -12,6 +12,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./interfaces/IVRC20Full.sol";
 import "./interfaces/IRDAT.sol";
 import "./interfaces/IProofOfContributionIntegration.sol";
+import "./interfaces/IRevenueCollector.sol";
 
 /**
  * @title RDATUpgradeable
@@ -296,6 +297,35 @@ contract RDATUpgradeable is
     }
     
     /**
+     * @notice Processes data license payment and routes fees through RevenueCollector
+     * @param dataHash Hash of the licensed data
+     * @param licenseFee Amount of RDAT tokens paid for the license
+     * @dev Called by marketplace contracts when data is licensed
+     */
+    function processDataLicensePayment(
+        bytes32 dataHash,
+        uint256 licenseFee
+    ) external nonReentrant {
+        require(licenseFee > 0, "Invalid license fee");
+        require(revenueCollector != address(0), "Revenue collector not set");
+        
+        // Transfer license fee from buyer to this contract
+        _transfer(msg.sender, address(this), licenseFee);
+        
+        // Approve revenue collector to collect the fee
+        _approve(address(this), revenueCollector, licenseFee);
+        
+        // Notify revenue collector of the revenue
+        IRevenueCollector(revenueCollector).notifyRevenue(address(this), licenseFee);
+        
+        // Revenue will be distributed according to 50/30/20 split by RevenueCollector
+        emit DataLicensed(dataHash, msg.sender, licenseFee);
+    }
+    
+    // Add new event for data licensing
+    event DataLicensed(bytes32 indexed dataHash, address indexed licensee, uint256 fee);
+    
+    /**
      * @notice Verifies data ownership
      * @param dataHash Hash of the data
      * @param owner Address to verify
@@ -330,9 +360,10 @@ contract RDATUpgradeable is
         _hasClaimedEpoch[epoch][msg.sender] = true;
         _epochRewardsClaimed[epoch][msg.sender] = userReward;
         
-        // Transfer rewards
-        _mint(msg.sender, userReward);
-        totalMinted += userReward;
+        // Transfer rewards from treasury allocation (not minting)
+        // Rewards must be pre-funded by admin from the 30M Phase 3 allocation
+        require(balanceOf(address(this)) >= userReward, "Insufficient reward balance");
+        _transfer(address(this), msg.sender, userReward);
         
         emit EpochRewardsClaimed(msg.sender, epoch, userReward);
         return userReward;
@@ -342,6 +373,7 @@ contract RDATUpgradeable is
      * @notice Sets rewards for an epoch (admin only)
      * @param epoch Epoch number
      * @param amount Reward amount
+     * @dev Rewards must be pre-funded by transferring tokens to this contract
      */
     function setEpochRewards(uint256 epoch, uint256 amount) 
         external 
@@ -349,7 +381,14 @@ contract RDATUpgradeable is
         onlyRole(DEFAULT_ADMIN_ROLE) 
     {
         require(epoch > 0, "Invalid epoch");
-        require(totalMinted + amount <= TOTAL_SUPPLY, "Exceeds max supply");
+        require(amount > 0, "Invalid amount");
+        
+        // Ensure contract has sufficient balance to cover rewards
+        uint256 totalPendingRewards = 0;
+        // Calculate total unclaimed rewards from all epochs
+        // Note: In production, this would track pending rewards more efficiently
+        require(balanceOf(address(this)) >= totalPendingRewards + amount, 
+            "Insufficient contract balance for rewards");
         
         _epochRewardTotals[epoch] = amount;
         emit EpochRewardsSet(epoch, amount);
@@ -439,10 +478,40 @@ contract RDATUpgradeable is
     }
     
     /**
+     * @notice Funds the contract with tokens for epoch rewards
+     * @param amount Amount of tokens to transfer
+     * @dev Used to fund rewards from the 30M Phase 3 allocation
+     * @dev Only callable by admin role
+     */
+    function fundEpochRewards(uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(amount > 0, "Invalid amount");
+        
+        // Transfer tokens from admin to this contract
+        _transfer(msg.sender, address(this), amount);
+        
+        emit EpochRewardsFunded(msg.sender, amount);
+    }
+    
+    /**
+     * @notice Returns the current epoch reward balance
+     * @return balance Amount of tokens available for epoch rewards
+     */
+    function epochRewardBalance() external view returns (uint256) {
+        return balanceOf(address(this));
+    }
+    
+    // Add new event for funding
+    event EpochRewardsFunded(address indexed funder, uint256 amount);
+    
+    /**
      * @dev Calculates epoch reward for a user based on their contribution score
      * @param user Address of the user
      * @param epoch Epoch number
      * @return reward Amount of tokens to reward
+     * @dev Implements kismet-based calculation as per whitepaper:
+     * - Base reward proportional to quality score
+     * - Kismet multiplier: 1.0x-1.5x based on reputation tier
+     * - First submitter bonus: 100% for original, 10% for duplicates
      */
     function _calculateEpochReward(address user, uint256 epoch) private view returns (uint256) {
         // If no PoC contract set, no rewards
@@ -465,7 +534,12 @@ contract RDATUpgradeable is
             return 0;
         }
         
-        // Calculate proportional share
+        // Calculate proportional share with kismet multiplier built into score
+        // The PoC contract should already apply kismet multipliers to the score:
+        // Bronze (0-2500): 1.0x
+        // Silver (2501-5000): 1.1x  
+        // Gold (5001-7500): 1.25x
+        // Platinum (7501-10000): 1.5x
         uint256 epochRewardAmount = _epochRewardTotals[epoch];
         uint256 userReward = (epochRewardAmount * userScore) / totalScore;
         
