@@ -20,8 +20,8 @@ r/datadao represents a paradigm shift in data economics, establishing the first 
 - **Merit-Based Rewards**: Quality-driven compensation with Kismet reputation multipliers (up to 1.5x)
 - **Cross-Chain Migration**: Secure multi-validator bridge with incentive bonuses (up to 5%)
 - **VRC Compliance**: Deep integration with Vana's data licensing protocols for sustainable economics
-- **Revenue Distribution**: 50% to stakers, 30% to treasury, 20% burned for deflation
-- **Emergency Mechanisms**: Multi-sig controlled emergency minting (1% max) and circuit breakers
+- **Revenue Distribution**: 50% to stakers, 30% to treasury, 20% to contributors
+- **Security Mechanisms**: Multi-sig controls, emergency pause (72hr auto-expiry), and circuit breakers
 - **Flash Loan Protection**: 48-hour voting delays and position locking during governance
 
 ### Market Opportunity
@@ -97,11 +97,10 @@ graph TD
 
 | Allocation | Amount | Percentage | Purpose | Vesting |
 |------------|--------|-------------|---------|---------|
-| **Migration** | 30M | 30% | Base holder transition | Immediate |
-| **Staking Rewards** | 20M | 20% | 2-year staking program | Dynamic rate |
-| **Ecosystem Fund** | 10M | 10% | Partnerships & integrations | DAO-controlled |
-| **Treasury** | 25M | 25% | DAO operations | DAO-controlled |
-| **Liquidity** | 15M | 15% | DEX liquidity provision | 6-month linear |
+| **Migration Reserve** | 30M | 30% | V1 holder migration | 100% at TGE |
+| **Future Rewards** | 30M | 30% | Staking & data contributions | Phase 3 locked |
+| **Treasury & Ecosystem** | 25M | 25% | DAO operations & partnerships | 10% TGE, 6mo cliff |
+| **Liquidity & Staking** | 15M | 15% | DEX liquidity & incentives | 33% at TGE |
 
 ### Token Utility & Value Accrual
 
@@ -112,9 +111,9 @@ graph TD
 - **Network Security**: Validators stake RDAT for consensus participation
 
 #### Value Accrual Mechanisms
-- **Deflationary Pressure**: Transaction fees burned reducing supply
+- **Fixed Supply**: 100M cap ensures no dilution
 - **Utility Demand**: Growing data marketplace increases token demand
-- **Staking Rewards**: Long-term holders earn additional RDAT through participation
+- **Staking Rewards**: Long-term holders earn from pre-allocated pools
 - **Quality Premiums**: High-quality data commands premium pricing
 
 ### vRDAT: Soul-Bound Governance Tokens
@@ -318,7 +317,7 @@ function calculateReward(uint256 contributionId) external view returns (uint256)
 // All marketplace and network fees distributed as follows:
 uint256 public constant STAKER_SHARE = 5000;    // 50% to stakers
 uint256 public constant TREASURY_SHARE = 3000;  // 30% to treasury
-uint256 public constant BURN_SHARE = 2000;      // 20% burned
+uint256 public constant CONTRIBUTOR_SHARE = 2000; // 20% to contributors
 ```
 
 #### Transition to Sustainability
@@ -335,10 +334,10 @@ uint256 public constant BURN_SHARE = 2000;      // 20% burned
 - **Legal & Compliance**: Regulatory compliance, legal advisory
 
 #### Token Economics
-- **Fixed Supply**: 100M with emergency minting (1% max, DAO controlled)
-- **Burn Mechanisms**: 20% of all fees permanently burned
-- **Liquidity Bootstrapping**: Balancer LBP for fair launch (80/20 → 50/50)
-- **Migration Incentives**: 5% → 3% → 1% bonuses for early migrators
+- **Fixed Supply**: 100M tokens (all minted at deployment)
+- **Fee Distribution**: 20% of fees to contributor pool
+- **Liquidity Bootstrapping**: Initial liquidity from treasury allocation
+- **Migration Process**: 1:1 swap with 1-year claim deadline
 - **Staking Multipliers**: 1x (30d) to 1.75x (365d) for sustainable rewards
 
 ### Sustainability Metrics
@@ -409,7 +408,7 @@ uint256 public constant BURN_SHARE = 2000;      // 20% burned
 
 #### Economic Innovation
 - **Fair Distribution**: 60% of tokens for community vs typical 10-20%
-- **Sustainable Tokenomics**: Deflationary mechanisms with utility demand
+- **Sustainable Tokenomics**: Fixed supply with fee-based rewards
 - **Democratic Control**: Community governance vs centralized management
 - **Transparent Operations**: Full on-chain activity vs opaque corporations
 
@@ -460,7 +459,7 @@ uint256 public constant BURN_SHARE = 2000;      // 20% burned
 - **Security Breaches**: Multi-signature controls and emergency procedures
 
 #### Economic Risks
-- **Token Volatility**: Utility demand and deflationary mechanisms
+- **Token Volatility**: Managed through vesting schedules and fixed supply
 - **Market Competition**: First-mover advantage and network effects
 - **Regulatory Changes**: Flexible architecture supporting compliance updates
 - **Economic Attacks**: Game-theoretic analysis and penalty mechanisms

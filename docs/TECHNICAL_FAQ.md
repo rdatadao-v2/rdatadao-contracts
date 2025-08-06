@@ -3,10 +3,224 @@
 This document captures important technical decisions, architectural patterns, and frequently asked questions about the r/datadao V2 smart contract implementation.
 
 ## Table of Contents
-1. [Emergency Pause Architecture](#emergency-pause-architecture)
-2. [Emergency Migration Architecture](#emergency-migration-architecture)
-3. [Token Architecture](#token-architecture)
-4. [Security Decisions](#security-decisions)
+1. [RDAT Tokenomics](#rdat-tokenomics)
+2. [Emergency Pause Architecture](#emergency-pause-architecture)
+3. [Emergency Migration Architecture](#emergency-migration-architecture)
+4. [Token Architecture](#token-architecture)
+5. [Security Decisions](#security-decisions)
+
+---
+
+## RDAT Tokenomics
+
+### Q: Why is RDAT non-mintable after deployment?
+
+**A:** RDAT uses a fixed supply model for several critical reasons:
+
+#### 1. **Predictable Economics**
+- Fixed 100M supply ensures no inflation
+- Token holders know exact supply forever
+- Rewards come from pre-allocated pools
+- No dilution through minting
+
+#### 2. **Security Benefits**
+- Eliminates minting attack vectors
+- No need for complex minting controls
+- Simpler contract with fewer risks
+- No infinite mint bugs possible
+
+#### 3. **Sustainable Rewards**
+Instead of minting new tokens for rewards, we use:
+- **Treasury Allocations**: Pre-funded reward pools
+- **Revenue Sharing**: Protocol fees distributed to stakers
+- **Limited Programs**: Rewards end when pools deplete
+- **Market-Based**: Creates natural supply/demand dynamics
+
+#### 4. **Implementation Details**
+```solidity
+uint256 public constant TOTAL_SUPPLY = 100_000_000 * 10**18; // 100M fixed
+uint256 public constant MIGRATION_ALLOCATION = 30_000_000 * 10**18; // 30M reserved
+
+function initialize(address treasury, address admin, address migrationContract) {
+    // Mint ENTIRE supply at deployment
+    _mint(treasury, TOTAL_SUPPLY - MIGRATION_ALLOCATION); // 70M to treasury
+    _mint(migrationContract, MIGRATION_ALLOCATION); // 30M to migration contract
+    
+    // No MINTER_ROLE granted - minting is complete
+}
+
+// Mint function exists only to satisfy interface - always reverts
+function mint(address, uint256) external pure {
+    revert("Minting is disabled - all tokens minted at deployment");
+}
+```
+
+### Q: How are staking rewards distributed without minting?
+
+**A:** Through the modular rewards architecture:
+
+1. **Treasury Pre-funds Modules**: Treasury allocates RDAT to reward modules
+2. **Modules Hold Tokens**: Each reward module holds its allocation
+3. **Users Claim from Modules**: Rewards transferred from module balance
+4. **Revenue Supplements**: Protocol fees add to reward pools
+
+This creates sustainable, predictable reward economics without inflation.
+
+### Q: Why does RDAT have a mint() function if supply is fixed?
+
+**A:** The mint function exists only to satisfy the IRDAT interface but always reverts:
+
+1. **100M Pre-minted**: Full supply minted at deployment
+2. **70M to Treasury**: For rewards and liquidity
+3. **30M to Migration**: Pre-allocated to migration contract
+4. **No MINTER_ROLE**: Role doesn't exist, can't be granted
+5. **Always Reverts**: mint() throws error if called
+
+This is the most secure approach - no minting bugs possible.
+
+### Q: How do we ensure the migration contract can't mint extra tokens?
+
+**A:** The migration contract receives exactly 30M tokens at deployment:
+
+1. **Pre-allocated**: 30M tokens transferred to migration contract in `initialize()`
+2. **No Special Powers**: Migration contract has no minting rights
+3. **Simple Transfers**: It can only transfer its balance to V1 holders
+4. **Auditable**: On-chain balance shows exactly how many tokens remain
+5. **Time-Limited**: Can implement deadline after which unclaimed tokens return to treasury
+
+This eliminates any risk of the migration contract creating new tokens.
+
+### Q: What happens if we need to mint tokens in the future?
+
+**A:** We can't, and that's by design:
+
+1. **Immutable Supply**: 100M tokens is the absolute maximum
+2. **No Backdoors**: No way to add minting functionality
+3. **Governance Alternative**: If more tokens needed, must deploy new contract
+4. **Community Trust**: Fixed supply promise cannot be broken
+
+This protects token holders from dilution.
+
+### Q: Why doesn't StakingPositions calculate or distribute rewards?
+
+**A:** Separation of concerns for security and flexibility:
+
+1. **Single Responsibility**: StakingPositions only manages staking logic
+2. **Modular Rewards**: RewardsManager handles all reward calculations
+3. **No Token Access**: StakingPositions can't mint or transfer reward tokens
+4. **Upgrade Safety**: Can upgrade rewards without touching staking
+
+This architecture prevents many common DeFi exploits where staking contracts have too much power.
+
+### Q: How does the TreasuryWallet handle DAO allocations?
+
+**A:** TreasuryWallet is a UUPS upgradeable contract that manages the 70M RDAT with vesting schedules:
+
+1. **Receives 70M at Deployment**: Gets tokens from RDATUpgradeable initialization
+2. **Vesting Schedules**: Each allocation has its own schedule per DAO vote
+3. **Immediate TGE Distribution**:
+   - 4.95M to liquidity (33% of Liquidity allocation)
+   - 2.5M available for ecosystem (10% of Treasury allocation)
+4. **Phase 3 Gated**: Future Rewards (30M) locked until Phase 3 activation
+5. **On-chain Transparency**: All distributions tracked with reasons
+
+This ensures DAO-approved allocations are enforced programmatically.
+
+### Q: Why separate Phase 1 and Phase 3 rewards?
+
+**A:** Strategic rollout for security and community building:
+
+**Phase 1 (Launch)**:
+- Only vRDAT governance rewards
+- Encourages participation without token inflation
+- Builds governance community first
+- Simpler security surface for initial launch
+
+**Phase 3 (Future)**:
+- RDAT staking rewards activate
+- 30M allocation unlocked from TreasuryWallet
+- Community decides readiness via governance
+- More complex tokenomics after proven stability
+
+This phased approach reduces launch risk while maintaining flexibility.
+
+### Q: How does the migration process work with fixed supply?
+
+**A:** The migration uses pre-allocated tokens, not minting:
+
+1. **30M Pre-allocated**: MigrationBridge receives tokens at RDAT deployment
+2. **1:1 Exchange**: V1 holders get exact amount in V2
+3. **No Special Powers**: Bridge only transfers its balance
+4. **1-Year Deadline**: Unclaimed tokens return to TreasuryWallet
+5. **Auditable**: On-chain balance shows remaining tokens
+
+This eliminates any risk of the migration contract creating new tokens.
+
+### Q: How do staking rewards work without minting?
+
+**A:** All rewards come from pre-allocated pools:
+
+**vRDAT Rewards**:
+- Soul-bound governance tokens
+- Only contract that can mint vRDAT
+- Proportional to lock duration (days/365)
+- Immediate distribution on stake
+
+**RDAT Rewards (Phase 3)**:
+- From 30M Future Rewards allocation
+- RDATRewardModule holds token balance
+- Time-based accumulation with multipliers
+- Transfers from module balance, no minting
+
+**Revenue Sharing**:
+- Fees collected in VANA/USDC/USDT
+- Swapped to RDAT via Vana DEX
+- 50% distributed to stakers
+- Creates buy pressure, not inflation
+
+### Q: Why use CREATE2 for deployment?
+
+**A:** Solves circular dependency in contract initialization:
+
+**The Problem**:
+- RDAT needs MigrationBridge address at initialization
+- MigrationBridge needs RDAT address for configuration
+- Circular dependency prevents deployment
+
+**The Solution**:
+1. Calculate MigrationBridge address with CREATE2
+2. Deploy RDAT with calculated address
+3. Deploy MigrationBridge at exact address
+4. No post-deployment configuration needed
+
+This enables clean, secure deployment in correct order.
+
+### Q: What happens if Phase 3 never activates?
+
+**A:** The system continues functioning with vRDAT rewards only:
+
+1. **Staking Works**: Users can stake and earn vRDAT
+2. **Governance Active**: vRDAT holders vote on proposals
+3. **30M Locked**: Future Rewards remain in TreasuryWallet
+4. **Revenue Sharing**: Still distributes fees to stakers
+5. **DAO Decision**: Community controls Phase 3 timing
+
+The protocol is fully functional without RDAT staking rewards.
+
+### Q: How are fees distributed with fixed supply?
+
+**A:** RevenueCollector manages fee distribution without burning:
+
+1. **Collection**: Accepts fees in any token (VANA, USDC, USDT, RDAT)
+2. **Admin Triggered Swap**: Not automatic, admin initiates
+3. **DEX Integration**: Swaps to RDAT via Vana's DEX
+4. **Distribution Split**:
+   - 50% to stakers (via StakingPositions)
+   - 30% to treasury
+   - 20% to contributors (not burned)
+5. **No Burning**: Fixed supply means no burn mechanism
+
+This creates sustainable buy pressure and rewards.
 
 ---
 
@@ -192,13 +406,14 @@ Benefits:
 
 ## Security Decisions
 
-### Q: Why 48-hour mint delay for vRDAT?
+### Q: Why no mint delay for vRDAT?
 
-**A:** The mint delay prevents flash loan attacks and ensures:
+**A:** vRDAT is a soul-bound token that cannot be transferred or flash loaned:
 
-1. **No Flash Minting:** Can't mint and vote in same transaction
-2. **Time for Review:** Community can detect suspicious minting
-3. **Stable Governance:** Voting power can't change suddenly
+1. **Soul-Bound Design:** Tokens are permanently tied to addresses
+2. **No Flash Loans:** Cannot borrow/return vRDAT in same transaction
+3. **Simpler UX:** Users can stake multiple times without delays
+4. **Attack Prevention:** Transfer restrictions prevent all flash loan vectors
 
 ### Q: Why separate MINTER_ROLE and BURNER_ROLE?
 
@@ -470,7 +685,246 @@ Choose based on criticality and gas considerations.
 
 ---
 
-*Last Updated: August 5, 2025*
+## Soul-Bound Token Design
+
+### Q: Why is vRDAT designed as a soul-bound token?
+
+**A:** Soul-bound design provides superior security and aligns with governance principles:
+
+#### Security Benefits:
+1. **No Flash Loan Attacks:** Cannot borrow vRDAT for temporary voting power
+2. **No Vote Trading:** Prevents vote buying/selling markets
+3. **Simplified Security Model:** No need for mint delays or transfer restrictions
+4. **Governance Integrity:** Voting power stays with actual stakers
+
+#### Design Trade-offs:
+- **Pro:** Eliminates entire classes of attacks
+- **Pro:** Simpler code with fewer edge cases
+- **Pro:** Better UX (no waiting periods)
+- **Con:** Cannot transfer governance rights
+- **Con:** Lost keys mean lost voting power
+
+This is a deliberate design choice that prioritizes security and governance integrity over transferability.
+
+---
+
+## Security Hardening
+
+### Q: Why implement minimum stake amounts and position limits?
+
+**A:** These security measures prevent two critical attack vectors while maintaining system usability:
+
+#### 1. **Dust Attack Prevention**
+
+**The Problem:**
+Attackers could create extremely small stakes (1 wei) with high multipliers to exploit precision:
+
+```solidity
+// Before fix: Attacker stakes 1 wei for 365 days
+stake(1, 365 days);  // Gets 4 wei vRDAT (4x multiplier)
+
+// Problems:
+// 1. Minimal cost, disproportionate rewards
+// 2. Precision rounding exploits
+// 3. Could spam system with thousands of dust stakes
+```
+
+**The Solution:**
+```solidity
+uint256 public constant MIN_STAKE_AMOUNT = 1e18; // 1 RDAT minimum
+
+function stake(uint256 amount, uint256 lockPeriod) external {
+    if (amount < MIN_STAKE_AMOUNT) revert BelowMinimumStake();
+    // ... rest of implementation
+}
+```
+
+**Impact:**
+- Prevents precision exploits with minimal amounts
+- Ensures meaningful economic commitment
+- Maintains reasonable gas costs for legitimate users
+- 1 RDAT minimum is accessible but prevents abuse
+
+#### 2. **DoS Attack Prevention**
+
+**The Problem:**
+Attackers could create unlimited positions to DoS the system:
+
+```solidity
+// Before fix: Attacker creates thousands of positions
+for (uint i = 0; i < 10000; i++) {
+    stake(minimumAmount, 30 days);  // Creates 10,000 positions
+}
+
+// Problems:
+// 1. Unbounded gas costs for position enumeration
+// 2. Storage bloat
+// 3. Potential to crash frontend/indexers
+```
+
+**The Solution:**
+```solidity
+uint256 public constant MAX_POSITIONS_PER_USER = 100; // Reasonable limit
+
+function stake(uint256 amount, uint256 lockPeriod) external {
+    if (balanceOf(msg.sender) >= MAX_POSITIONS_PER_USER) revert TooManyPositions();
+    // ... rest of implementation
+}
+```
+
+**Impact:**
+- Prevents position spam attacks
+- Maintains O(1) performance characteristics
+- 100 positions is generous for legitimate use while preventing abuse
+- Users can still unstake and create new positions if needed
+
+#### 3. **Implementation Details**
+
+**Security Validation Order:**
+```solidity
+function stake(uint256 amount, uint256 lockPeriod) external {
+    // 1. Basic validation
+    if (amount == 0) revert ZeroAmount();
+    
+    // 2. Security hardening (NEW)
+    if (amount < MIN_STAKE_AMOUNT) revert BelowMinimumStake();
+    if (balanceOf(msg.sender) >= MAX_POSITIONS_PER_USER) revert TooManyPositions();
+    
+    // 3. Business logic validation
+    if (lockMultipliers[lockPeriod] == 0) revert InvalidLockDuration();
+    
+    // ... implementation continues
+}
+```
+
+**Custom Error Messages:**
+```solidity
+error BelowMinimumStake();    // Clear error for minimum stake requirement
+error TooManyPositions();     // Clear error for position limit
+```
+
+#### 4. **Testing Impact**
+
+**Before Fix (Vulnerable):**
+```solidity
+function test_DustAttack() public {
+    // Could succeed with 1 wei stake
+    uint256 positionId = stakingPositions.stake(1, 365 days);
+    // Attacker gets 4 wei vRDAT for minimal cost
+}
+```
+
+**After Fix (Protected):**
+```solidity
+function test_DustAttack() public {
+    // Now correctly fails
+    vm.expectRevert(IStakingPositions.BelowMinimumStake.selector);
+    stakingPositions.stake(1, 365 days);
+}
+```
+
+#### 5. **User Experience Considerations**
+
+**Legitimate Users:**
+- 1 RDAT minimum ($X USD) is reasonable for meaningful staking
+- 100 position limit is generous for portfolio diversification
+- Clear error messages guide proper usage
+
+**Gas Efficiency:**
+- Early validation prevents wasted gas on invalid operations
+- Position limit maintains predictable gas costs
+- No impact on legitimate staking operations
+
+#### 6. **Future Considerations**
+
+**Potential Enhancements:**
+```solidity
+// Could make configurable if needed
+function setMinStakeAmount(uint256 newMin) external onlyRole(ADMIN_ROLE) {
+    require(newMin >= 1e17 && newMin <= 1e20, "Reasonable bounds");
+    MIN_STAKE_AMOUNT = newMin;
+}
+```
+
+**Economic Parameters:**
+- Monitor if 1 RDAT becomes too expensive/cheap over time
+- Could implement sliding scale based on market conditions
+- Position limit could vary based on user tier/reputation
+
+This security hardening significantly improves system robustness while maintaining excellent usability for legitimate users.
+
+---
+
+## Deployment Strategy
+
+### Q: Why deploy with only vRDAT rewards initially?
+
+**A:** Risk mitigation and focused launch strategy:
+
+1. **Reduced Complexity**: Fewer moving parts at launch
+2. **Security Focus**: Smaller attack surface to audit
+3. **Community Building**: Governance participants first
+4. **Token Preservation**: 30M RDAT safely locked
+5. **Sprint Timeline**: Meets tight 13-day deadline
+
+Phase 3 deployment is a feature, not a limitation.
+
+### Q: How does the sprint timeline affect architecture decisions?
+
+**A:** Strategic deferrals to meet audit deadline:
+
+**Included in Sprint (Phase 1)**:
+- Core staking functionality
+- vRDAT governance rewards
+- TreasuryWallet with vesting
+- Basic fee collection
+- Emergency pause system
+
+**Deferred to Phase 3**:
+- RDAT staking rewards
+- Automatic DEX swaps
+- Full ProofOfContribution
+- Governance contracts
+- Additional reward modules
+
+This ensures a secure, auditable launch within timeline constraints.
+
+### Q: What are the key deployment dependencies?
+
+**A:** Critical ordering for successful deployment:
+
+1. **CREATE2 Factory** → Calculate deterministic addresses
+2. **vRDAT** → Independent, no dependencies
+3. **TreasuryWallet** → Needs to exist before RDAT
+4. **RDAT** → Needs TreasuryWallet and MigrationBridge addresses
+5. **MigrationBridge** → Deploy at CREATE2 address
+6. **StakingPositions** → Needs RDAT and vRDAT
+7. **RewardsManager** → Needs StakingPositions
+8. **vRDATRewardModule** → Needs all above
+
+Proper sequencing prevents deployment failures.
+
+### Q: Why is TreasuryWallet upgradeable but StakingPositions isn't?
+
+**A:** Different security and flexibility requirements:
+
+**TreasuryWallet (Upgradeable)**:
+- Holds funds but doesn't define core logic
+- May need updates for new DAO proposals
+- Vesting schedules might need adjustments
+- Lower risk profile for upgrades
+
+**StakingPositions (Immutable)**:
+- Defines core staking rules
+- Users trust these rules won't change
+- Upgrade would be major protocol change
+- Manual migration preserves user choice
+
+This balances flexibility with security guarantees.
+
+---
+
+*Last Updated: August 6, 2025*
 
 ## Contributing to this FAQ
 

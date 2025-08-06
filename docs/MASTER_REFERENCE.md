@@ -35,7 +35,7 @@
 ### Contract Count: 14 Total
 1. **RDATUpgradeable** ✅ - Full VRC-20 compliant token
 2. **vRDAT** ✅ - Soul-bound governance token
-3. **StakingManager** ✅ - Immutable staking logic
+3. **StakingPositions** ✅ - Immutable staking logic
 4. **RewardsManager** 🔴 - Upgradeable orchestrator
 5. **vRDATRewardModule** ✅ - Proportional governance rewards
 6. **RDATRewardModule** 🔴 - Time-based staking rewards
@@ -58,10 +58,10 @@
 
 #### RDATUpgradeable
 - **Pattern**: UUPS upgradeable
-- **Supply**: 100M fixed
-- **Features**: ERC20 + Burnable + Pausable + Permit
+- **Supply**: 100M fixed (all minted at deployment)
+- **Features**: ERC20 + Pausable + Permit
 - **Security**: Reentrancy guards, flash loan protection
-- **Roles**: MINTER_ROLE (migration only), PAUSER_ROLE
+- **Roles**: PAUSER_ROLE, DEFAULT_ADMIN_ROLE (no MINTER_ROLE)
 
 #### vRDAT
 - **Type**: Soul-bound (non-transferable)
@@ -72,7 +72,7 @@
 
 ### Staking Layer
 
-#### StakingManager
+#### StakingPositions
 - **Type**: Immutable (no upgrades)
 - **Storage**: EnumerableSet for O(1) operations
 - **Features**: Multiple stakes per user, emergency migration
@@ -120,8 +120,8 @@
 
 ### Revenue Model
 - **Marketplace Fees**: 2-5% on data sales
-- **Distribution**: 50% stakers, 30% treasury, 20% burn
-- **Sustainability**: Transitions from emissions to fee-based
+- **Distribution**: 50% stakers, 30% treasury, 20% contributors
+- **Sustainability**: Pre-allocated rewards + fee-based distribution
 
 ### vRDAT Economics
 - **No Max Supply**: Minted based on staking

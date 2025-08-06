@@ -19,7 +19,7 @@
 RDAT V2 Beta represents a major upgrade from the existing V1 deployment, introducing time-lock staking with multipliers, cross-chain migration, enhanced tokenomics (100M supply), and improved governance mechanisms. The implementation follows a phased approach, starting with essential features and progressively adding complexity.
 
 ### V2 Beta Improvements Over V1:
-- **Supply Expansion**: 30M → 100M tokens
+- **Supply Expansion**: 30M → 100M tokens (fixed supply, fully minted at deployment)
 - **Staking Architecture**: Basic staking → Modular rewards (1x-1.75x multipliers)
 - **Governance**: Single admin → Multi-sig control + proportional vRDAT
 - **Chain**: Base-only → Cross-chain (Base + Vana)
@@ -28,6 +28,45 @@ RDAT V2 Beta represents a major upgrade from the existing V1 deployment, introdu
 - **Security**: Basic → Reentrancy guards + module timelock + upgrade safety
 - **Value Accrual**: None → Fee distribution (50/30/20 split)
 - **User Experience**: Simple staking → Flexible reward programs
+- **Tokenomics**: Inflationary → Fixed supply with pre-allocated reward pools
+
+## 💰 Tokenomics
+
+### **RDAT Token Supply Model**
+- **Total Supply**: 100,000,000 RDAT (fixed, non-inflationary)
+- **Minting Strategy**: ENTIRE supply minted at deployment in `initialize()`
+- **Initial Distribution**: 
+  - Treasury: 70M tokens (rewards, liquidity, operations)
+  - Migration Contract: 30M tokens (pre-allocated for V1 holders)
+- **No Minting Function**: `mint()` always reverts - prevents any supply inflation
+- **Security**: No MINTER_ROLE exists, eliminating minting vulnerabilities
+
+### **Reward Distribution**
+- **Source**: Pre-allocated pools from treasury, NOT from minting
+- **Sustainability**: Fixed reward pools ensure long-term viability
+- **Revenue Sharing**: Protocol fees distributed 50/30/20 (stakers/treasury/contributors)
+
+## 🚀 Deployment Process
+
+### **RDAT Token Deployment**
+1. **Deploy TreasuryWallet** (UUPS upgradeable)
+2. **Deploy RDATUpgradeable implementation**
+3. **Deploy ERC1967Proxy with initialization**:
+   ```solidity
+   initialize(treasuryWallet, admin, migrationContract)
+   // This mints:
+   // - 70M RDAT to TreasuryWallet (manages vesting)
+   // - 30M RDAT to MigrationBridge
+   ```
+4. **TreasuryWallet distributes per DAO vote**:
+   - 4.95M to liquidity (immediate)
+   - Remaining follows vesting schedules
+5. **No further minting possible**: `mint()` function always reverts
+
+### **Security Guarantees**
+- **No MINTER_ROLE**: Role doesn't exist in the contract
+- **Fixed Supply**: Hard-coded 100M limit enforced
+- **Immutable Distribution**: Cannot change token allocations post-deployment
 
 ## 🏆 Staking System Design
 
@@ -37,7 +76,7 @@ The staking system incentivizes long-term commitment through increasing reward m
 ### **Key Features**
 - **Fixed Lock Periods**: 30, 90, 180, and 365 days
 - **Reward Multipliers**: 1x, 1.15x, 1.35x, and 1.75x respectively
-- **vRDAT Distribution**: Automatic governance token minting on stake
+- **vRDAT Distribution**: Automatic soul-bound governance token minting on stake
 - **Compound Option**: Re-stake rewards for increased positions
 - **Emergency Migration**: Admin-enabled penalty-free withdrawal for upgrades
 
@@ -45,7 +84,7 @@ The staking system incentivizes long-term commitment through increasing reward m
 - **Non-Upgradeable Contract**: Maximum security through immutability
 - **Manual Migration Pattern**: Clean upgrade path when needed
 - **Reentrancy Protection**: All external calls protected
-- **Flash Loan Defense**: 48-hour vRDAT mint delays
+- **Soul-Bound Defense**: vRDAT cannot be transferred or flash loaned
 - **Comprehensive Testing**: Full coverage of staking scenarios
 
 ## 🔌 Modular Rewards Architecture
@@ -95,7 +134,7 @@ For detailed architecture specification, see [Modular Rewards Architecture](./MO
 - **vRDAT Soul-bound Token**: Proportional distribution (days/365)
 - **Modular Rewards**: Triple-layer architecture (Token + Staking + Rewards)
 - **vRDATRewardModule**: First reward module with anti-gaming mechanics
-- **Security Enhancements**: Flash loan protection (48h delays), reentrancy guards
+- **Security Enhancements**: Soul-bound token design, reentrancy guards
 - **Multi-sig Integration**: Gnosis Safe addresses configured for all networks
 - **Deployment Infrastructure**: Scripts for testnet and mainnet deployment
 
@@ -195,8 +234,9 @@ sequenceStart
     Note over MigrationVana: 6-hour challenge period
     
     MigrationVana->>MigrationVana: validateProof(proof)
-    MigrationVana->>VanaRDAT: mint(user, amount + bonus)
-    VanaRDAT-->>User: Transfer RDAT on Vana
+    MigrationVana->>VanaRDAT: transfer(user, amount + bonus)
+    VanaRDAT-->>User: Receive RDAT on Vana
+    Note over VanaRDAT: Tokens transferred from pre-allocated 30M pool
 ```
 
 ### 🔒 Enhanced Migration Security
@@ -366,9 +406,9 @@ contract RDAT is
   - Revenue distribution to stakers (fee switch)
 
 - **VRC-20 Compliance:**
-  - Fixed supply with emergency minting capability (1% max, DAO controlled)
+  - Fixed supply of 100M tokens (no minting after deployment)
   - Transfer fees: 0-3% (configurable, max 300 basis points)
-  - Fee distribution: 50% to stakers, 30% to treasury, 20% burned
+  - Fee distribution: 50% to stakers, 30% to treasury, 20% to contributors
   - Team vesting: Minimum 6-month cliff (REQUIRED for DLP rewards)
   - Blocklist capability for regulatory compliance
   - No rebasing functionality
@@ -380,24 +420,25 @@ contract RDAT is
   - Revenue distribution from data sales
   - Integration with DataDAO ecosystem
 
-- **Emergency Mechanisms:**
+- **Security Mechanisms:**
   ```solidity
-  // Emergency minting with strict controls
-  uint256 public constant EMERGENCY_MINT_DELAY = 7 days;
-  uint256 public constant MAX_EMERGENCY_MINT = 1_000_000e18; // 1% of supply
-  uint256 public lastEmergencyMint;
+  // Fixed supply enforcement
+  function mint(address, uint256) external pure {
+      revert("Minting is disabled - all tokens minted at deployment");
+  }
   
-  function proposeEmergencyMint(
-      uint256 amount,
-      string calldata reason
-  ) external onlyRole(EMERGENCY_ROLE) requiresMultiSig(3, 5);
+  // Emergency pause mechanism (72-hour auto-expiry)
+  function emergencyPause() external onlyRole(PAUSER_ROLE) {
+      _pause();
+      pausedAt = block.timestamp;
+  }
   ```
 
 - **Revenue Distribution:**
   ```solidity
   uint256 public constant STAKER_SHARE = 5000; // 50%
   uint256 public constant TREASURY_SHARE = 3000; // 30%
-  uint256 public constant BURN_SHARE = 2000; // 20%
+  uint256 public constant CONTRIBUTOR_SHARE = 2000; // 20%
   
   function distributeRevenue() external {
       uint256 fees = collectedFees;
@@ -405,11 +446,11 @@ contract RDAT is
       
       uint256 stakerAmount = (fees * STAKER_SHARE) / 10000;
       uint256 treasuryAmount = (fees * TREASURY_SHARE) / 10000;
-      uint256 burnAmount = (fees * BURN_SHARE) / 10000;
+      uint256 contributorAmount = (fees * CONTRIBUTOR_SHARE) / 10000;
       
       stakingRewards.addRewards(stakerAmount);
       _transfer(address(this), treasury, treasuryAmount);
-      _burn(address(this), burnAmount);
+      _transfer(address(this), contributorPool, contributorAmount);
   }
   ```
 
@@ -2248,7 +2289,7 @@ contract QuadraticVoting is
 - **Multi-position Support**: Vote with multiple staking positions
 - **Gas Optimization**: Batch voting operations
 - **Proposal Lifecycle**: Creation, voting, execution, and appeals
-- **Flash Loan Protection**: 48-hour voting delay after staking
+- **Soul-Bound Protection**: vRDAT cannot be flash loaned or transferred
 - **Proposal Bonds**: 1000 RDAT bond to prevent spam (refundable)
 - **Emergency Governance**: 24-hour fast track for security issues
 - **Participation Incentives**: Rewards for active governance participation
@@ -2275,8 +2316,8 @@ function castVote(
     emit VoteCast(msg.sender, proposalId, numVotes, support);
 }
 
-// Flash loan protection modifier
-modifier flashLoanProtection() {
+// Soul-bound protection ensures no flash loans
+modifier onlyValidVoter() {
     require(
         block.timestamp > lastStakeTimestamp[msg.sender] + VOTING_DELAY,
         "Recent stake, voting disabled"
@@ -2734,90 +2775,101 @@ function getDecentralizationIndex() external view returns (uint256)
 
 ---
 
-# 🏭 Token Minting & Allocation System Specifications
+# 💰 Token Distribution & Allocation System Specifications
 
 ## 🎯 Overview
 
-The RDAT Token Minting & Allocation System implements DAO-governed token distribution with automated vesting schedules and comprehensive allocation tracking. **Deployed exclusively on Vana blockchain** as part of the complete RDAT tokenomics framework.
+The RDAT Token Distribution & Allocation System implements DAO-governed token distribution of the pre-minted 100M RDAT supply through automated vesting schedules and comprehensive allocation tracking. **Deployed exclusively on Vana blockchain** as part of the complete RDAT tokenomics framework with fixed supply guarantees.
 
-**Epic Reference**: DAO-Governed Token Minting & Allocation System (#1182)  
-**Priority**: P1 - High (Phase 2)  
-**Timeline**: 6 weeks (Starting after Token Deployment)  
-**Primary Blockchain**: Vana (all minting and allocation operations)  
-**Architecture**: DAO-governed tokenomics with vesting, allocation tracking, and claim mechanisms
+**Epic Reference**: DAO-Governed Token Distribution & Allocation System  
+**Priority**: P1 - High (Phase 1)  
+**Timeline**: Deployed at token launch  
+**Primary Blockchain**: Vana (all distribution and allocation operations)  
+**Architecture**: Fixed supply distribution with vesting, allocation tracking, and claim mechanisms
 
 ## 📦 Smart Contracts Required
 
-### 1. Core Contract: `MintingController.sol`
+### 1. Core Contract: `TreasuryWallet.sol`
 
 **Inheritance Structure:**
 ```solidity
-contract MintingController is 
+contract TreasuryWallet is 
     Initializable,
     AccessControlUpgradeable,
-    PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
     UUPSUpgradeable
 ```
 
 **Key Features:**
-- **DAO Integration**: Governance-controlled minting through proposal execution
-- **Allocation Limits**: Configurable maximum allocations per category
-- **Batch Minting**: Gas-efficient batch minting for multiple recipients
-- **Mint History**: Complete on-chain minting history and tracking
-- **Emergency Controls**: Pause functionality and emergency stop mechanisms
+- **Fixed Supply Management**: Receives 70M RDAT at token deployment
+- **DAO Integration**: Governance-controlled distribution through proposal execution
+- **Vesting Schedules**: Automated vesting with cliffs and linear release
+- **Phase-Gated Releases**: Future Rewards locked until Phase 3 activation
+- **Distribution Tracking**: Complete on-chain history of all distributions
 
 **Core Functions:**
 ```solidity
-// Execute DAO-approved minting
-function executeMint(
-    AllocationCategory category,
-    address[] calldata recipients,
-    uint256[] calldata amounts,
-    bytes32 proposalHash
-) external onlyRole(MINTER_ROLE) whenNotPaused
+// Process time-based vesting releases
+function checkAndRelease() external nonReentrant
 
-// Batch mint for gas efficiency
-function batchMint(
-    MintBatch[] calldata batches
-) external onlyRole(MINTER_ROLE) whenNotPaused
+// Distribute tokens with reason tracking
+function distribute(
+    address recipient, 
+    uint256 amount, 
+    string calldata reason
+) external onlyRole(DISTRIBUTOR_ROLE) nonReentrant
 
-// Check allocation remaining for category
-function getAllocationRemaining(
-    AllocationCategory category
-) external view returns (uint256)
+// Activate Phase 3 to unlock Future Rewards
+function setPhase3Active() external onlyRole(DEFAULT_ADMIN_ROLE)
 
-// Emergency pause minting
-function emergencyPause() external onlyRole(EMERGENCY_ROLE)
+// Execute DAO-approved proposals
+function executeDAOProposal(
+    uint256 proposalId,
+    address[] calldata targets,
+    uint256[] calldata values,
+    bytes[] calldata calldatas
+) external onlyRole(DAO_ROLE) nonReentrant
+
+// Get vesting information for allocation
+function getVestingInfo(bytes32 allocation) external view 
+    returns (uint256 total, uint256 released, uint256 available, bool isActive)
 ```
 
-**Allocation Categories:**
+**Initial Token Distribution:**
 ```solidity
-enum AllocationCategory {
-    MIGRATION,          // 30M RDAT - Base migration
-    FUTURE_REWARDS,     // 30M RDAT - Data contributions & staking
-    TREASURY,           // 25M RDAT - DAO treasury
-    LIQUIDITY          // 15M RDAT - DEX liquidity
+// At RDAT deployment, 100M tokens are minted and distributed:
+// - 70M to TreasuryWallet (managed by this contract)
+// - 30M to MigrationBridge (for V1 holder migration)
+
+// TreasuryWallet manages these allocations per DAO vote:
+bytes32 public constant FUTURE_REWARDS = keccak256("FUTURE_REWARDS");        // 30M - Phase 3 gated
+bytes32 public constant TREASURY_ECOSYSTEM = keccak256("TREASURY_ECOSYSTEM"); // 25M - 10% TGE, vesting
+bytes32 public constant LIQUIDITY_STAKING = keccak256("LIQUIDITY_STAKING");   // 15M - 33% TGE
+
+struct VestingSchedule {
+    uint256 total;              // Total allocation
+    uint256 released;           // Amount already released
+    uint256 tgeUnlock;          // Amount unlocked at TGE
+    uint256 cliffDuration;      // Cliff period in seconds
+    uint256 vestingDuration;    // Total vesting duration after cliff
+    uint256 vestingStart;       // Timestamp when vesting starts
+    uint256 lastRelease;        // Last release timestamp
+    bool isPhase3Gated;         // Whether this requires Phase 3
+    bool initialized;           // Whether schedule is set up
 }
 
-struct AllocationLimits {
-    uint256 totalAllocation;
-    uint256 mintedAmount;
-    uint256 remainingAmount;
-    bool active;
-}
-
-mapping(AllocationCategory => AllocationLimits) public allocationLimits;
+mapping(bytes32 => VestingSchedule) public vestingSchedules;
 ```
 
 **Access Control Roles:**
 ```solidity
-bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-bytes32 public constant ALLOCATION_ADMIN_ROLE = keccak256("ALLOCATION_ADMIN_ROLE");
-bytes32 public constant EMERGENCY_ROLE = keccak256("EMERGENCY_ROLE");
-bytes32 public constant GOVERNANCE_ROLE = keccak256("GOVERNANCE_ROLE");
+bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
+bytes32 public constant DAO_ROLE = keccak256("DAO_ROLE");
+bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+// DEFAULT_ADMIN_ROLE from AccessControl for admin functions
 ```
 
-### 2. Vesting System: `TokenVesting.sol`
+### 2. Team Vesting System: `TokenVesting.sol`
 
 **Inheritance Structure:**
 ```solidity
@@ -2829,62 +2881,59 @@ contract TokenVesting is
 ```
 
 **Key Features:**
-- **Team Vesting**: 6-month minimum cliff with linear vesting (VRC-20 compliance)
-- **Advisor Vesting**: Flexible vesting schedules for advisors
-- **Community Vesting**: Long-term community allocation vesting
-- **Batch Claims**: Gas-optimized batch claim processing
-- **Partial Claims**: Allow partial vesting claims before full maturation
+- **Team Vesting**: 6-month cliff with linear vesting (Vana DLP compliance)
+- **Flexible Start Date**: Admin can set vesting start when DLP becomes eligible for rewards
+- **Individual Schedules**: Create vesting schedules for each team member
+- **On-chain Proof**: Clear audit trail for Vana compliance verification
+- **Batch Claims**: Gas-optimized claim processing
 
 **Core Functions:**
 ```solidity
-// Create new vesting schedule
-function createVestingSchedule(
+// Set the vesting start date (when DLP becomes eligible for rewards)
+function setVestingStartDate(
+    uint256 startDate
+) external onlyRole(DEFAULT_ADMIN_ROLE)
+
+// Create team member vesting schedule (6-month cliff + vesting)
+function createTeamVesting(
     address beneficiary,
-    uint256 totalAmount,
-    uint256 cliff,
-    uint256 duration,
-    VestingType vestingType
+    uint256 totalAmount
 ) external onlyRole(VESTING_ADMIN_ROLE) returns (uint256 scheduleId)
 
 // Claim vested tokens
-function claimVestedTokens(
-    uint256 scheduleId
-) external nonReentrant returns (uint256 claimedAmount)
+function claimVestedTokens() external nonReentrant returns (uint256 claimedAmount)
 
-// Calculate vested amount
+// Calculate vested amount for beneficiary
 function calculateVestedAmount(
-    uint256 scheduleId
+    address beneficiary
 ) external view returns (uint256 vestedAmount)
 
-// Batch claim multiple schedules
-function batchClaim(
-    uint256[] calldata scheduleIds
-) external nonReentrant returns (uint256 totalClaimed)
+// Get vesting details for Vana compliance audit
+function getVestingSchedule(
+    address beneficiary
+) external view returns (VestingSchedule memory)
 ```
 
-**Vesting Types:**
+**Vesting Structure:**
 ```solidity
-enum VestingType {
-    TEAM_VESTING,       // 6-month cliff, 24-month linear
-    ADVISOR_VESTING,    // 3-month cliff, 12-month linear  
-    COMMUNITY_VESTING,  // No cliff, 36-month linear
-    TREASURY_VESTING    // Custom schedules per DAO vote
-}
-
 struct VestingSchedule {
     address beneficiary;
     uint256 totalAmount;
     uint256 claimedAmount;
-    uint256 startTime;
-    uint256 cliff;
-    uint256 duration;
-    VestingType vestingType;
-    bool revocable;
+    uint256 vestingStart;      // Set by admin when DLP eligible
+    uint256 cliffDuration;      // 6 months per Vana requirement
+    uint256 vestingDuration;    // Total vesting period after cliff
+    bool initialized;
     bool revoked;
 }
+
+// Constants per Vana DLP requirements
+uint256 public constant TEAM_CLIFF = 180 days;        // 6-month cliff
+uint256 public constant TEAM_VESTING = 540 days;      // 18-month vesting after cliff
+uint256 public constant MAX_TEAM_ALLOCATION = 10_000_000e18; // 10M RDAT cap
 ```
 
-### 3. Allocation Tracker: `AllocationTracker.sol`
+### 3. Distribution Tracker: `AllocationTracker.sol`
 
 **Inheritance Structure:**
 ```solidity
@@ -2895,200 +2944,112 @@ contract AllocationTracker is
 ```
 
 **Key Features:**
-- **Category Management**: Treasury, team, advisors, community allocations
-- **Real-time Tracking**: Live tracking of allocated vs distributed tokens
-- **Budget Controls**: Prevent over-allocation beyond approved limits
-- **Audit Trail**: Complete allocation history for compliance
-- **Analytics Integration**: Data feeds for dashboard and reporting
+- **Distribution Tracking**: Track all distributions from TreasuryWallet
+- **Category Management**: Future Rewards, Treasury/Ecosystem, Liquidity/Staking
+- **Real-time Monitoring**: Live tracking of distributed vs remaining tokens
+- **Audit Trail**: Complete distribution history for transparency
+- **Analytics Integration**: Data feeds for dashboards and reporting
 
 **Core Functions:**
 ```solidity
-// Record allocation
-function recordAllocation(
-    AllocationCategory category,
+// Record distribution from TreasuryWallet
+function recordDistribution(
+    bytes32 category,
     address recipient,
     uint256 amount,
-    AllocationType allocationType
+    string calldata reason
 ) external onlyRole(TRACKER_ROLE)
 
-// Get allocation summary
-function getAllocationSummary(
-    AllocationCategory category
-) external view returns (AllocationSummary memory)
+// Get distribution summary for category
+function getDistributionSummary(
+    bytes32 category
+) external view returns (DistributionSummary memory)
 
-// Track distribution
-function recordDistribution(
-    uint256 allocationId,
-    uint256 amount
-) external onlyRole(TRACKER_ROLE)
+// Get recipient history
+function getRecipientHistory(
+    address recipient
+) external view returns (Distribution[] memory)
 
-// Generate allocation report
-function generateAllocationReport(
+// Generate distribution report
+function generateDistributionReport(
     uint256 fromTimestamp,
     uint256 toTimestamp
-) external view returns (AllocationReport memory)
+) external view returns (DistributionReport memory)
 ```
 
-**Allocation Types:**
+**Distribution Types:**
 ```solidity
-enum AllocationType {
-    DIRECT_ALLOCATION,   // Direct token transfer
-    VESTING_ALLOCATION,  // Vesting schedule creation
-    STAKING_REWARD,      // Staking reward allocation
-    DATA_REWARD,         // Data contribution reward
-    LIQUIDITY_PROVISION  // DEX liquidity provision
+struct Distribution {
+    bytes32 category;
+    address recipient;
+    uint256 amount;
+    uint256 timestamp;
+    string reason;
 }
 
-struct AllocationSummary {
-    uint256 totalAllocated;
-    uint256 totalDistributed;
-    uint256 totalVesting;
-    uint256 totalClaimed;
-    uint256 remainingBudget;
+struct DistributionSummary {
+    uint256 totalAllocated;      // Initial allocation for category
+    uint256 totalDistributed;    // Amount distributed so far
+    uint256 totalPending;        // Vesting amount pending release
+    uint256 remainingBalance;    // Available for distribution
+    uint256 distributionCount;   // Number of distributions
 }
 ```
 
-### 4. Claims Interface: `ClaimsManager.sol`
-
-**Inheritance Structure:**
-```solidity
-contract ClaimsManager is 
-    Initializable,
-    AccessControlUpgradeable,
-    ReentrancyGuardUpgradeable,
-    UUPSUpgradeable
-```
-
-**Key Features:**
-- **Unified Claims**: Single interface for all claim types
-- **Batch Processing**: Efficient batch claim processing
-- **Gas Optimization**: Optimized claim operations
-- **Event Tracking**: Comprehensive claim event logging
-- **Error Recovery**: Robust error handling and recovery
-
-**Core Functions:**
-```solidity
-// Claim all available tokens
-function claimAll(address user) external nonReentrant returns (uint256 totalClaimed)
-
-// Claim specific allocation
-function claimAllocation(
-    uint256 allocationId
-) external nonReentrant returns (uint256 claimed)
-
-// Preview claimable amounts
-function getClaimableAmounts(
-    address user
-) external view returns (ClaimableAmounts memory)
-
-// Emergency claim for user
-function emergencyClaim(
-    address user,
-    uint256 amount
-) external onlyRole(EMERGENCY_ROLE)
-```
-
-### 5. Governance Integration: `MintingGovernance.sol`
-
-**Inheritance Structure:**
-```solidity
-contract MintingGovernance is 
-    Initializable,
-    AccessControlUpgradeable,
-    UUPSUpgradeable
-```
-
-**Key Features:**
-- **Proposal Execution**: Direct integration with governance voting results
-- **Timelock Integration**: 48-hour delay for critical minting decisions
-- **Multi-sig Coordination**: Integration with treasury multi-signature wallets
-- **Vote Verification**: Cryptographic verification of governance decisions
-- **Emergency Override**: Emergency governance bypass for critical issues
-
-**Core Functions:**
-```solidity
-// Execute approved minting proposal
-function executeProposal(
-    uint256 proposalId,
-    bytes calldata executionData
-) external onlyRole(EXECUTOR_ROLE)
-
-// Queue minting operation
-function queueMinting(
-    MintingOperation calldata operation
-) external onlyRole(GOVERNANCE_ROLE) returns (bytes32 operationHash)
-
-// Execute queued operation
-function executeMinting(
-    bytes32 operationHash
-) external onlyRole(EXECUTOR_ROLE)
-
-// Cancel queued operation
-function cancelMinting(
-    bytes32 operationHash
-) external onlyRole(CANCELLER_ROLE)
-```
 
 ## 🧪 Testing Strategy
 
 ### Unit Tests
-1. **MintingController Contract**
-   - DAO integration validation
-   - Allocation limit enforcement
-   - Batch minting efficiency
-   - Emergency pause functionality
+1. **TreasuryWallet Contract**
+   - Vesting schedule calculations
+   - Phase 3 activation logic
+   - Distribution authorization
+   - DAO proposal execution
    - Access control verification
 
-2. **Vesting System**
-   - Vesting calculation accuracy
-   - Cliff period enforcement
-   - Partial claim functionality
-   - Batch claim efficiency
-   - VRC-20 compliance validation
+2. **TokenVesting System**
+   - Vesting calculation accuracy (6-month cliff)
+   - Settable start date functionality
+   - Claim calculations after cliff
+   - Vana compliance verification
+   - Team allocation cap enforcement
 
-3. **Allocation Tracker**
-   - Real-time tracking accuracy
-   - Budget control enforcement
+3. **AllocationTracker**
+   - Distribution recording accuracy
+   - Category balance tracking
    - Audit trail completeness
    - Report generation accuracy
-   - Cross-contract integration
-
-4. **Claims Manager**
-   - Unified claim processing
-   - Gas optimization validation
-   - Error handling robustness
-   - Event logging completeness
-   - Emergency claim functionality
+   - Integration with TreasuryWallet
 
 ### Economic Model Testing
-1. **Tokenomics Validation**
-   - Allocation distribution accuracy
-   - Inflation impact modeling
-   - Vesting schedule optimization
-   - Economic equilibrium analysis
+1. **Fixed Supply Validation**
+   - Verify 100M total supply cap
+   - No minting after deployment
+   - Distribution accuracy from fixed pools
+   - Vesting schedule calculations
    - Market impact assessment
 
-2. **Allocation Testing**
-   - Category allocation accuracy
-   - Over-allocation prevention
-   - Distribution timeline validation
-   - Vesting timeline accuracy
-   - Claim timing optimization
+2. **Distribution Testing**
+   - Category allocation accuracy (30M/25M/15M)
+   - TGE unlock verification
+   - Vesting timeline validation
+   - Phase 3 activation testing
+   - Team allocation cap (10M)
 
 ### Security Testing
-1. **Minting Security**
-   - Unauthorized minting prevention
-   - Allocation limit bypass attempts
-   - Governance bypass attempts
-   - Emergency control validation
-   - Multi-signature security
+1. **Distribution Security**
+   - Unauthorized distribution prevention
+   - Fixed supply enforcement (no minting)
+   - Phase 3 gate verification
+   - Access control validation
+   - Multi-signature integration
 
 2. **Vesting Security**
    - Early claim prevention
-   - Vesting manipulation attempts
-   - Beneficiary spoofing prevention
-   - Schedule tampering protection
-   - Emergency revocation security
+   - Start date manipulation attempts
+   - Beneficiary authorization
+   - Schedule integrity protection
+   - Vana compliance verification
 
 ### Integration Tests
 1. **Governance Integration**
@@ -3116,26 +3077,26 @@ function cancelMinting(
    - Economic model validation
 
 2. **Development Scripts**
-   - `DeployMinting.s.sol`
-   - `ConfigureAllocations.s.sol`
-   - `SetupVesting.s.sol`
-   - `PopulateTestData.s.sol`
+   - `DeployTreasuryWallet.s.sol`
+   - `DeployTokenVesting.s.sol`
+   - `DeployAllocationTracker.s.sol`
+   - `SetupDistributions.s.sol`
 
 ### Testnet Deployment
 1. **Vana Moksha** (Full System Testing)
-   - Deploy complete minting system
-   - Integration with testnet governance
-   - Full allocation lifecycle testing
-   - Vesting system validation
+   - Deploy complete distribution system
+   - TreasuryWallet with 70M RDAT
+   - Vesting schedule configuration
+   - Team token vesting setup
    - Security audit preparation
 
 ### Mainnet Deployment
-1. **Vana Mainnet** (Production Minting)
-   - Production minting system deployment
-   - Integration with live governance system
-   - Treasury multi-sig configuration
-   - Monitoring and analytics setup
-   - Community allocation activation
+1. **Vana Mainnet** (Production Distribution)
+   - Production distribution system
+   - Integration with governance
+   - Multi-sig configuration
+   - Monitoring and analytics
+   - TGE distribution execution
 
 ## 🔒 Security & Audit Strategy
 
@@ -3170,82 +3131,84 @@ function cancelMinting(
 
 ## 💰 Economic Model
 
-### Allocation Distribution (100M RDAT Total)
-- **Migration**: 30M RDAT (30%) - Base holder migration
-- **Staking Rewards**: 15M RDAT (15%) - 2-year staking program
-- **VRC-14 Liquidity**: 5M RDAT (5%) - VANA liquidity incentives
-- **Ecosystem Fund**: 10M RDAT (10%) - Partnerships & integrations
-- **Treasury**: 15M RDAT (15%) - DAO operations
-- **Team Vesting**: 10M RDAT (10%) - Team tokens (6-month cliff)
-- **Liquidity**: 15M RDAT (15%) - DEX liquidity provision
+### Fixed Supply Distribution (100M RDAT Total)
+**Initial Distribution at Deployment:**
+- **TreasuryWallet**: 70M RDAT (70%) - Managed allocations
+- **MigrationBridge**: 30M RDAT (30%) - V1 holder migration
+
+**TreasuryWallet Allocations (per DAO vote):**
+- **Future Rewards**: 30M RDAT - Phase 3 locked (staking, data contributions)
+- **Treasury & Ecosystem**: 25M RDAT - 10% TGE, 6mo cliff, 18mo vesting
+  - Includes 10M RDAT reserved for team vesting
+- **Liquidity & Staking**: 15M RDAT - 33% TGE for DEX liquidity
 
 ### Vesting Schedules
-- **Team Vesting**: 6-month cliff, 24-month linear (VRC-20 compliant)
-- **Advisor Vesting**: 3-month cliff, 12-month linear
-- **Community Rewards**: No cliff, 36-month linear release
-- **Treasury Allocations**: Custom schedules per DAO vote
+- **Team Vesting**: 6-month cliff from DLP eligibility date (Vana requirement)
+- **Treasury/Ecosystem**: 10% at TGE, 6-month cliff, then 5% monthly
+- **Future Rewards**: Locked until Phase 3 activation
+- **Liquidity**: 33% at TGE, remainder for staking incentives
 
-### Governance Controls
-- **All minting requires DAO approval**
-- **48-hour timelock for execution**
-- **Multi-signature treasury integration**
-- **Emergency pause capabilities**
-- **Allocation limit enforcement**
+### Distribution Controls
+- **Fixed Supply**: No minting after deployment (mint() always reverts)
+- **DAO Governance**: All distributions require approval
+- **Multi-signature**: Treasury operations need multi-sig
+- **Phase Gates**: Future Rewards locked until Phase 3
+- **On-chain Tracking**: Complete audit trail
 
 ## 🎯 Success Metrics
 
 ### Operational Metrics
-- **Allocation Accuracy**: 100% accurate allocation tracking
-- **Vesting Automation**: 95% of claims processed automatically
-- **Governance Integration**: 100% of minting decisions governed by DAO
-- **Gas Efficiency**: <200k gas per allocation operation
+- **Distribution Accuracy**: 100% accurate distribution tracking
+- **Vesting Automation**: 95% of vesting releases processed automatically
+- **Governance Integration**: 100% of distributions governed by DAO
+- **Gas Efficiency**: <150k gas per distribution operation
 - **Uptime**: 99.9% system availability
 
 ### Business Metrics
-- **User Satisfaction**: 90% positive feedback on claiming experience
-- **Operational Efficiency**: 80% reduction in manual allocation overhead
+- **User Satisfaction**: 90% positive feedback on distribution experience
+- **Operational Efficiency**: 80% reduction in manual distribution overhead
 - **Compliance**: 100% audit trail completeness
 - **Security**: Zero critical vulnerabilities
-- **Distribution**: Complete migration of 30M Base RDAT holders
+- **Migration Success**: Complete migration of V1 RDAT holders
 
 ### Economic Metrics
-- **Token Distribution**: Fair and transparent allocation
-- **Inflation Control**: Predictable token supply growth
-- **Vesting Compliance**: 100% VRC-20 compliance
-- **Treasury Management**: Efficient fund allocation
-- **Market Stability**: Minimal price impact from distributions
+- **Fixed Supply**: 100M RDAT cap maintained forever
+- **Distribution Transparency**: All allocations on-chain
+- **Vesting Compliance**: 100% Vana DLP compliance for team tokens
+- **Treasury Management**: Efficient fund distribution
+- **Market Stability**: Controlled token release via vesting
 
 ## 📋 Deployment Scripts Required
 
-### 1. `DeployMinting.s.sol`
+### 1. `DeployDistributionSystem.s.sol`
 ```solidity
-// Deploy complete minting system
-// Configure allocation categories and limits
-// Set up governance integration
-// Initialize security controls
+// Deploy TreasuryWallet to receive 70M RDAT
+// Configure vesting schedules per DAO vote
+// Set up Phase 3 gate for Future Rewards
+// Initialize distribution roles
 ```
 
-### 2. `DeployVesting.s.sol`
+### 2. `DeployTeamVesting.s.sol`
 ```solidity
-// Deploy vesting contracts
-// Configure vesting schedules
-// Set up claim mechanisms
-// Initialize VRC-20 compliance
+// Deploy TokenVesting contract for team tokens
+// Configure 6-month cliff + vesting
+// Set up admin-controlled start date
+// Initialize Vana compliance tracking
 ```
 
-### 3. `ConfigureAllocations.s.sol`
+### 3. `ConfigureDistributions.s.sol`
 ```solidity
-// Set allocation limits per category
-// Configure governance integration
-// Set up tracking mechanisms
+// Process TGE distributions (liquidity, treasury)
+// Set up distribution tracking
+// Configure analytics integration
 // Initialize reporting systems
 ```
 
 ### 4. `SetupGovernanceIntegration.s.sol`
 ```solidity
-// Connect to governance contracts
-// Configure timelock mechanisms
-// Set up multi-signature integration
+// Connect TreasuryWallet to governance
+// Configure DAO proposal execution
+// Set up multi-signature roles
 // Initialize emergency controls
 ```
 

@@ -15,7 +15,7 @@ This document provides the complete smart contract specifications for RDAT V2 wi
 
 ## 🎯 Contract Scope & Implementation Status
 
-### Core Layer Contracts (11 Total)
+### Core Layer Contracts (12 Total)
 
 #### Token Layer
 1. **RDATUpgradeable.sol** - Main token with full VRC-20 compliance (UUPS) ✅
@@ -28,13 +28,14 @@ This document provides the complete smart contract specifications for RDAT V2 wi
 #### Rewards Layer
 5. **RewardsManager.sol** - Rewards orchestrator (upgradeable) ✅
 6. **vRDATRewardModule.sol** - Proportional governance distribution ✅
-7. **RDATRewardModule.sol** - Time-based staking rewards ✅
-8. **VRC14LiquidityModule.sol** - VANA liquidity incentives (reward module) 🎯
+7. **RDATRewardModule.sol** - Time-based staking rewards (Phase 3) 🔒
 
 #### Infrastructure
+8. **TreasuryWallet.sol** - DAO allocation management with vesting (UUPS) 🎯
 9. **MigrationBridge.sol** - V1→V2 cross-chain bridge 🎯
-10. **RevenueCollector.sol** - Fee distribution (50/30/20) 🎯
-11. **ProofOfContribution.sol** - Full Vana DLP implementation ✅
+10. **RevenueCollector.sol** - Fee distribution (50/30/20) ✅
+11. **EmergencyPause.sol** - Shared emergency response (72hr) ✅
+12. **ProofOfContribution.sol** - Vana DLP stub implementation ✅
 
 
 ### 🏭 Architecture Benefits
@@ -55,6 +56,29 @@ This document provides the complete smart contract specifications for RDAT V2 wi
 - Isolated reward modules limit risk
 - Emergency pause per program
 - Clean migration path for staking upgrades
+
+### 🏆 Rewards Architecture
+
+**Key Design Decision**: RDAT has a fixed supply of 100M tokens, fully minted at deployment. No new tokens can be created.
+
+**Phase 1 (Launch)**:
+- Only vRDAT governance rewards active
+- Encourages staking participation and governance
+- No RDAT token rewards yet
+
+**Phase 3 (Future)**:
+- RDATRewardModule deployed and funded
+- 30M RDAT from Future Rewards allocation
+- Time-based accumulation with multipliers
+
+**Reward Flow**:
+```
+Phase 1: Staking → vRDATRewardModule → Mint vRDAT
+Phase 3: TreasuryWallet → RDATRewardModule → Transfer RDAT
+Revenue: Fees → RevenueCollector → Swap to RDAT → Distribute
+```
+
+This ensures sustainable tokenomics without inflation.
 
 ## 📦 Contract Specifications
 
@@ -104,20 +128,26 @@ contract RDAT is
     event VRCContractSet(string contractType, address indexed contractAddress);
     event RevenueCollectorSet(address indexed collector);
     
-    constructor(address treasury) 
-        ERC20("r/datadao", "RDAT") 
-        ERC20Permit("r/datadao") 
+    function initialize(address treasuryWallet, address admin, address migrationContract) 
+        public initializer 
     {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(PAUSER_ROLE, msg.sender);
+        __ERC20_init("r/datadao", "RDAT");
+        __AccessControl_init();
+        // ... other initializers
         
-        // Mint non-migration supply to treasury
-        _mint(treasury, TOTAL_SUPPLY - MIGRATION_ALLOCATION);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(PAUSER_ROLE, admin);
+        
+        // Mint ENTIRE supply at deployment
+        _mint(treasuryWallet, TOTAL_SUPPLY - MIGRATION_ALLOCATION); // 70M
+        _mint(migrationContract, MIGRATION_ALLOCATION); // 30M
+        
+        // No MINTER_ROLE exists or granted
     }
     
-    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
-        require(totalSupply() + amount <= TOTAL_SUPPLY, "Exceeds max supply");
-        _mint(to, amount);
+    // Mint function exists only to satisfy interface - always reverts
+    function mint(address, uint256) external pure {
+        revert("Minting is disabled - all tokens minted at deployment");
     }
     
     function pause() external onlyRole(PAUSER_ROLE) {
@@ -195,7 +225,7 @@ contract vRDAT is AccessControl, IvRDAT {
     uint256 public totalSupply;
     
     // Constants
-    uint256 public constant MINT_DELAY = 48 hours; // Flash loan protection
+    // No mint delay - soul-bound tokens cannot be flash loaned
     uint256 public constant MAX_PER_ADDRESS = 10_000_000 * 10**18; // 10M cap per address
     
     // Events
@@ -212,16 +242,12 @@ contract vRDAT is AccessControl, IvRDAT {
     }
     
     function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
-        if (block.timestamp < lastMintTime[to] + MINT_DELAY) {
-            revert MintDelayNotMet();
-        }
         if (_balances[to] + amount > MAX_PER_ADDRESS) {
             revert ExceedsMaxBalance();
         }
         
         _balances[to] += amount;
         totalSupply += amount;
-        lastMintTime[to] = block.timestamp;
         
         emit Mint(to, amount);
     }
@@ -272,7 +298,7 @@ contract vRDAT is AccessControl, IvRDAT {
 
 **Key Requirements**:
 - ✅ Completely non-transferable (soul-bound)
-- ✅ 48-hour mint delay for flash loan protection
+- ✅ Soul-bound design prevents flash loans (no mint delay needed)
 - ✅ 10M token cap per address
 - ✅ Minting only through staking contract
 - ✅ Burning for governance voting with quadratic cost (n²)
@@ -294,11 +320,34 @@ contract vRDAT is AccessControl, IvRDAT {
 
 **Key Features**:
 - Each stake creates an ERC-721 NFT position
-- Unlimited concurrent stakes per user
+- Limited to 100 concurrent stakes per user (DoS prevention)
 - Soul-bound during lock period (non-transferable)
 - Conditional transfer after unlock (must clear vRDAT first)
+- Minimum stake amount: 1 RDAT (dust attack prevention)
+- Integrated with RewardsManager for notifications
+- **NO REWARD CALCULATIONS**: All rewards handled by RewardsManager
 - UUPS upgradeable with storage gaps
 - Integration with modular rewards system
+- RewardsManager notification on stake/unstake
+- Revenue distribution integration
+
+**Updated Requirements**:
+```solidity
+// Security Constants
+uint256 public constant MIN_STAKE_AMOUNT = 1e18; // 1 RDAT minimum
+uint256 public constant MAX_POSITIONS_PER_USER = 100;
+
+// Integration
+address public rewardsManager;
+function setRewardsManager(address _rewardsManager) external onlyRole(ADMIN_ROLE);
+event RewardsManagerUpdated(address indexed newRewardsManager);
+
+// Revenue Distribution
+function notifyRewardAmount(uint256 amount) external {
+    require(msg.sender == revenueCollector || hasRole(ADMIN_ROLE, msg.sender), "Not authorized");
+    pendingRevenueRewards += amount;
+}
+```
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -778,10 +827,12 @@ abstract contract EmergencyPause is AccessControl {
 
 ---
 
-### 6. RevenueCollector.sol (NEW)
+### 6. RevenueCollector.sol ❌ **NOT IMPLEMENTED**
 
-**Purpose**: Fee distribution mechanism for sustainable tokenomics
+**Purpose**: Fee distribution mechanism for sustainable tokenomics  
+**Status**: Specification complete, implementation pending  
 
+**Updated Specification**:
 ```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
@@ -790,7 +841,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IRDAT.sol";
-import "./interfaces/IStaking.sol";
+import "./interfaces/IStakingPositions.sol";
 
 contract RevenueCollector is AccessControl, ReentrancyGuard {
     // Roles
@@ -799,8 +850,11 @@ contract RevenueCollector is AccessControl, ReentrancyGuard {
     // Distribution percentages (basis points)
     uint256 public constant STAKER_SHARE = 5000; // 50%
     uint256 public constant TREASURY_SHARE = 3000; // 30%
-    uint256 public constant BURN_SHARE = 2000; // 20%
+    uint256 public constant CONTRIBUTOR_SHARE = 2000; // 20%
     uint256 public constant BASIS_POINTS = 10000;
+    
+    // Distribution threshold
+    uint256 public distributionThreshold = 1000e18; // 1000 RDAT minimum
     
     // Contracts
     IRDAT public immutable rdatToken;
