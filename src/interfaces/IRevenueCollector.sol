@@ -3,37 +3,50 @@ pragma solidity 0.8.23;
 
 /**
  * @title IRevenueCollector
- * @dev Interface for revenue collection and distribution mechanism
- * Implements 50/30/20 split for stakers/treasury/development
+ * @author r/datadao
+ * @notice Interface for the revenue collection and distribution system
  */
 interface IRevenueCollector {
     // Events
-    event RevenueCollected(address indexed token, uint256 amount);
-    event RevenueDistributed(uint256 stakersShare, uint256 treasuryShare, uint256 developmentShare);
-    event DistributionAddressesSet(address staking, address treasury, address development);
-    event EmergencyWithdraw(address indexed token, uint256 amount);
-    
-    // Functions
-    function collectRevenue(address token, uint256 amount) external;
-    function distributeRevenue(address token) external;
-    function setDistributionAddresses(
-        address _stakingContract,
-        address _treasury,
-        address _development
-    ) external;
-    function emergencyWithdraw(address token) external;
-    
-    // State getters
-    function stakingContract() external view returns (address);
-    function treasury() external view returns (address);
-    function development() external view returns (address);
+    event RevenueReported(address indexed token, uint256 amount, address indexed reporter);
+    event RevenueDistributed(
+        address indexed token, 
+        uint256 totalAmount, 
+        uint256 stakingAmount, 
+        uint256 treasuryAmount, 
+        uint256 contributorAmount
+    );
+    event ThresholdUpdated(address indexed token, uint256 oldThreshold, uint256 newThreshold);
+    event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+    event ContributorPoolUpdated(address indexed oldPool, address indexed newPool);
+    event TokenSupported(address indexed token, uint256 threshold);
+    event TokenRemoved(address indexed token);
+    event EmergencyRecovery(address indexed token, uint256 amount, address indexed recipient);
+
+    // Core functions
+    function notifyRevenue(address token, uint256 amount) external;
+    function distribute(address token) external returns (uint256 stakingAmount, uint256 treasuryAmount, uint256 contributorAmount);
+    function distributeAll() external returns (
+        address[] memory tokens,
+        uint256[] memory stakingAmounts,
+        uint256[] memory treasuryAmounts,
+        uint256[] memory contributorAmounts
+    );
+
+    // View functions
     function pendingRevenue(address token) external view returns (uint256);
-    function totalCollected(address token) external view returns (uint256);
+    function distributionThreshold(address token) external view returns (uint256);
+    function totalRevenueCollected(address token) external view returns (uint256);
     function totalDistributed(address token) external view returns (uint256);
-    
-    // Constants
-    function STAKERS_SHARE() external view returns (uint256); // 5000 (50%)
-    function TREASURY_SHARE() external view returns (uint256); // 3000 (30%)
-    function DEVELOPMENT_SHARE() external view returns (uint256); // 2000 (20%)
-    function BASIS_POINTS() external view returns (uint256); // 10000
+    function getSupportedTokens() external view returns (address[] memory);
+    function getPendingRevenue() external view returns (address[] memory tokens, uint256[] memory amounts);
+    function isDistributionNeeded() external view returns (bool needed, address[] memory tokensReady);
+    function getStats() external view returns (uint256 totalDistributions_, uint256 lastDistributionTime_, uint256 supportedTokenCount);
+
+    // Admin functions
+    function setDistributionThreshold(address token, uint256 threshold) external;
+    function setTreasury(address newTreasury) external;
+    function setContributorPool(address newContributorPool) external;
+    function addSupportedToken(address token, uint256 threshold) external;
+    function removeSupportedToken(address token) external;
 }
