@@ -1,402 +1,197 @@
-# 🔐 RDAT V2 Access Control Matrix
+# Access Control Matrix - RDAT V2
 
-**Date**: August 6, 2025  
-**Version**: 1.0 - Complete Role Definitions  
-**Multi-sig Setup**: Gnosis Safe (3-of-5 signatures required)  
-**Security Model**: External multi-sig with role-based access control  
+**Last Updated**: August 6, 2025  
+**Status**: Complete specification of all roles and assignments  
 
 ---
 
-## 🎯 Overview
+## 🔐 Overview
 
-This document defines all access control roles across the RDAT V2 smart contract ecosystem, specifying which operations require multi-sig approval versus single admin permissions, and providing the exact multi-sig addresses for each network.
-
-### **Security Philosophy**
-- **Critical Operations**: Require 3-of-5 multi-sig approval through Gnosis Safe
-- **Operational Tasks**: Single admin or automated systems for efficiency
-- **Emergency Response**: Fast multi-sig coordination with hardware wallet support
-- **External Multi-sig**: Leverage proven Gnosis Safe infrastructure instead of custom logic
+This document defines all access control roles across the RDAT V2 ecosystem, their permissions, and recommended assignments. All contracts use OpenZeppelin's AccessControl pattern with role-based permissions.
 
 ---
 
-## 🌍 Network-Specific Multi-sig Addresses
+## 📋 Role Assignments by Contract
 
-### **Gnosis Safe Multi-sig Addresses (3-of-5 Threshold)**
+### 1. RDATUpgradeable.sol
 
-#### **Vana Networks**
-```
-Vana Mainnet:  0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319
-Vana Moksha:   0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319
-```
+| Role | Permission | Assignment | Notes |
+|------|------------|------------|-------|
+| DEFAULT_ADMIN_ROLE | Grant/revoke all roles | Multisig | 3/5 signatures required |
+| PAUSER_ROLE | Pause token transfers | Multisig + Emergency Team | 2/5 for emergency |
+| UPGRADER_ROLE | Upgrade contract logic | Multisig only | 3/5 signatures + timelock |
 
-#### **Base Networks**  
-```
-Base Mainnet:  0x90013583c66D2bf16327cB5Bc4a647AcceCF4B9A
-Base Sepolia:  0x90013583c66D2bf16327cB5Bc4a647AcceCF4B9A
-```
+**Note**: No MINTER_ROLE exists - all 100M tokens minted at deployment
 
-### **Multi-sig Configuration**
-- **Threshold**: 3-of-5 signatures required for all multi-sig operations
-- **Signers**: 5 trusted community members with hardware wallets
-- **Emergency Response**: Mobile app available for time-sensitive operations
-- **Transaction Batching**: Multiple operations can be bundled for efficiency
+### 2. vRDAT.sol
 
----
+| Role | Permission | Assignment | Notes |
+|------|------------|------------|-------|
+| DEFAULT_ADMIN_ROLE | Grant/revoke roles | Multisig | Cannot mint directly |
+| MINTER_ROLE | Mint vRDAT tokens | vRDATRewardModule ONLY | Soul-bound tokens |
+| BURNER_ROLE | Burn vRDAT tokens | vRDATRewardModule ONLY | For emergency exits |
 
-## 🛡️ Role Definitions by Contract
+### 3. StakingPositions.sol
 
-### **1. RDATUpgradeable.sol**
+| Role | Permission | Assignment | Notes |
+|------|------------|------------|-------|
+| ADMIN_ROLE | Set parameters, pause | Multisig | Non-upgradeable |
+| REWARDS_MANAGER_ROLE | Update reward rates | RewardsManager contract | Automated only |
 
-#### **Multi-sig Controlled Roles**
-```solidity
-DEFAULT_ADMIN_ROLE → Gnosis Safe Multi-sig
-├─ Contract upgrades (UUPS proxy)
-├─ VRC-20 contract configuration (PoC, DataRefiner)  
-├─ Revenue collector configuration
-└─ Emergency parameter changes
+### 4. RewardsManager.sol
 
-PAUSER_ROLE → Gnosis Safe Multi-sig
-├─ Emergency pause activation
-├─ Emergency unpause (coordination required)
-└─ Protocol-wide emergency response
-```
+| Role | Permission | Assignment | Notes |
+|------|------------|------------|-------|
+| DEFAULT_ADMIN_ROLE | Register reward programs | Multisig | Program governance |
+| STAKING_NOTIFIER_ROLE | Notify stake/unstake | StakingPositions contract | Automated only |
+| UPGRADER_ROLE | Upgrade contract | Multisig | 3/5 + timelock |
 
-#### **No Minting Roles**
-```solidity
-// REMOVED: No MINTER_ROLE exists - fixed supply model
-// REMOVED: No mint() function - completely eliminated
-// SECURITY: Zero minting capability ensures true fixed supply
-```
+### 5. vRDATRewardModule.sol
 
-#### **Operations Summary**
-- **Multi-sig Required**: All administrative functions, VRC-20 config, pausing
-- **Single Admin**: None - all operations require multi-sig
-- **Automated**: None - all operations require human approval
+| Role | Permission | Assignment | Notes |
+|------|------------|------------|-------|
+| DEFAULT_ADMIN_ROLE | Emergency functions | Multisig | Circuit breaker |
+| REWARDS_MANAGER_ROLE | Call reward functions | RewardsManager contract | Automated only |
 
----
+### 6. RDATRewardModule.sol (Phase 3)
 
-### **2. vRDAT.sol (Governance Token)**
+| Role | Permission | Assignment | Notes |
+|------|------------|------------|-------|
+| DEFAULT_ADMIN_ROLE | Set reward parameters | Multisig | Phase 3 activation |
+| REWARDS_MANAGER_ROLE | Distribute rewards | RewardsManager contract | Automated only |
 
-#### **Multi-sig Controlled Roles**
-```solidity
-DEFAULT_ADMIN_ROLE → Gnosis Safe Multi-sig
-├─ Contract administration
-├─ Emergency parameter changes
-└─ Role management
+### 7. MigrationBridge.sol
 
-PAUSER_ROLE → Gnosis Safe Multi-sig  
-├─ Emergency pause activation
-└─ Emergency unpause coordination
-```
+| Role | Permission | Assignment | Notes |
+|------|------------|------------|-------|
+| DEFAULT_ADMIN_ROLE | Emergency pause | Multisig | Both chains |
+| VALIDATOR_ROLE | Validate migrations | 3 validators minimum | 2/3 consensus |
+| CHALLENGER_ROLE | Challenge migrations | Security monitors | 6-hour window |
 
-#### **Reward Module Roles**
-```solidity
-MINTER_ROLE → vRDATRewardModule Contract Address
-├─ Automatic minting when positions created
-├─ Proportional to staked amount and lock duration
-└─ No human intervention required
+**Validators** (TBD at deployment):
+- Validator 1: `0x...` (Independent security firm)
+- Validator 2: `0x...` (Community validator)
+- Validator 3: `0x...` (Team validator)
 
-BURNER_ROLE → vRDATRewardModule Contract Address
-├─ Automatic burning when positions unstaked
-├─ Maintains governance token accuracy  
-└─ No human intervention required
-```
+### 8. EmergencyPause.sol
 
-#### **Operations Summary**
-- **Multi-sig Required**: Admin functions, pausing, role changes
-- **Automated**: Minting/burning via reward modules
-- **Single Admin**: None
+| Role | Permission | Assignment | Notes |
+|------|------------|------------|-------|
+| PAUSER_ROLE | Trigger emergency pause | Multisig + Emergency Team | 72-hour auto-expiry |
+| UNPAUSER_ROLE | Unpause before expiry | Multisig only | 3/5 required |
+
+### 9. RevenueCollector.sol
+
+| Role | Permission | Assignment | Notes |
+|------|------------|------------|-------|
+| DEFAULT_ADMIN_ROLE | Set distribution params | Multisig | 50/30/20 split |
+| DISTRIBUTOR_ROLE | Trigger distribution | Multisig + Automation | Weekly basis |
+
+### 10. ProofOfContribution.sol
+
+| Role | Permission | Assignment | Notes |
+|------|------------|------------|-------|
+| DEFAULT_ADMIN_ROLE | System configuration | Multisig | VRC-20 params |
+| VALIDATOR_ROLE | Validate contributions | Oracle network | Multiple validators |
+| REGISTRAR_ROLE | Register contributors | Multisig | KYC compliance |
 
 ---
 
-### **3. StakingPositions.sol**
+## 🏛️ Multisig Addresses
 
-#### **Multi-sig Controlled Roles**
-```solidity
-DEFAULT_ADMIN_ROLE → Gnosis Safe Multi-sig
-├─ RewardsManager configuration
-├─ Emergency parameter changes
-└─ Contract administration
+### Vana Network
+- **Primary Multisig**: `0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319`
+- **Signers**: 5 (require 3/5 for critical, 2/5 for emergency)
+- **Timelock**: 48 hours for upgrades
 
-PAUSER_ROLE → Gnosis Safe Multi-sig
-├─ Emergency pause of staking operations
-├─ Emergency migration activation
-└─ Coordination with other pause systems
-
-UPGRADER_ROLE → Gnosis Safe Multi-sig
-├─ Contract upgrades (UUPS proxy)
-├─ Storage layout changes
-└─ Implementation updates
-```
-
-#### **Operational Roles**
-```solidity
-// No operational roles - all functions are user-facing or automated
-// Emergency migration is multi-sig controlled for security
-```
-
-#### **Operations Summary**
-- **Multi-sig Required**: Upgrades, emergency actions, RewardsManager changes
-- **User Operations**: Staking, unstaking, position management  
-- **Automated**: Reward notifications to RewardsManager
+### Base Network (Legacy)
+- **Monitoring Only**: `0x90013583c66D2bf16327cB5Bc4a647AcceCF4B9A`
+- **Purpose**: Monitor V1 token burns only
+- **No V2 permissions**
 
 ---
 
-### **4. RewardsManager.sol**
+## 🚨 Emergency Response Team
 
-#### **Multi-sig Controlled Roles**
-```solidity
-DEFAULT_ADMIN_ROLE → Gnosis Safe Multi-sig
-├─ Reward program registration
-├─ Program parameter updates
-├─ Phase 3 activation
-└─ Emergency program suspension
+**Purpose**: Rapid response to security incidents
 
-UPGRADER_ROLE → Gnosis Safe Multi-sig
-├─ Contract upgrades (UUPS proxy)
-├─ Architecture improvements
-└─ New module integration
+**Members** (addresses to be set at deployment):
+1. **Technical Lead**: `0x...` (24/7 availability)
+2. **Security Lead**: `0x...` (Incident response)
+3. **Operations Lead**: `0x...` (Communication)
 
-PROGRAM_MANAGER_ROLE → Gnosis Safe Multi-sig
-├─ Create new reward programs
-├─ Update program parameters
-├─ Suspend/resume programs
-└─ Module configuration
-```
-
-#### **Phase 3 Activation**
-```solidity
-// Phase 3 Activation Process
-function activatePhase3() external onlyRole(DEFAULT_ADMIN_ROLE) {
-    // Controlled by multi-sig
-    // Requires DAO vote approval via Snapshot
-    // Sets boolean flag for 30M token unlock eligibility
-}
-```
-
-#### **Operations Summary**
-- **Multi-sig Required**: All administrative functions, Phase 3 activation
-- **Automated**: Reward distribution coordination
-- **User Operations**: Claim rewards from all active programs
+**Permissions**:
+- Can pause critical contracts (with multisig member)
+- Cannot unpause (requires full multisig)
+- Cannot upgrade or modify parameters
 
 ---
 
-### **5. RevenueCollector.sol**
+## 🔄 Role Management Procedures
 
-#### **Multi-sig Controlled Roles**
-```solidity
-DEFAULT_ADMIN_ROLE → Gnosis Safe Multi-sig
-├─ Revenue distribution configuration
-├─ Pool address updates (treasury, contributors)
-├─ RewardsManager integration updates
-└─ Emergency parameter changes
+### Adding a New Role Member
+1. Proposal created with justification
+2. 48-hour discussion period
+3. Multisig vote (3/5 required)
+4. 24-hour timelock before execution
+5. On-chain execution with event emission
 
-UPGRADER_ROLE → Gnosis Safe Multi-sig
-├─ Contract upgrades (UUPS proxy)
-├─ Distribution logic improvements  
-└─ Automation enhancements
-```
+### Removing a Role Member
+1. Immediate removal for security incidents
+2. Standard removal follows add procedure
+3. Document reason in transaction
 
-#### **Operational Roles**
-```solidity
-REVENUE_REPORTER_ROLE → Automated Bot OR Multi-sig
-├─ Report revenue from various sources
-├─ Trigger manual revenue distribution
-├─ Update revenue metrics
-└─ Operational efficiency role
-
-// DECISION: Can be granted to automated systems for efficiency
-// FALLBACK: Multi-sig retains ability to report revenue manually
-```
-
-#### **Operations Summary**
-- **Multi-sig Required**: Configuration, upgrades, pool addresses
-- **Automated/Bot**: Revenue reporting (with multi-sig oversight)
-- **Manual**: Revenue distribution (V2), automated in V3
+### Emergency Role Changes
+1. 2/5 multisig can remove compromised addresses
+2. Full documentation required within 24 hours
+3. Community notification mandatory
 
 ---
 
-### **6. TreasuryWallet.sol**
+## 📊 Permission Matrix Summary
 
-#### **Multi-sig Controlled Roles**
-```solidity
-DEFAULT_ADMIN_ROLE → Gnosis Safe Multi-sig
-├─ Treasury operations
-├─ Vesting schedule management
-├─ Phase 3 token allocation (30M unlock)
-└─ Emergency treasury actions
-
-UPGRADER_ROLE → Gnosis Safe Multi-sig
-├─ Contract upgrades (UUPS proxy)
-├─ Treasury functionality improvements
-└─ Governance integration updates
-```
-
-#### **Operations Summary**
-- **Multi-sig Required**: All treasury operations, Phase 3 unlocks
-- **Automated**: Vesting schedule execution
-- **DAO Governance**: Major allocation decisions via Snapshot
+| Action | Required Signatures | Timelock | Notes |
+|--------|-------------------|----------|-------|
+| Token Upgrade | 3/5 | 48 hours | UUPS pattern |
+| Emergency Pause | 2/5 | None | 72-hour auto-expiry |
+| Unpause | 3/5 | None | Before auto-expiry |
+| Add Reward Program | 3/5 | 24 hours | RewardsManager |
+| Set Parameters | 3/5 | 24 hours | Most contracts |
+| Role Grant/Revoke | 3/5 | 24 hours | All contracts |
+| Revenue Distribution | 2/5 | None | Manual trigger |
 
 ---
 
-### **7. Migration Contracts**
+## 🔍 Audit Trail
 
-#### **VanaMigrationBridge.sol**
-```solidity
-DEFAULT_ADMIN_ROLE → Gnosis Safe Multi-sig
-├─ Bridge configuration
-├─ Validator management
-├─ Daily limit adjustments
-└─ Emergency bridge suspension
-
-VALIDATOR_ROLE → Multiple Independent Validators
-├─ Migration request validation (2-of-3 minimum)
-├─ Cross-chain verification
-├─ Fraud prevention
-└─ Consensus mechanism
-```
-
-#### **BaseMigrationBridge.sol**
-```solidity
-DEFAULT_ADMIN_ROLE → Gnosis Safe Multi-sig
-├─ Bridge configuration
-├─ Migration deadline management
-└─ Emergency suspension
-
-PAUSER_ROLE → Gnosis Safe Multi-sig
-├─ Emergency pause migration
-└─ Security incident response
-```
-
-#### **Operations Summary**
-- **Multi-sig Required**: Bridge configuration, validator management
-- **Validator Network**: Independent validation of cross-chain operations
-- **Automated**: Migration processing after validation
+All role assignments and changes are:
+1. Recorded on-chain via events
+2. Documented in multisig transaction notes
+3. Announced to community via official channels
+4. Tracked in this document with version history
 
 ---
 
-### **8. Emergency Systems**
+## 📞 Contact Information
 
-#### **EmergencyPause.sol**
-```solidity
-DEFAULT_ADMIN_ROLE → Gnosis Safe Multi-sig
-├─ Protocol-wide pause coordination
-├─ 72-hour auto-expiry configuration
-├─ Cross-contract pause management
-└─ Emergency response coordination
+**For deployment, actual contacts will be**:
+- Technical Issues: [Technical Lead Contact]
+- Security Incidents: [Security Email]
+- General Inquiries: [Community Channels]
 
-PAUSER_ROLE → Gnosis Safe Multi-sig
-├─ Immediate pause activation
-├─ Emergency unpause (coordination required)
-└─ Incident response management
-```
-
-#### **Emergency Response Workflow**
-1. **Incident Detection**: Automated monitoring or community report
-2. **Multi-sig Activation**: 3-of-5 signers coordinate emergency pause
-3. **Assessment Period**: Team evaluates incident severity
-4. **Resolution**: Fix deployment or 72-hour auto-expiry
-5. **Recovery**: Coordinated unpause across all contracts
+**Response Times**:
+- Critical Security: < 1 hour
+- High Priority: < 4 hours
+- Normal Operations: < 24 hours
 
 ---
 
-## 🚨 Emergency Response Procedures
+## 🔄 Document Maintenance
 
-### **Immediate Response (0-1 hours)**
-1. **Incident Verification**: Confirm threat legitimacy  
-2. **Multi-sig Coordination**: Contact available signers via secure channels
-3. **Emergency Pause**: Execute pause across affected contracts
-4. **Public Communication**: Notify community via Discord/Twitter
+This document must be updated:
+- Before any mainnet deployment
+- After any role assignment changes
+- When emergency procedures are invoked
+- During regular quarterly reviews
 
-### **Assessment Phase (1-24 hours)**
-1. **Technical Analysis**: Evaluate vulnerability scope and impact
-2. **Solution Development**: Prepare fix or mitigation strategy
-3. **Testing**: Validate solution on testnet environments
-4. **Stakeholder Communication**: Update community on progress
-
-### **Recovery Phase (24-72 hours)**  
-1. **Fix Deployment**: Deploy updates if needed
-2. **Security Review**: Final validation of resolution
-3. **Coordinated Unpause**: Resume operations across contracts
-4. **Post-mortem**: Document incident and improve procedures
-
-### **Multi-sig Response Tools**
-- **Hardware Wallets**: All signers use hardware wallets for security
-- **Mobile App**: Gnosis Safe app for urgent responses
-- **Transaction Batching**: Bundle multiple emergency actions
-- **Timelock Override**: Critical functions can bypass normal delays
-
----
-
-## 🔧 Role Management Procedures
-
-### **Role Granting Process**
-1. **Multi-sig Proposal**: Create transaction in Gnosis Safe
-2. **Community Discussion**: Discord discussion for transparency  
-3. **Signer Review**: 3-of-5 signers review and approve
-4. **Execution**: Role granted via multi-sig transaction
-5. **Verification**: Confirm role assignment on-chain
-
-### **Role Revocation Process**
-1. **Security Assessment**: Evaluate need for role removal
-2. **Multi-sig Coordination**: Prepare revocation transaction
-3. **Emergency Protocol**: Immediate revocation if security threat
-4. **Documentation**: Record reason and process
-
-### **Regular Audits**
-- **Monthly**: Review all active roles and permissions
-- **Quarterly**: Full access control audit with security team
-- **Annually**: Comprehensive security review with external auditors
-- **Post-incident**: Role review after any security event
-
----
-
-## 📋 Implementation Checklist
-
-### **Deployment Phase**
-- [ ] Deploy all contracts with placeholder admin addresses
-- [ ] Configure Gnosis Safe with 3-of-5 threshold on each network
-- [ ] Transfer all admin roles to multi-sig addresses
-- [ ] Verify role assignments on-chain
-- [ ] Test emergency pause procedures
-
-### **Operational Phase**  
-- [ ] Grant REVENUE_REPORTER_ROLE to automated systems
-- [ ] Configure reward module permissions (MINTER/BURNER roles)
-- [ ] Set up monitoring for unauthorized role changes
-- [ ] Document emergency response procedures
-- [ ] Train multi-sig signers on procedures
-
-### **Governance Phase**
-- [ ] Implement Phase 3 activation procedures
-- [ ] Connect treasury management to DAO governance
-- [ ] Establish role change governance processes
-- [ ] Regular security audits and role reviews
-
----
-
-## 🎯 Security Benefits
-
-### **Gnosis Safe Integration**
-- **Battle-tested**: Securing $100B+ across DeFi
-- **Hardware Wallet Support**: All signers use hardware wallets
-- **Mobile Emergency Response**: Critical for time-sensitive incidents
-- **Transaction Batching**: Efficient multi-operation execution
-- **Upgrade Path**: No contract changes needed for multi-sig updates
-
-### **Role Separation**
-- **Critical vs. Operational**: Multi-sig for critical, automation for operational
-- **Emergency Response**: Fast coordination without single points of failure
-- **Governance Integration**: DAO oversight of major decisions
-- **Audit Trail**: Complete history of all administrative actions
-
-### **Risk Mitigation**
-- **No Single Admin**: All critical functions require multi-sig
-- **Hardware Security**: Private keys stored in hardware wallets
-- **Emergency Procedures**: Well-defined response protocols  
-- **Regular Audits**: Ongoing security review processes
-- **Community Oversight**: Transparent role management
-
----
-
-*This access control matrix ensures secure, efficient, and transparent management of the RDAT V2 ecosystem while maintaining operational flexibility for growth and emergency response.*
+**Version Control**: Track all changes in git with clear commit messages

@@ -5,7 +5,7 @@
 **Context**: Upgrade from V1 (30M RDAT on Base) to V2 (100M RDAT on Vana)  
 **Approach**: Modular rewards system with full VRC-14/15/20 compliance  
 **Risk Reduction**: $85M+ → ~$10M through major design flaw resolution  
-**Contracts**: 14 total (expanded with treasury and vesting infrastructure)
+**Contracts**: 11 core contracts (plus deployment helpers)
 
 ### 📊 Progress Update (August 6, 2025)
 **Status**: ✅ 100% Complete - 354/354 tests passing  
@@ -137,7 +137,7 @@ For detailed architecture specification, see [Modular Rewards Architecture](./MO
 #### ✅ **Completed (Major Architecture)**
 - **RDAT V2 Token**: Upgradeable with VRC-20 stubs + reentrancy protection
 - **StakingPositions**: Immutable NFT-based staking with EnumerableSet optimization  
-- **vRDAT Soul-bound Token**: Proportional distribution (1x-4x multipliers)
+- **vRDAT Soul-bound Token**: Fixed multipliers (1x, 1.15x, 1.35x, 1.75x)
 - **Modular Rewards**: Triple-layer architecture (Token + Staking + Rewards)
 - **vRDATRewardModule**: Immediate vRDAT minting on stake with lock multipliers
 - **RewardsManager**: ✅ UUPS upgradeable orchestrator with full integration
@@ -165,13 +165,59 @@ For detailed architecture specification, see [Modular Rewards Architecture](./MO
 - 🔄 Basic data marketplace
 - 🔄 Multi-validator bridge (3+ validators)
 
+### Phase 2.5: Governance Implementation
+**Current Status**: Off-chain via Snapshot
+- ✅ vRDAT tokens tracked on-chain for voting power
+- ✅ Proposals and voting on Snapshot platform
+- ✅ Multisig execution based on community votes
+- 📋 On-chain governance contract (Phase 3)
+
 ### Phase 3: Full Decentralization (Months 5+)
 **Focus**: Complete specification implementation
-- 📋 On-chain quadratic voting
+- 📋 On-chain quadratic voting implementation
 - 📋 Full data marketplace
 - 📋 Automated revenue distribution
 - 📋 Advanced governance features
 - 📋 Complete VRC-20/14/15 compliance
+
+## 🔓 Phase 3 Activation Process
+
+The 30M RDAT "Future Rewards" allocation is locked until community governance approval.
+
+### Activation Requirements
+1. **Proposal Creation**
+   - Any holder with 1000+ vRDAT can create proposal
+   - Must include detailed reward distribution plan
+   - 1000 RDAT proposal bond (refunded if approved)
+
+2. **Voting Period**
+   - 7-day voting period on Snapshot
+   - Uses quadratic voting with vRDAT
+   - All vRDAT holders eligible to vote
+
+3. **Approval Thresholds**
+   - **Approval**: 65% of votes in favor
+   - **Quorum**: 10% of total vRDAT supply must vote
+   - **Timelock**: 48-hour delay after approval
+
+4. **Execution Process**
+   ```solidity
+   // Multisig executes based on Snapshot vote
+   TreasuryWallet.unlockPhase3Rewards();
+   // Transfers 30M RDAT to RewardsManager
+   // Enables RDAT staking rewards
+   ```
+
+5. **Fallback Mechanism**
+   - If not activated within 2 years of deployment
+   - Converts to general treasury funds
+   - Requires separate governance vote for use
+
+### What Phase 3 Unlocks
+- **RDAT Staking Rewards**: Time-based rewards from 30M pool
+- **Enhanced Liquidity Mining**: Additional LP incentives
+- **Ecosystem Grants**: Developer funding program
+- **Data Contributor Bonuses**: Quality-based rewards
 
 ## 📊 System Architecture Overview
 
@@ -276,11 +322,11 @@ contract SecureMigrationBridge {
 }
 ```
 
-**Migration Incentives:**
-- Week 1-2: 5% bonus tokens (vested over 12 months)
-- Week 3-4: 3% bonus tokens (vested over 12 months)
-- Week 5-8: 1% bonus tokens (vested over 12 months)
-- After Week 8: No bonus
+**Migration Incentives (Revised for Gradual Migration):**
+- Week 1-4: 3% bonus tokens (vested over 12 months)
+- Week 5-8: 2% bonus tokens (vested over 12 months)
+- Week 9-12: 1% bonus tokens (vested over 12 months)
+- After Week 12: No bonus
 
 **Bonus Distribution:**
 - Base amount (1:1): Immediate transfer from 30M migration reserve
@@ -313,7 +359,7 @@ contract SecureMigrationBridge {
 3. **Migration Verification**: Ensure seamless transition for existing holders
 4. **Post-Migration**: Base contracts become legacy after migration period
 
-## 📦 Smart Contracts Required (13 Total)
+## 📦 Smart Contracts Required (11 Core Contracts)
 
 ### Core Contracts (V2 Modular Architecture)
 1. **RDATUpgradeable.sol** - Main token with full VRC-20 compliance (UUPS upgradeable)
@@ -327,14 +373,15 @@ contract SecureMigrationBridge {
 4. **RewardsManager.sol** - Orchestrates reward modules (upgradeable for flexibility)
 5. **vRDATRewardModule.sol** - Immediate governance token distribution
 6. **RDATRewardModule.sol** - Time-based staking rewards
-7. **BaseMigrationBridge.sol** - Base chain contract for burning V1 tokens
-8. **VanaMigrationBridge.sol** - Vana chain contract for releasing V2 tokens
-9. **MigrationBonusVesting.sol** - 12-month vesting for migration bonuses
-10. **EmergencyPause.sol** - Emergency response system
-11. **RevenueCollector.sol** - Dynamic fee distribution with RewardsManager integration
-12. **ProofOfContribution.sol** - Full Vana DLP implementation
-13. **TreasuryWallet.sol** - Multi-sig treasury with distribution tracking
-14. **TokenVesting.sol** - Team token vesting (6-month cliff + 18-month linear)
+7. **MigrationBridge.sol** - Cross-chain migration contract
+8. **MigrationBonusVesting.sol** - 12-month vesting for migration bonuses
+9. **EmergencyPause.sol** - Emergency response system
+10. **RevenueCollector.sol** - Dynamic fee distribution with RewardsManager integration
+11. **ProofOfContribution.sol** - Full Vana DLP implementation
+
+### Deployment Helper Contracts (Not Core Protocol)
+- **TreasuryWallet.sol** - Multi-sig treasury with distribution tracking
+- **TokenVesting.sol** - Team token vesting (6-month cliff + 18-month linear)
 
 ### 🔄 Architecture Approach
 
@@ -371,11 +418,17 @@ contract SecureMigrationBridge {
 
 **RevenueCollector.sol** - Dynamic Multi-Token Revenue Management
 
-**Key Features:**
-- **Dynamic Token Support**: Queries RewardsManager for supported tokens
-- **Flexible Distribution**: 50/30/20 split for supported tokens
-- **Treasury Fallback**: Unsupported tokens go 100% to treasury
-- **Governance Control**: DAO decides on new token distributions
+**Current Implementation (V2 Beta)**:
+- **Manual Distribution**: Admin-triggered weekly basis
+- **RDAT Priority**: 50/30/20 split for RDAT tokens
+- **Other Tokens**: 100% to treasury pending DAO decision
+- **No DEX Integration**: Manual token management
+
+**Future Implementation (V3)**:
+- **Automated Triggers**: Threshold-based distribution
+- **Multi-Token Support**: Any ERC20 with reward program
+- **DEX Integration**: Automatic swaps to RDAT
+- **Dynamic Routing**: Based on RewardsManager programs
 
 **Distribution Logic:**
 ```solidity
@@ -1413,14 +1466,14 @@ flowchart TD
 ```mermaid
 sequenceStart
     participant User
-    participant StakingManager
+    participant StakingPositions
     participant vRDATDistributor
     participant vRDAT
     participant SecuritySystem
     
-    User->>StakingManager: stake(amount, lockPeriod)
-    StakingManager->>StakingManager: validate stake parameters
-    StakingManager->>vRDATDistributor: distributeForStaking(user, amount, lockPeriod)
+    User->>StakingPositions: stake(amount, lockPeriod)
+    StakingPositions->>StakingPositions: validate stake parameters
+    StakingPositions->>vRDATDistributor: distributeForStaking(user, amount, lockPeriod)
     
     vRDATDistributor->>SecuritySystem: checkAntiGaming(user, amount)
     SecuritySystem-->>vRDATDistributor: validation result
@@ -1471,12 +1524,12 @@ contract Staking is
 - **Position Marketplace**: Trade matured positions
 
 **Lock Period Configuration:**
-| Period | RDAT Multiplier | vRDAT Distribution | Early Exit Penalty |
-|--------|-----------------|-------------------|-------------------|
-| 30 days | 1.0x | 8.3% (30/365) | 10% |
-| 90 days | 1.15x | 24.7% (90/365) | 15% |
-| 180 days | 1.35x | 49.3% (180/365) | 20% |
-| 365 days | 1.75x | 100% (365/365) | 25% |
+| Period | RDAT Multiplier | vRDAT Multiplier | Early Exit Penalty |
+|--------|-----------------|------------------|-------------------|
+| 30 days | 1.0x | 1.0x (1:1) | 50% |
+| 90 days | 1.15x | 1.15x | 50% |
+| 180 days | 1.35x | 1.35x | 50% |
+| 365 days | 1.75x | 1.75x | 50% |
 
 **Stake Structure:**
 ```solidity
@@ -1608,8 +1661,8 @@ vRDAT = stakedAmount * (lockDays / 365)
 
 **Required Functions:**
 ```solidity
-function mint(address to, uint256 amount) external onlyStakingManager
-function burn(address from, uint256 amount) external onlyStakingManager
+function mint(address to, uint256 amount) external onlyStakingPositions
+function burn(address from, uint256 amount) external onlyStakingPositions
 function delegate(address delegatee) external
 function getPastVotes(address account, uint256 blockNumber) external view returns (uint256)
 ```
@@ -1654,7 +1707,7 @@ uint256 constant PARAM_UPDATE_DELAY = 48 hours; // Timelock delay
 
 ### 1. Unit Tests
 
-**Core Staking Tests (`test/unit/StakingManager.t.sol`):**
+**Core Staking Tests (`test/unit/StakingPositions.t.sol`):**
 - Staking with different amounts and periods
 - Stake ID generation and tracking
 - Lock period enforcement
@@ -1748,7 +1801,7 @@ uint256 constant PARAM_UPDATE_DELAY = 48 hours; // Timelock delay
 ### 1. Security Focus Areas
 
 **High Priority:**
-1. StakingManager immutability and stake tracking
+1. StakingPositions immutability and stake tracking
 2. Reward module registration and timelock
 3. Proportional vRDAT distribution accuracy
 4. Emergency migration procedures

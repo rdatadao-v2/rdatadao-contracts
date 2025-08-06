@@ -30,7 +30,7 @@
 - [ ] All 11 contracts compiled successfully:
   - [ ] RDATUpgradeable.sol (UUPS upgradeable with reentrancy guards)
   - [ ] vRDAT.sol (with quadratic voting)
-  - [ ] StakingManager.sol (immutable core staking logic)
+  - [ ] StakingPositions.sol (immutable core staking logic)
   - [ ] RewardsManager.sol (UUPS upgradeable orchestrator)
   - [ ] vRDATRewardModule.sol (soul-bound governance rewards)
   - [ ] RDATRewardModule.sol (time-based RDAT rewards)
@@ -228,7 +228,7 @@ VALIDATOR_ROLE -> Oracle validators (ProofOfContribution)
 REGISTRAR_ROLE -> Gnosis Safe (ProofOfContribution)
 DISTRIBUTOR_ROLE -> Gnosis Safe + Automation (RevenueCollector)
 REWARDS_MANAGER_ROLE -> RewardsManager (on all reward modules)
-STAKING_NOTIFIER_ROLE -> StakingManager (on RewardsManager)
+STAKING_NOTIFIER_ROLE -> StakingPositions (on RewardsManager)
 ```
 
 ### Emergency Contacts

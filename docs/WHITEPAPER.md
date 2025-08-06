@@ -83,7 +83,7 @@ graph TD
 ### Ecosystem Components
 
 1. **Base Layer**: Secure migration with multi-validator consensus and 6-hour challenge periods
-2. **Staking Layer**: Triple-layer architecture (Token + Staking + Rewards) with immutable StakingManager, upgradeable RewardsManager, and pluggable reward modules for unlimited flexibility
+2. **Staking Layer**: Triple-layer architecture (Token + Staking + Rewards) with immutable StakingPositions, upgradeable RewardsManager, and pluggable reward modules for unlimited flexibility
 3. **Contribution Layer**: Decentralized validation with Kismet reputation multipliers
 4. **Governance Layer**: Quadratic voting with flash loan protection and proposal bonds
 5. **Marketplace Layer**: Dynamic pricing oracle with automated revenue distribution
@@ -118,25 +118,25 @@ graph TD
 
 ### vRDAT: Soul-Bound Governance Tokens
 
-#### Distribution Formula (Anti-Gaming Design)
+#### Distribution Formula (Fixed Multiplier System)
 ```
-vRDAT = Staked_RDAT × (Lock_Days / 365)
+vRDAT = Staked_RDAT × Lock_Period_Multiplier
 ```
 
-- **Base Distribution**: 1:1 vRDAT ONLY for 365-day locks
-- **Proportional System**: Shorter locks receive proportionally less
-- **Lock Period Ratios**:
-  - 365 days: 100% (1:1 ratio)
-  - 180 days: 49.3% (0.493:1 ratio)
-  - 90 days: 24.7% (0.247:1 ratio)
-  - 30 days: 8.3% (0.083:1 ratio)
+- **Lock Period Multipliers**:
+  - 30 days: 1.0x multiplier (1:1 RDAT:vRDAT)
+  - 90 days: 1.15x multiplier (1.15 vRDAT per RDAT)
+  - 180 days: 1.35x multiplier (1.35 vRDAT per RDAT)
+  - 365 days: 1.75x multiplier (1.75 vRDAT per RDAT)
 
-#### Anti-Gaming Mechanics
-This proportional system prevents several attack vectors:
-- **Sequential Staking**: 12x 30-day stakes = 12 × 8.3% = 99.6% (less than one 365-day stake)
-- **Quick Unlock/Relock**: No benefit since ratio is based on lock duration
-- **Sybil Attacks**: Splitting stakes across addresses provides no advantage
-- **Optimal Strategy**: Always stake for maximum duration for governance power
+**Example**: Staking 1000 RDAT for 365 days = 1750 vRDAT
+
+#### System Benefits
+The fixed multiplier system provides:
+- **Predictable Rewards**: Users know exactly how much vRDAT they'll receive
+- **Long-term Incentive**: Higher multipliers reward longer commitments
+- **Simple Calculation**: Easy to understand and verify
+- **Fair Distribution**: Rewards commitment while maintaining accessibility
 
 #### Non-Transferable Properties
 - **Vote Buying Prevention**: Tokens cannot be sold or transferred
@@ -151,6 +151,12 @@ This proportional system prevents several attack vectors:
 ### Quadratic Voting Mechanics
 
 Traditional voting systems suffer from plutocratic control where wealth equals power. r/datadao implements quadratic voting to ensure democratic fairness:
+
+**Current Implementation**: Off-chain governance via Snapshot
+- vRDAT balances tracked on-chain for voting power
+- Proposals and voting happen on Snapshot platform
+- Results executed by multisig based on community decisions
+- Full on-chain governance planned for Phase 3
 
 #### Cost Structure
 ```solidity

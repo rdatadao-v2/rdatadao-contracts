@@ -1630,12 +1630,12 @@ This flexibility allows choosing the best liquidity venue after deployment.
 
 Automatic distribution could send funds to wrong addresses or before system verification.
 
-### Q: What's the difference between StakingPositions and StakingManager?
+### Q: What's the difference between StakingPositions and StakingPositions?
 
 **A:** These refer to the same contract - naming inconsistency in documentation:
 
 - **Official Name**: StakingPositions.sol
-- **Incorrect References**: Some docs mention "StakingManager"
+- **Incorrect References**: Some docs mention "StakingPositions"
 - **Functionality**: NFT-based staking with multiple concurrent positions
 - **Architecture Role**: Core immutable staking logic
 
