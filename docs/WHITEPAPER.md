@@ -100,7 +100,7 @@ graph TD
 | **Migration Reserve** | 30M | 30% | V1 holder migration | 100% at TGE |
 | **Future Rewards** | 30M | 30% | Staking & data contributions | Phase 3 locked |
 | **Treasury & Ecosystem** | 25M | 25% | DAO operations & partnerships | 10% TGE, 6mo cliff |
-| **Liquidity & Staking** | 15M | 15% | DEX liquidity & incentives | 33% at TGE |
+| **Liquidity & Staking** | 15M | 15% | DEX liquidity & incentives (includes 3M for LP bonus tokens) | 33% at TGE |
 
 ### Token Utility & Value Accrual
 

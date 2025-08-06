@@ -41,10 +41,23 @@ StakingPositions → RewardsManager → vRDATRewardModule → vRDAT.mint()
 
 ## 🎯 Next Priorities
 
-### **Immediate (1-2 days)**
-1. **Fix remaining 30 test failures** - mostly edge cases and setup issues
-2. **Complete ProofOfContribution integration** - final Vana DLP compliance
-3. **Gas optimization pass** - prepare for deployment
+### **PRIORITY 1: Launch Blockers (Must Fix - 3-5 days)**
+1. **Token Supply Model Standardization** - Resolve minting capability documentation inconsistency
+2. **Access Control Matrix** - Define all critical role assignments clearly
+3. **VRC-20 Minimal Compliance** - Implement basic Vana integration for DLP eligibility
+4. **Phase 3 Activation Process** - Define governance mechanism for 30M future rewards unlock
+
+### **PRIORITY 2: High Impact (Should Fix - 5-7 days)**
+5. **Treasury Allocation Consistency** - Fix documentation mismatches across all documents
+6. **Revenue Distribution Clarification** - Document manual vs. automatic processes
+7. **Basic Governance Implementation** - Or clearly document Snapshot-only approach
+8. **Emergency Response Playbook** - Coordinate all emergency systems
+
+### **PRIORITY 3: Quality Improvements (1-2 weeks)**
+9. **Fix remaining 30 test failures** - mostly edge cases and setup issues
+10. **Complete ProofOfContribution integration** - final Vana DLP compliance
+11. **Gas optimization pass** - prepare for deployment
+12. **Expanded integration testing** - multi-contract scenarios
 
 ### **Phase 3 (Future)**
 - RDATRewardModule for time-based RDAT staking rewards
@@ -83,10 +96,21 @@ rewardsManager.claimRewards(positionId);
 - **Contracts Implemented**: 13/15 (87%)
 - **Tests Passing**: 290/320 (90.6%) 
 - **Core Architecture**: 100% Complete
-- **Audit Readiness**: 85%
+- **Audit Readiness**: 75% ⚠️ (Reduced due to critical documentation gaps identified)
 - **Days Remaining**: 11 of 13
 
-**Status**: ✅ On track for successful audit and deployment
+**Status**: ⚠️ **4 Launch Blockers Identified** - Need Priority 1 fixes before audit readiness
+
+## 🚨 Critical Issues Found
+
+**Deep documentation analysis revealed critical gaps:**
+1. **Token Supply Inconsistency**: Documentation claims fixed supply but implementation has minting
+2. **Missing Access Control Matrix**: Role assignments unclear across contracts  
+3. **Incomplete VRC-20 Compliance**: May not qualify for Vana DLP rewards
+4. **Phase 3 Governance Gap**: 30M token unlock mechanism undefined
+
+**Risk Level**: MEDIUM-LOW (reduced from HIGH due to architectural improvements)
+**Financial Exposure**: ~$5-8M (down from $85M+ with single-stake fix)
 
 ---
 
