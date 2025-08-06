@@ -237,17 +237,19 @@ contract DeployFullSystemLocal is Script {
         // Migration bridge already received 30M during RDAT initialization
         console2.log("Migration bridge balance:", rdat.balanceOf(address(migrationBridge)) / 1e18, "RDAT");
         
-        // Transfer to bonus vesting first (3M RDAT for migration bonuses)
-        uint256 bonusAllocation = 3_000_000e18; 
-        rdat.transfer(address(bonusVesting), bonusAllocation);
-        console2.log("Transferred 3M RDAT to BonusVesting");
-        
-        // Transfer remaining to treasury wallet (100M - 30M - 3M = 67M RDAT)
+        // Transfer all remaining 70M to treasury wallet
+        // Treasury will internally manage: 25M operations + 30M Phase 3 + 15M liquidity
         if (address(treasury) != treasuryAddr) {
-            uint256 treasuryAllocation = 67_000_000e18; 
+            uint256 treasuryAllocation = 70_000_000e18; 
             rdat.transfer(address(treasury), treasuryAllocation);
-            console2.log("Transferred 67M RDAT to TreasuryWallet");
+            console2.log("Transferred 70M RDAT to TreasuryWallet");
+            console2.log("  - 25M for operations");
+            console2.log("  - 30M for Phase 3 future rewards");
+            console2.log("  - 15M for liquidity (includes 3M for LP bonus tokens)");
         }
+        
+        // Note: Migration bonus vesting will be funded from treasury liquidity allocation
+        // when LP pools are created post-launch
     }
     
     function printSummary() internal view {
@@ -269,7 +271,8 @@ contract DeployFullSystemLocal is Script {
         console2.log("\n=== Configuration Verification ===");
         console2.log("RDAT Total Supply:", rdat.totalSupply() / 1e18);
         console2.log("Migration Bridge Balance:", rdat.balanceOf(address(migrationBridge)) / 1e18);
-        console2.log("Bonus Vesting Balance:", rdat.balanceOf(address(bonusVesting)) / 1e18);
+        console2.log("Treasury Balance:", rdat.balanceOf(address(treasury)) / 1e18);
+        console2.log("Bonus Vesting (LP tokens):", address(bonusVesting), "(funded post-launch)");
         console2.log("vRDAT Reward Program ID:", vrdatProgramId);
         console2.log("Revenue Collector RDAT Token:", revenueCollector.rdatToken());
     }
