@@ -85,18 +85,8 @@ contract DeployStakingPositions is Script {
             vrdat.grantRole(vrdat.BURNER_ROLE(), address(proxy));
             console.log("Granted BURNER_ROLE to StakingPositions");
             
-            // If RDAT is upgradeable and we have admin role
-            try RDATUpgradeable(rdatAddress).hasRole(bytes32(0), msg.sender) returns (bool hasAdmin) {
-                if (hasAdmin) {
-                    RDATUpgradeable(rdatAddress).grantRole(
-                        keccak256("MINTER_ROLE"), 
-                        address(proxy)
-                    );
-                    console.log("Granted MINTER_ROLE on RDAT to StakingPositions");
-                }
-            } catch {
-                console.log("Could not grant MINTER_ROLE on RDAT (not admin or not upgradeable)");
-            }
+            // Note: RDAT has fixed supply - no MINTER_ROLE exists or needed
+            console.log("RDAT has fixed supply - no minting permissions required");
         }
         
         vm.stopBroadcast();

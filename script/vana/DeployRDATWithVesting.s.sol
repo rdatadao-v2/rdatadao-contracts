@@ -71,7 +71,7 @@ contract DeployRDATWithVesting is BaseDeployScript {
         // Step 5: Transfer ownership to multi-sig
         console2.log("\n=== Finalizing Deployment ===");
         console2.log("TODO: Transfer ownership to DAO multi-sig");
-        console2.log("TODO: Renounce minting capability");
+        console2.log("Note: RDAT has fixed supply - no minting capability to renounce");
         
         // Summary
         console2.log("\n=== Deployment Summary ===");
