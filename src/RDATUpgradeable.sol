@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "./interfaces/IVRC20Basic.sol";
+import "./interfaces/IVRC20Full.sol";
 import "./interfaces/IRDAT.sol";
 
 /**
@@ -35,7 +35,7 @@ contract RDATUpgradeable is
     AccessControlUpgradeable,
     ReentrancyGuardUpgradeable,
     UUPSUpgradeable,
-    IVRC20Basic,
+    IVRC20Full,
     IRDAT 
 {
     // Roles
@@ -57,6 +57,20 @@ contract RDATUpgradeable is
     
     // State
     uint256 public totalMinted;
+    
+    // VRC-20 Full state
+    string public constant VRC_VERSION = "VRC-20-1.0";
+    address public dlpAddress;
+    bool public dlpRegistered;
+    uint256 public dlpRegistrationBlock;
+    
+    // Data pool management
+    mapping(bytes32 => DataPool) private _dataPools;
+    mapping(bytes32 => mapping(bytes32 => DataPoint)) private _dataPoints;
+    mapping(bytes32 => mapping(address => bool)) private _dataOwnership;
+    mapping(uint256 => uint256) private _epochRewardTotals;
+    mapping(uint256 => mapping(address => uint256)) private _epochRewardsClaimed;
+    mapping(uint256 => mapping(address => bool)) private _hasClaimedEpoch;
     
     // Errors
     error ExceedsMaxSupply(uint256 requested, uint256 available);
@@ -200,4 +214,245 @@ contract RDATUpgradeable is
     {
         return super.supportsInterface(interfaceId);
     }
+    
+    // ========== VRC-20 FULL IMPLEMENTATION ==========
+    
+    /**
+     * @notice Creates a new data pool
+     * @param poolId Unique identifier for the pool
+     * @param metadata Pool metadata (IPFS hash or JSON)
+     * @param initialContributors Initial list of contributors
+     */
+    function createDataPool(
+        bytes32 poolId,
+        string memory metadata,
+        address[] memory initialContributors
+    ) external override nonReentrant returns (bool) {
+        require(poolId != bytes32(0), "Invalid pool ID");
+        require(_dataPools[poolId].creator == address(0), "Pool already exists");
+        require(bytes(metadata).length > 0, "Empty metadata");
+        
+        DataPool storage pool = _dataPools[poolId];
+        pool.creator = msg.sender;
+        pool.metadata = metadata;
+        pool.active = true;
+        pool.contributorCount = initialContributors.length;
+        
+        // Add initial contributors
+        for (uint256 i = 0; i < initialContributors.length; i++) {
+            if (initialContributors[i] != address(0)) {
+                _dataOwnership[poolId][initialContributors[i]] = true;
+            }
+        }
+        
+        emit DataPoolCreated(poolId, msg.sender, metadata);
+        return true;
+    }
+    
+    /**
+     * @notice Adds data to an existing pool
+     * @param poolId Pool identifier
+     * @param dataHash Hash of the data being added
+     * @param quality Quality score (0-100)
+     */
+    function addDataToPool(
+        bytes32 poolId,
+        bytes32 dataHash,
+        uint256 quality
+    ) external override nonReentrant returns (bool) {
+        require(_dataPools[poolId].active, "Pool not active");
+        require(dataHash != bytes32(0), "Invalid data hash");
+        require(quality <= 100, "Quality score too high");
+        require(_dataPoints[poolId][dataHash].contributor == address(0), "Data already exists");
+        
+        DataPoint storage dataPoint = _dataPoints[poolId][dataHash];
+        dataPoint.contributor = msg.sender;
+        dataPoint.timestamp = block.timestamp;
+        dataPoint.quality = quality;
+        dataPoint.verified = false;
+        
+        // Track ownership
+        _dataOwnership[dataHash][msg.sender] = true;
+        
+        // Update pool stats
+        DataPool storage pool = _dataPools[poolId];
+        pool.totalDataPoints++;
+        if (!_dataOwnership[poolId][msg.sender]) {
+            pool.contributorCount++;
+            _dataOwnership[poolId][msg.sender] = true;
+        }
+        
+        emit DataAdded(poolId, dataHash, msg.sender);
+        
+        // If PoC contract is set, notify it
+        if (pocContract != address(0)) {
+            // Integration point for ProofOfContribution
+            try IProofOfContributionIntegration(pocContract).recordContribution(
+                msg.sender,
+                quality,
+                dataHash
+            ) {} catch {}
+        }
+        
+        return true;
+    }
+    
+    /**
+     * @notice Verifies data ownership
+     * @param dataHash Hash of the data
+     * @param owner Address to verify
+     */
+    function verifyDataOwnership(
+        bytes32 dataHash,
+        address owner
+    ) external view override returns (bool) {
+        return _dataOwnership[dataHash][owner];
+    }
+    
+    /**
+     * @notice Returns rewards for a specific epoch
+     * @param epoch Epoch number
+     */
+    function epochRewards(uint256 epoch) external view override returns (uint256) {
+        return _epochRewardTotals[epoch];
+    }
+    
+    /**
+     * @notice Claims rewards for a specific epoch
+     * @param epoch Epoch to claim from
+     */
+    function claimEpochRewards(uint256 epoch) external override nonReentrant returns (uint256) {
+        require(!_hasClaimedEpoch[epoch][msg.sender], "Already claimed");
+        require(_epochRewardTotals[epoch] > 0, "No rewards for epoch");
+        
+        // Calculate user's share (integration with PoC required)
+        uint256 userReward = _calculateEpochReward(msg.sender, epoch);
+        require(userReward > 0, "No rewards to claim");
+        
+        _hasClaimedEpoch[epoch][msg.sender] = true;
+        _epochRewardsClaimed[epoch][msg.sender] = userReward;
+        
+        // Transfer rewards
+        _mint(msg.sender, userReward);
+        totalMinted += userReward;
+        
+        emit EpochRewardsClaimed(msg.sender, epoch, userReward);
+        return userReward;
+    }
+    
+    /**
+     * @notice Sets rewards for an epoch (admin only)
+     * @param epoch Epoch number
+     * @param amount Reward amount
+     */
+    function setEpochRewards(uint256 epoch, uint256 amount) 
+        external 
+        override 
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+    {
+        require(epoch > 0, "Invalid epoch");
+        require(totalMinted + amount <= TOTAL_SUPPLY, "Exceeds max supply");
+        
+        _epochRewardTotals[epoch] = amount;
+        emit EpochRewardsSet(epoch, amount);
+    }
+    
+    /**
+     * @notice Registers a DLP address
+     * @param _dlpAddress Address to register
+     */
+    function registerDLP(address _dlpAddress) 
+        external 
+        override 
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+        returns (bool) 
+    {
+        require(_dlpAddress != address(0), "Invalid DLP address");
+        require(!dlpRegistered, "DLP already registered");
+        
+        dlpAddress = _dlpAddress;
+        dlpRegistered = true;
+        dlpRegistrationBlock = block.number;
+        
+        emit DLPRegistered(_dlpAddress, block.timestamp);
+        return true;
+    }
+    
+    /**
+     * @notice Checks if DLP is registered
+     */
+    function isDLPRegistered() external view override returns (bool) {
+        return dlpRegistered;
+    }
+    
+    /**
+     * @notice Gets the registered DLP address
+     */
+    function getDLPAddress() external view override returns (address) {
+        return dlpAddress;
+    }
+    
+    /**
+     * @notice Gets data pool information
+     * @param poolId Pool identifier
+     */
+    function getDataPool(bytes32 poolId) external view override returns (
+        address creator,
+        string memory metadata,
+        uint256 contributorCount,
+        uint256 totalDataPoints,
+        bool active
+    ) {
+        DataPool storage pool = _dataPools[poolId];
+        return (
+            pool.creator,
+            pool.metadata,
+            pool.contributorCount,
+            pool.totalDataPoints,
+            pool.active
+        );
+    }
+    
+    /**
+     * @notice Gets data point information
+     * @param poolId Pool identifier
+     * @param dataHash Data hash
+     */
+    function getDataPoint(bytes32 poolId, bytes32 dataHash) external view override returns (
+        address contributor,
+        uint256 timestamp,
+        uint256 quality,
+        bool verified
+    ) {
+        DataPoint storage point = _dataPoints[poolId][dataHash];
+        return (
+            point.contributor,
+            point.timestamp,
+            point.quality,
+            point.verified
+        );
+    }
+    
+    /**
+     * @notice Returns the VRC version
+     */
+    function vrcVersion() external pure override returns (string memory) {
+        return VRC_VERSION;
+    }
+    
+    /**
+     * @dev Calculates epoch reward for a user (placeholder - needs PoC integration)
+     */
+    function _calculateEpochReward(address user, uint256 epoch) private view returns (uint256) {
+        // This would integrate with ProofOfContribution to calculate fair share
+        // For now, return 0 (needs implementation with PoC)
+        return 0;
+    }
+}
+
+// Interface for ProofOfContribution integration
+interface IProofOfContributionIntegration {
+    function recordContribution(address contributor, uint256 score, bytes32 dataHash) external;
+    function getEpochScore(address contributor, uint256 epoch) external view returns (uint256);
+    function epochTotalScores(uint256 epoch) external view returns (uint256);
 }
