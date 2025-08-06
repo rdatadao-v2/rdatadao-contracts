@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./interfaces/IVRC20Full.sol";
 import "./interfaces/IRDAT.sol";
+import "./interfaces/IProofOfContributionIntegration.sol";
 
 /**
  * @title RDATUpgradeable
@@ -291,7 +292,9 @@ contract RDATUpgradeable is
                 msg.sender,
                 quality,
                 dataHash
-            ) {} catch {}
+            ) {} catch {
+                // Continue even if PoC recording fails
+            }
         }
         
         return true;
@@ -441,12 +444,37 @@ contract RDATUpgradeable is
     }
     
     /**
-     * @dev Calculates epoch reward for a user (placeholder - needs PoC integration)
+     * @dev Calculates epoch reward for a user based on their contribution score
+     * @param user Address of the user
+     * @param epoch Epoch number
+     * @return reward Amount of tokens to reward
      */
     function _calculateEpochReward(address user, uint256 epoch) private view returns (uint256) {
-        // This would integrate with ProofOfContribution to calculate fair share
-        // For now, return 0 (needs implementation with PoC)
-        return 0;
+        // If no PoC contract set, no rewards
+        if (pocContract == address(0)) {
+            return 0;
+        }
+        
+        // Get user's contribution score for the epoch
+        IProofOfContributionIntegration poc = IProofOfContributionIntegration(pocContract);
+        uint256 userScore = poc.getEpochScore(user, epoch);
+        
+        // If user didn't contribute, no rewards
+        if (userScore == 0) {
+            return 0;
+        }
+        
+        // Get total score for the epoch
+        uint256 totalScore = poc.getEpochTotalScore(epoch);
+        if (totalScore == 0) {
+            return 0;
+        }
+        
+        // Calculate proportional share
+        uint256 epochRewards = _epochRewardTotals[epoch];
+        uint256 userReward = (epochRewards * userScore) / totalScore;
+        
+        return userReward;
     }
 }
 

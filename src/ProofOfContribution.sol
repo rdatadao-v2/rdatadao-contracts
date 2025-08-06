@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./interfaces/IProofOfContribution.sol";
+import "./interfaces/IProofOfContributionIntegration.sol";
 import "./interfaces/IRewardsManager.sol";
 import "./interfaces/IEmergencyPause.sol";
 
@@ -22,7 +23,7 @@ import "./interfaces/IEmergencyPause.sol";
  * - Integration with RewardsManager for claims
  * - Emergency pause capability
  */
-contract ProofOfContribution is IProofOfContribution, AccessControl, ReentrancyGuard, Pausable {
+contract ProofOfContribution is IProofOfContribution, IProofOfContributionIntegration, AccessControl, ReentrancyGuard, Pausable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     // Roles
@@ -403,6 +404,36 @@ contract ProofOfContribution is IProofOfContribution, AccessControl, ReentrancyG
             epochStartTime + EPOCH_DURATION,
             totalEpochScore
         );
+    }
+    
+    /**
+     * @notice Gets the current epoch number
+     * @dev Required for IProofOfContributionIntegration
+     */
+    function getCurrentEpoch() external view returns (uint256) {
+        return currentEpoch;
+    }
+    
+    /**
+     * @notice Gets the total score for all contributors in an epoch
+     * @param epoch Epoch number
+     * @dev Required for IProofOfContributionIntegration
+     */
+    function getEpochTotalScore(uint256 epoch) external view returns (uint256) {
+        if (epoch == currentEpoch) {
+            return totalEpochScore;
+        }
+        return epochTotalScores[epoch];
+    }
+    
+    /**
+     * @notice Checks if a user has contributed in an epoch
+     * @param contributor Address to check
+     * @param epoch Epoch number
+     * @dev Required for IProofOfContributionIntegration
+     */
+    function hasContributedInEpoch(address contributor, uint256 epoch) external view returns (bool) {
+        return _epochScores[contributor][epoch] > 0;
     }
 
     // ========== INTERNAL FUNCTIONS ==========
