@@ -85,19 +85,34 @@ forge script script/DeployMockRDAT.s.sol \
 
 **Note**: Base is ONLY used for V1 token migration. No V2 contracts deployed here.
 
+## 🔴 Critical: Fixed Supply Deployment
+
+### Token Supply Model
+**IMPORTANT**: RDAT has a fixed supply of 100M tokens, all minted at deployment:
+- **No Minting Post-Deployment**: The `mint()` function always reverts
+- **No MINTER_ROLE**: This role doesn't exist in the contract
+- **Pre-allocated Distribution**: 70M to Treasury, 30M to MigrationBridge
+- **Immutable Supply**: Cannot be changed after deployment
+
+### Fixed Supply Implications
+1. **Test with Realistic Amounts**: Cannot mint tokens for testing
+2. **Treasury Management**: Must carefully manage the 70M allocation
+3. **Migration Limits**: Hard cap of 30M for V1→V2 migration
+4. **Reward Sustainability**: All rewards from pre-allocated pools
+
 ## 📦 Deployment Order (11 Contracts)
 
 ### Contract Dependencies
 1. **EmergencyPause** (no dependencies)
-2. **RDATUpgradeable** (depends on treasury address) 
-3. **vRDAT** (no dependencies)
+2. **RDATUpgradeable** (depends on treasury address) - MINTS 100M AT DEPLOYMENT
+3. **vRDAT** (no dependencies) - Dynamic supply based on staking
 4. **ProofOfContribution** (no dependencies)
-5. **StakingManager** (immutable, depends on RDAT)
+5. **StakingPositions** (immutable, depends on RDAT)
 6. **RewardsManager** (upgradeable, no initial dependencies)
-7. **vRDATRewardModule** (depends on vRDAT, StakingManager, RewardsManager)
-8. **RDATRewardModule** (depends on RDAT, StakingManager, RewardsManager)
+7. **vRDATRewardModule** (depends on vRDAT, StakingPositions, RewardsManager)
+8. **RDATRewardModule** (depends on RDAT, StakingPositions, RewardsManager)
 9. **RevenueCollector** (depends on RDAT and treasury)
-10. **MigrationBridge** (depends on RDAT)
+10. **MigrationBridge** (depends on RDAT) - RECEIVES 30M RDAT
 11. **Future Reward Modules** (as needed)
 
 ### Phase 1: Testnet (Days 3-4)

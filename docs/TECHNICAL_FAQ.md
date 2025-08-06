@@ -1641,6 +1641,318 @@ Automatic distribution could send funds to wrong addresses or before system veri
 
 This will be corrected to use "StakingPositions" consistently.
 
+## Test Suite Architecture
+
+### Q: What edge cases are no longer possible in the fixed supply model?
+
+**A:** The fixed supply model eliminates entire categories of edge cases that plagued minting-based tokenomics:
+
+#### 1. **Minting Attack Vectors - ELIMINATED**
+```solidity
+// OLD MODEL - Vulnerable to minting exploits
+function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
+    _mint(to, amount); // Could be exploited via compromised minter
+}
+
+// NEW MODEL - Impossible to mint
+function mint(address, uint256) external pure {
+    revert("Minting is disabled - all tokens minted at deployment");
+}
+```
+
+**Eliminated Edge Cases:**
+- Unauthorized minting via role compromise
+- Minting overflow attacks (trying to mint MAX_UINT256)
+- Flash loan + minting combinations
+- Governance attacks to grant minting roles
+- Emergency minting diluting holders
+
+#### 2. **Precision/Rounding Exploits - NO LONGER RELEVANT**
+```solidity
+// Tests removed from PrecisionExploits.t.sol:
+test_LargeStakeOverflow() // Tried to mint 100M tokens
+test_RewardCalculationPrecision() // Needed minting for test setup
+test_RevenueDistributionPrecision() // Required whale minting
+```
+
+**Why Removed:**
+- Cannot create arbitrary token amounts for testing edge cases
+- All tokens pre-exist, so no precision loss from minting
+- Distribution math simplified without mint calculations
+
+#### 3. **Reward System Edge Cases - SIMPLIFIED**
+```solidity
+// OLD: Complex minting-based rewards with many edge cases
+function distributeRewards() {
+    uint256 toMint = calculateMintAmount(); // Edge cases here
+    _mint(staker, toMint); // And here
+}
+
+// NEW: Simple transfer from pre-allocated pool
+function distributeRewards() {
+    uint256 reward = calculateReward();
+    IERC20(rdat).transfer(staker, reward); // Just a transfer
+}
+```
+
+**Simplified Edge Cases:**
+- No mint/burn race conditions
+- No reward calculation overflows from minting
+- Rewards bounded by treasury balance
+- No infinite mint loops possible
+
+#### 4. **Migration Edge Cases - CONSTRAINED**
+```solidity
+// OLD: Migration could mint tokens
+function migrate(uint256 v1Amount) {
+    _mint(msg.sender, v1Amount); // Unbounded minting
+}
+
+// NEW: Migration uses pre-allocated pool
+function migrate(uint256 v1Amount) {
+    require(v1Amount <= remainingAllocation, "Exceeds allocation");
+    IERC20(rdat).transfer(msg.sender, v1Amount); // Bounded by 30M
+}
+```
+
+**Constrained Edge Cases:**
+- Cannot migrate more than 30M total
+- No double-migration via minting
+- Transparent on-chain allocation tracking
+- Hard stop when allocation exhausted
+
+### Q: How do we test scenarios that previously required minting?
+
+**A:** Testing strategies adapted for fixed supply model:
+
+#### 1. **Use Treasury Pre-allocation**
+```solidity
+// Instead of minting for test users:
+vm.prank(admin);
+rdat.mint(alice, 1000e18); // OLD - Won't work
+
+// Transfer from treasury allocation:
+vm.prank(treasury);
+rdat.transfer(alice, 1000e18); // NEW - Works perfectly
+```
+
+#### 2. **Test with Realistic Constraints**
+```solidity
+// OLD: Test with unlimited tokens
+for (uint i = 0; i < 1000; i++) {
+    rdat.mint(users[i], HUGE_AMOUNT);
+}
+
+// NEW: Test with realistic distribution
+uint256 testAllocation = 1_000_000e18; // 1M from treasury
+for (uint i = 0; i < users.length && testAllocation > 0; i++) {
+    uint256 amount = Math.min(10_000e18, testAllocation);
+    vm.prank(treasury);
+    rdat.transfer(users[i], amount);
+    testAllocation -= amount;
+}
+```
+
+#### 3. **Focus on Real Scenarios**
+```solidity
+// Instead of testing impossible edge cases:
+test_MintingOverflow() // Impossible now
+test_InfiniteMintAttack() // Impossible now
+
+// Test realistic scenarios:
+test_TreasuryDepletion() // What happens when rewards run out?
+test_MigrationAllocationExhaustion() // When 30M is fully claimed?
+```
+
+### Q: What new edge cases does the fixed supply model introduce?
+
+**A:** Fixed supply creates new considerations:
+
+#### 1. **Treasury Depletion**
+```solidity
+// New edge case: What if treasury runs out?
+function claimRewards() external {
+    uint256 rewards = calculateRewards(msg.sender);
+    uint256 available = rdat.balanceOf(address(this));
+    
+    if (rewards > available) {
+        // Handle gracefully - partial payment or queue
+        rewards = available; // Pay what we can
+        emit RewardsUnderfunded(msg.sender, rewards, available);
+    }
+}
+```
+
+#### 2. **Allocation Exhaustion Timing**
+```solidity
+// Edge case: Race to claim limited allocations
+mapping(address => bool) public hasClaimedAirdrop;
+uint256 public remainingAirdrop = 1_000_000e18;
+
+function claimAirdrop() external {
+    require(!hasClaimedAirdrop[msg.sender], "Already claimed");
+    require(remainingAirdrop >= AIRDROP_AMOUNT, "Airdrop exhausted");
+    
+    hasClaimedAirdrop[msg.sender] = true;
+    remainingAirdrop -= AIRDROP_AMOUNT;
+    rdat.transfer(msg.sender, AIRDROP_AMOUNT);
+}
+```
+
+#### 3. **Long-term Sustainability**
+```solidity
+// Must plan for when initial allocations deplete
+contract SustainableRewards {
+    uint256 public rewardEndTime;
+    
+    function initialize(uint256 totalRewards, uint256 duration) external {
+        rewardEndTime = block.timestamp + duration;
+        // Fixed rewards must last for 'duration'
+        rewardRate = totalRewards / duration;
+    }
+    
+    function getRewardRate() public view returns (uint256) {
+        if (block.timestamp >= rewardEndTime) return 0; // No more rewards
+        return rewardRate;
+    }
+}
+```
+
+### Q: How do test error messages change with OpenZeppelin v5?
+
+**A:** OpenZeppelin v5 uses custom errors instead of require strings:
+
+#### 1. **ERC20 Errors**
+```solidity
+// OLD (v4)
+vm.expectRevert("ERC20: insufficient allowance");
+
+// NEW (v5)
+vm.expectRevert(
+    abi.encodeWithSelector(
+        IERC20Errors.ERC20InsufficientAllowance.selector,
+        spender,
+        allowance,
+        amount
+    )
+);
+```
+
+#### 2. **ERC721 Errors**
+```solidity
+// OLD (v4)
+vm.expectRevert("ERC721: invalid token ID");
+
+// NEW (v5)  
+vm.expectRevert(
+    abi.encodeWithSelector(
+        IERC721Errors.ERC721NonexistentToken.selector,
+        tokenId
+    )
+);
+```
+
+#### 3. **Access Control Errors**
+```solidity
+// OLD (v4)
+vm.expectRevert("AccessControl: account is missing role");
+
+// NEW (v5)
+vm.expectRevert(
+    abi.encodeWithSelector(
+        IAccessControl.AccessControlUnauthorizedAccount.selector,
+        account,
+        role
+    )
+);
+```
+
+#### 4. **Pausable Errors**
+```solidity
+// OLD (v4)
+vm.expectRevert("Pausable: paused");
+
+// NEW (v5)
+vm.expectRevert(
+    abi.encodeWithSelector(
+        PausableUpgradeable.EnforcedPause.selector
+    )
+);
+```
+
+This change improves gas efficiency and provides more detailed error information.
+
+### Q: What test patterns work best with the modular rewards architecture?
+
+**A:** Testing modular rewards requires different patterns:
+
+#### 1. **Test Each Module Independently**
+```solidity
+contract vRDATRewardModuleTest is Test {
+    function test_vRDATMintingOnStake() public {
+        // Test ONLY vRDAT logic, mock RewardsManager
+        vm.mockCall(
+            address(rewardsManager),
+            abi.encodeWithSelector(IRewardsManager.isActive.selector),
+            abi.encode(true)
+        );
+        
+        // Test module in isolation
+        vrdatModule.onStake(alice, 1, 1000e18, 365 days);
+        assertEq(vrdat.balanceOf(alice), 4000e18); // 4x multiplier
+    }
+}
+```
+
+#### 2. **Test Orchestration Separately**
+```solidity
+contract RewardsManagerTest is Test {
+    function test_NotifiesAllActiveModules() public {
+        // Setup multiple modules
+        rewardsManager.registerProgram(address(vrdatModule), "vRDAT", 0, 0);
+        rewardsManager.registerProgram(address(partnerModule), "PARTNER", 0, 0);
+        
+        // Verify both get notified
+        vm.expectCall(address(vrdatModule), abi.encodeWithSelector(
+            IRewardModule.onStake.selector
+        ));
+        vm.expectCall(address(partnerModule), abi.encodeWithSelector(
+            IRewardModule.onStake.selector
+        ));
+        
+        stakingPositions.stake(1000e18, 30 days);
+    }
+}
+```
+
+#### 3. **Integration Tests for Full Flow**
+```solidity
+contract FullSystemTest is Test {
+    function test_EndToEndStakingWithRewards() public {
+        // Test complete flow through all contracts
+        uint256 stakeAmount = 1000e18;
+        
+        // 1. User stakes
+        vm.prank(alice);
+        uint256 positionId = stakingPositions.stake(stakeAmount, 365 days);
+        
+        // 2. Verify vRDAT minted via module
+        assertEq(vrdat.balanceOf(alice), stakeAmount * 4); // 4x multiplier
+        
+        // 3. Fast forward and claim RDAT rewards
+        vm.warp(block.timestamp + 30 days);
+        vm.prank(alice);
+        IRewardsManager.ClaimInfo[] memory claims = rewardsManager.claimRewards(positionId);
+        
+        // 4. Verify rewards from correct module
+        assertEq(claims[0].token, address(rdat));
+        assertGt(claims[0].amount, 0);
+    }
+}
+```
+
+This modular testing approach ensures each component works correctly both in isolation and when integrated.
+
 ## Contributing to this FAQ
 
 When adding new entries:

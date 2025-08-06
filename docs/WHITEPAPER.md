@@ -335,10 +335,18 @@ uint256 public constant CONTRIBUTOR_SHARE = 2000; // 20% to contributors
 
 #### Token Economics
 - **Fixed Supply**: 100M tokens (all minted at deployment)
+- **No Inflation**: Zero additional minting capability post-deployment
 - **Fee Distribution**: 20% of fees to contributor pool
 - **Liquidity Bootstrapping**: Initial liquidity from treasury allocation
 - **Migration Process**: 1:1 swap with 1-year claim deadline
 - **Staking Multipliers**: 1x (30d) to 1.75x (365d) for sustainable rewards
+
+#### Fixed Supply Benefits
+1. **Predictable Economics**: Token holders have certainty about maximum supply
+2. **No Dilution Risk**: Eliminates inflation-based value erosion
+3. **Security Hardening**: Removes entire categories of minting vulnerabilities
+4. **Simplified Governance**: No debates about emission rates or minting policies
+5. **Sustainable Rewards**: Forces focus on fee-based sustainability
 
 ### Sustainability Metrics
 
