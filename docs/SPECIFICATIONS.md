@@ -317,6 +317,11 @@ contract SecureMigrationBridge {
 
 ### Core Contracts (V2 Modular Architecture)
 1. **RDATUpgradeable.sol** - Main token with full VRC-20 compliance (UUPS upgradeable)
+   - Fixed 100M supply (all minted at deployment)
+   - Full VRC-20 data pool management
+   - Epoch rewards from treasury allocation (no minting)
+   - Data license fee routing through RevenueCollector
+   - Kismet-based reward calculations
 2. **vRDAT.sol** - Soul-bound governance token (non-upgradeable)
 3. **StakingPositions.sol** - NFT-based staking with conditional transfers (non-upgradeable)
 4. **RewardsManager.sol** - Orchestrates reward modules (upgradeable for flexibility)
@@ -684,7 +689,57 @@ function getDeploymentAddress(bytes32 salt) external view returns (address)
 - Public disclosure required for all team allocations including amounts and vesting schedules
 - Non-compliance will result in loss of DLP rewards eligibility
 
-### 5. Access Control Roles
+### 5. VRC-20 Full Implementation Details
+
+**Data Pool Management:**
+```solidity
+// Create data pools for organizing contributions
+function createDataPool(
+    bytes32 poolId,
+    string memory metadata,
+    address[] memory initialContributors
+) external returns (bool)
+
+// Add data with quality scoring
+function addDataToPool(
+    bytes32 poolId,
+    bytes32 dataHash,
+    uint256 quality // 0-100 score
+) external returns (bool)
+```
+
+**Epoch Rewards (No Minting):**
+```solidity
+// Admin funds rewards from Phase 3 allocation
+function fundEpochRewards(uint256 amount) external onlyAdmin
+
+// Set epoch reward amounts (must be pre-funded)
+function setEpochRewards(uint256 epoch, uint256 amount) external onlyAdmin
+
+// Users claim proportional rewards based on contribution score
+function claimEpochRewards(uint256 epoch) external returns (uint256)
+```
+
+**Data License Fee Integration:**
+```solidity
+// Process data license payments through RevenueCollector
+function processDataLicensePayment(
+    bytes32 dataHash,
+    uint256 licenseFee
+) external {
+    // Transfer fee to contract
+    // Route through RevenueCollector for 50/30/20 distribution
+    // Emits DataLicensed event
+}
+```
+
+**Kismet-Based Reward Calculations:**
+- Bronze Tier (0-2500): 1.0x multiplier
+- Silver Tier (2501-5000): 1.1x multiplier  
+- Gold Tier (5001-7500): 1.25x multiplier
+- Platinum Tier (7501-10000): 1.5x multiplier
+
+### 6. Access Control Roles
 
 **Role Definitions:**
 ```solidity
@@ -708,11 +763,14 @@ bytes32 public constant BLOCKLIST_ADMIN_ROLE = keccak256("BLOCKLIST_ADMIN_ROLE")
 - Access control for all restricted functions
 
 **VRC-20 Compliance (`test/unit/VRC20Compliance.t.sol`):**
-- Fixed supply enforcement
-- Transfer fee calculations (0%, 1%, 3% scenarios)
-- Fee recipient updates
-- Blocklist functionality
-- Anti-rebasing verification
+- Fixed supply enforcement (no minting after deployment)
+- Data pool creation and management
+- Data contribution with quality scoring
+- Epoch rewards from treasury (not minting)
+- Data license fee routing through RevenueCollector
+- Kismet reputation multipliers (1.0x - 1.5x)
+- ProofOfContribution integration
+- DLP registration and verification
 
 **Vesting Tests (`test/unit/Vesting.t.sol`):**
 - Treasury vesting: 6-month cliff, then 5% monthly releases
