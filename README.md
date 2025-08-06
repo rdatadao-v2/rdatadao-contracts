@@ -1,31 +1,41 @@
 # 🚀 r/datadao Smart Contracts
 
 **Version**: 3.0 - Full VRC Compliance  
-**Sprint**: August 5-18, 2025  
+**Last Updated**: August 6, 2025  
 **Blockchain**: Vana (Primary), Base (Migration Only)  
-**Contracts**: 14 total (7 completed, 7 remaining)
+**Contracts**: 16 total (11 completed, 5 remaining)
 
 ## 📋 Overview
 
-RDAT represents a major upgrade from V1, expanding token supply from 30M to 100M and migrating from Base to Vana blockchain. This repository contains the smart contracts for the r/datadao ecosystem.
+RDAT V2 represents a major upgrade from V1, expanding token supply from 30M to 100M and migrating from Base to Vana blockchain. This repository contains the smart contracts for the r/datadao ecosystem with fixed supply tokenomics and comprehensive vesting mechanisms.
 
 ## 🏗️ Architecture
 
-### Core Contracts (14 Total)
-1. **RDATUpgradeable**: Main ERC-20 token with full VRC-20 compliance (100M supply, UUPS) ✅
+### Core Contracts (16 Total)
+1. **RDATUpgradeable**: Main ERC-20 token with VRC-20 compliance (100M fixed supply, UUPS) ✅
 2. **vRDAT**: Soul-bound governance token with proportional distribution ✅
-3. **StakingManager**: Immutable core staking with EnumerableSet optimization ✅
+3. **StakingPositions**: NFT-based staking positions with lock periods ✅
 4. **RewardsManager**: UUPS upgradeable orchestrator for reward modules 🔴
 5. **vRDATRewardModule**: Proportional governance token distribution (days/365) ✅
 6. **RDATRewardModule**: Time-based rewards with 1x-1.75x multipliers 🔴
-7. **MigrationBridge**: Secure V1→V2 cross-chain migration 🔴
-8. **EmergencyPause**: Shared emergency response system ✅
-9. **RevenueCollector**: Fee distribution mechanism (50/30/20 split) 🔴
-10. **ProofOfContribution**: Full Vana DLP implementation 🔴
-11. **Create2Factory**: Deterministic deployment factory ✅
-12. **VRC14LiquidityModule**: VANA liquidity incentives (90-day tranches) 🆕
-13. **DataPoolManager**: VRC-20 data pool management 🆕
-14. **RDATVesting**: Team token vesting (6-month cliff) 🆕
+7. **TreasuryWallet**: Manages 70M RDAT with phased vesting schedules ✅
+8. **TokenVesting**: VRC-20 compliant team vesting (6-month cliff + 18-month linear) ✅
+9. **MigrationBridge**: Secure V1→V2 cross-chain migration 🔴
+10. **EmergencyPause**: Shared emergency response system ✅
+11. **RevenueCollector**: Fee distribution mechanism (50/30/20 split) ✅
+12. **ProofOfContribution**: Vana DLP integration stub 🔴
+13. **CREATE2Factory**: Deterministic deployment infrastructure ✅
+14. **VRC14LiquidityModule**: VANA liquidity incentives 🔴
+15. **DataPoolManager**: VRC-20 data pool management 🔴
+16. **AllocationTracker**: Tracks distributions from TreasuryWallet ✅
+
+### Key Features
+- **Fixed Supply**: 100M RDAT total, no minting capability
+- **Phased Vesting**: TreasuryWallet manages 70M with distinct schedules
+- **VRC-20 Compliance**: Full compatibility with Vana DLP rewards
+- **CREATE2 Deployment**: Deterministic cross-chain addresses
+- **Emergency Controls**: Pause functionality with auto-expiry
+- **UUPS Upgradeable**: Future improvements without token migration
 
 ### Key Addresses
 - **Vana Multisig**: `0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319`
@@ -80,16 +90,49 @@ forge script script/Deploy.s.sol --rpc-url http://localhost:8546 --broadcast
 ./script/anvil-multichain.sh stop
 ```
 
+## 🧪 Testing
+
+### Test Status
+```
+Total Tests: 301
+Passing: 255 (84.7%)
+Failing: 46 (15.3%)
+
+Core Contracts:
+✅ TreasuryWallet: 14/14 tests passing (100%)
+✅ TokenVesting: 38/38 tests passing (100%)
+✅ RDATUpgradeable: 8/8 tests passing (100%)
+✅ EmergencyPause: 19/19 tests passing (100%)
+✅ CREATE2Deployment: 3/3 tests passing (100%)
+⚠️  StakingPositions: 12/18 tests passing (67%)
+🔴 RewardsManager: 0/45 tests passing (needs integration)
+```
+
+### Running Tests
+```bash
+# Run all tests
+forge test
+
+# Run specific test file
+forge test --match-contract TreasuryWalletTest
+
+# Run with gas reporting
+forge test --gas-report
+
+# Run with coverage
+forge coverage
+```
+
 ## 📦 Deployment
 
 ### Architecture
-RDAT V2 uses a modular triple-layer architecture:
-- **Token Layer**: UUPS upgradeable RDAT for flexibility and bug fixes
-- **Staking Layer**: Immutable StakingManager for maximum security
-- **Rewards Layer**: Upgradeable RewardsManager with pluggable modules
-- **Key Innovation**: Separation of staking state from reward logic
-- **Gas Optimization**: EnumerableSet for O(1) stake operations
-- **Anti-Gaming**: Proportional vRDAT distribution (days/365)
+RDAT V2 uses a modular architecture with CREATE2 deployment:
+- **Token Layer**: UUPS upgradeable RDAT with fixed 100M supply
+- **Treasury Layer**: TreasuryWallet manages 70M with vesting schedules
+- **Staking Layer**: StakingPositions NFT-based position tracking
+- **Vesting Layer**: TokenVesting for VRC-20 compliant team allocations
+- **Bridge Layer**: MigrationBridge for Base→Vana migration
+- **Security Layer**: EmergencyPause with auto-expiry protection
 
 ### Deployment Overview
 ```bash
@@ -157,10 +200,21 @@ Report security vulnerabilities to: security@rdatadao.org
 
 ## 📚 Documentation
 
-- [Contract Specifications](./CONTRACTS_SPEC.md)
+### Core Documentation
+- [Full Specifications](./docs/SPECIFICATIONS.md) - Complete system design
+- [Implementation Update](./docs/IMPLEMENTATION_UPDATE.md) - What was actually built
+- [Implementation Specification](./docs/IMPLEMENTATION_SPECIFICATION.md) - Authoritative parameters
+- [Technical FAQ](./docs/TECHNICAL_FAQ.md) - Common questions answered
+
+### Contract Specifications
+- [TreasuryWallet Spec](./docs/TREASURY_WALLET_SPEC.md) - 70M RDAT vesting
+- [TokenVesting Spec](./docs/TOKEN_VESTING_SPEC.md) - VRC-20 team vesting
+- [Phase 3 Activation](./docs/PHASE_3_ACTIVATION_SPEC.md) - Future rewards unlock
+
+### Development Guides
 - [Testing Requirements](./docs/TESTING_REQUIREMENTS.md)
 - [Deployment Guide](./docs/DEPLOYMENT_GUIDE.md)
-- [Full Specifications](./docs/SPECIFICATIONS.md)
+- [Sprint Execution Plan](./docs/SPRINT_EXECUTION_PLAN_V2.md)
 
 ## 🤝 Contributing
 

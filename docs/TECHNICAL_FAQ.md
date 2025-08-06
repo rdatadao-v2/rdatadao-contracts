@@ -1,13 +1,19 @@
-# Technical FAQ and Architectural Decisions
+# 🔧 Technical FAQ and Architectural Decisions
+
+**Last Updated**: August 6, 2025  
+**Version**: 2.0 - Post-Implementation Update
 
 This document captures important technical decisions, architectural patterns, and frequently asked questions about the r/datadao V2 smart contract implementation.
 
-## Table of Contents
+## 📋 Table of Contents
 1. [RDAT Tokenomics](#rdat-tokenomics)
-2. [Emergency Pause Architecture](#emergency-pause-architecture)
-3. [Emergency Migration Architecture](#emergency-migration-architecture)
-4. [Token Architecture](#token-architecture)
-5. [Security Decisions](#security-decisions)
+2. [TreasuryWallet Implementation](#treasurywallet-implementation)
+3. [TokenVesting for VRC-20](#tokenvesting-for-vrc-20)
+4. [CREATE2 Deployment](#create2-deployment)
+5. [Emergency Pause Architecture](#emergency-pause-architecture)
+6. [Emergency Migration Architecture](#emergency-migration-architecture)
+7. [Token Architecture](#token-architecture)
+8. [Security Decisions](#security-decisions)
 
 ---
 
@@ -100,6 +106,119 @@ This eliminates any risk of the migration contract creating new tokens.
 4. **Community Trust**: Fixed supply promise cannot be broken
 
 This protects token holders from dilution.
+
+---
+
+## TreasuryWallet Implementation
+
+### Q: Why did we implement TreasuryWallet instead of using simple transfers?
+
+**A:** TreasuryWallet provides critical vesting and governance features:
+
+1. **Automated Vesting**: Enforces DAO-approved vesting schedules
+2. **Phase 3 Gating**: Future Rewards locked until activation
+3. **Transparency**: All distributions tracked on-chain
+4. **Access Control**: Only authorized addresses can distribute
+5. **UUPS Upgradeable**: Can adapt to future needs
+
+### Q: How does the vesting calculation work?
+
+**A:** We simplified from the original monthly percentage design:
+
+**Original Design**: 5% monthly after cliff
+**Implemented**: Linear vesting over 18 months
+
+```solidity
+// After cliff period
+uint256 vestingElapsed = block.timestamp - (startTime + cliffDuration);
+uint256 vestedAmount = (allocation * vestingElapsed) / vestingDuration;
+```
+
+This is simpler to calculate and achieves the same distribution curve.
+
+### Q: Why does TreasuryWallet receive 70M RDAT?
+
+**A:** Per DAO vote, the 70M allocation manages:
+
+1. **Data Contributors**: 30M (0% TGE, 18-month vesting)
+2. **Future Rewards**: 25M (10% TGE, Phase 3 gated)
+3. **Treasury & Ecosystem**: 15M (33% TGE, includes team allocation)
+
+The contract enforces these allocations programmatically.
+
+---
+
+## TokenVesting for VRC-20
+
+### Q: Why build custom TokenVesting instead of using Vana's VestingWallet?
+
+**A:** VRC-20 compliance requires specific features:
+
+1. **DLP Eligibility Date**: Admin sets when vesting starts
+2. **Multiple Beneficiaries**: Team members with individual allocations
+3. **6-Month Cliff**: Vana requirement for DLP rewards
+4. **Transparency**: Public view of all vesting data
+5. **Custom Claims**: Beneficiaries claim when ready
+
+### Q: How does the eligibility date work?
+
+**A:** Critical for Vana compliance:
+
+```solidity
+function setEligibilityDate(uint256 _date) external onlyRole(ADMIN_ROLE) {
+    require(!eligibilitySet, "Already set");
+    require(_date <= block.timestamp + 30 days, "Too far in future");
+    require(_date >= block.timestamp - 7 days, "Too far in past");
+    
+    eligibilityDate = _date;
+    eligibilitySet = true;
+}
+```
+
+Vesting cannot start before DLP reward eligibility is confirmed.
+
+### Q: What happens if tokens aren't transferred to TokenVesting?
+
+**A:** The contract handles this gracefully:
+
+1. **No Tokens = No Claims**: Claims fail with InsufficientTokenBalance
+2. **Partial Funding**: Can claim up to contract balance
+3. **View Functions Work**: Can still see vesting schedules
+4. **Flexible Funding**: Can transfer tokens anytime
+
+---
+
+## CREATE2 Deployment
+
+### Q: Why use CREATE2 instead of regular deployment?
+
+**A:** Solves the circular dependency between RDAT and TreasuryWallet:
+
+**The Problem**:
+- RDAT needs TreasuryWallet address to mint 70M tokens
+- TreasuryWallet needs RDAT address for token interface
+- Can't deploy either first without the other
+
+**The Solution**:
+1. Calculate deterministic TreasuryWallet address with CREATE2
+2. Deploy RDAT with predicted address
+3. Deploy TreasuryWallet at exact predicted address
+4. Everything works without post-deployment setup
+
+### Q: How does CREATE2 ensure cross-chain consistency?
+
+**A:** Same addresses on all chains:
+
+```solidity
+address = keccak256(
+    0xff,
+    factoryAddress,  // Must be same on all chains
+    salt,            // We control this
+    keccak256(bytecode) // Same contract = same bytecode
+)
+```
+
+As long as factory is deployed to same address, all contracts have consistent addresses.
 
 ### Q: Why doesn't StakingPositions calculate or distribute rewards?
 
