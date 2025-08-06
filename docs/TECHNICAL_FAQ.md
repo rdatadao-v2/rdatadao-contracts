@@ -558,7 +558,7 @@ Benefits:
 4. Limited flexibility for partnerships and campaigns
 
 **Modular Architecture Benefits:**
-1. **Clean Separation**: StakingManager only handles positions, RewardsManager handles distributions
+1. **Clean Separation**: StakingPositions only handles positions, RewardsManager handles distributions
 2. **Unlimited Reward Programs**: Add new tokens, campaigns, partners without touching core staking
 3. **Retroactive Rewards**: Can distribute rewards based on historical staking data
 4. **Independent Upgrades**: Upgrade reward logic without migrating stakes
@@ -567,10 +567,10 @@ Benefits:
 **Example Architecture:**
 ```solidity
 // Core immutable staking
-StakingManager (handles positions only)
-    ↓ emits events
+StakingPositions (handles positions only)
+    ↓ notifies via events
 RewardsManager (orchestrator - upgradeable)
-    ↓ notifies modules
+    ↓ coordinates modules
     ├── vRDATRewardModule (immediate mint on stake)
     ├── RDATRewardModule (time-based accumulation)
     ├── PartnerTokenModule (special campaigns)
@@ -578,10 +578,10 @@ RewardsManager (orchestrator - upgradeable)
 ```
 
 **Implementation Details:**
-- StakingManager: Immutable, only manages stake state
+- StakingPositions: Immutable, only manages stake state and NFTs
 - RewardsManager: UUPS upgradeable orchestrator
 - Reward Modules: Pluggable contracts implementing IRewardModule
-- Event-driven: Modules listen to staking events
+- Event-driven: Modules notified of stake/unstake events
 - Flexible claiming: Batch claims across all programs
 
 **Gas Considerations:**
@@ -589,6 +589,65 @@ RewardsManager (orchestrator - upgradeable)
 - Lower claim gas (batch operations)
 - No migration gas costs for new rewards
 - Worth it for unlimited flexibility
+
+### Q: How does the reward module coordination actually work?
+
+**A:** Each reward module operates independently with its own token management rules:
+
+**RewardsManager (Coordinator Role):**
+- Receives stake/unstake notifications from StakingPositions
+- Forwards events to all active reward modules
+- Coordinates batch reward claiming across modules
+- Manages program lifecycle (active/inactive/emergency pause)
+- **NO direct token handling** - pure coordination
+
+**Individual Reward Modules (Token-Specific Logic):**
+- **vRDATRewardModule**: Controls vRDAT minting/burning with lock multipliers
+- **RDATRewardModule**: Controls RDAT reward distribution with time-based rates
+- Each module implements its own qualification logic
+- Each module handles its own token transfers/minting/burning
+
+**The Complete Flow:**
+
+1. **Stake Created** → StakingPositions.stake() → RewardsManager.notifyStake() → All active modules.onStake()
+2. **Each Module Decides Independently**:
+   - Does this position qualify for rewards?
+   - What amount to mint/allocate?
+   - When to distribute?
+3. **Claim Rewards** → RewardsManager.claimRewards() coordinates → Each module.claimRewards() handles its own tokens
+4. **Unstake** → StakingPositions.unstake() → RewardsManager.notifyUnstake() → Each module.onUnstake() handles cleanup
+
+**Example Module-Specific Rules:**
+
+```solidity
+// vRDATRewardModule - Immediate minting based on lock multipliers
+function onStake(address user, uint256 stakeId, uint256 amount, uint256 lockPeriod) external {
+    uint256 multiplier = lockMultipliers[lockPeriod];
+    uint256 vrdatAmount = (amount * multiplier) / PRECISION;
+    vrdatToken.mint(user, vrdatAmount); // Module controls vRDAT minting
+    mintedAmounts[user][stakeId] = vrdatAmount;
+}
+
+// RDATRewardModule - Time-based accumulation (future implementation)
+function onStake(address user, uint256 stakeId, uint256 amount, uint256 lockPeriod) external {
+    // Only rewards if staked > 30 days AND user qualifies
+    if (lockPeriod >= 30 days && userQualifies(user)) {
+        StakeInfo storage stake = stakes[user][stakeId];
+        stake.amount = amount;
+        stake.startTime = block.timestamp;
+        stake.rewardRate = calculateRate(amount, lockPeriod);
+    }
+}
+```
+
+**Key Architecture Principles:**
+1. **Module Sovereignty**: Each module is 100% responsible for its token and rules
+2. **No Shared State**: Modules don't depend on each other
+3. **Flexible Qualification**: Modules can implement complex eligibility logic
+4. **Independent Token Management**: vRDAT module mints vRDAT, RDAT module transfers RDAT
+5. **Easy Addition**: Deploy new module, register with RewardsManager, done
+
+This architecture enables maximum flexibility for complex reward programs while keeping the core staking logic clean and secure.
 
 ### Q: Why use stake IDs instead of NFTs for positions?
 
