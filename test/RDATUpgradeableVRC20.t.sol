@@ -203,21 +203,37 @@ contract RDATUpgradeableVRC20Test is Test {
         uint256 epoch = 1;
         uint256 amount = 1000 ether;
         
-        vm.prank(admin);
+        // First fund the contract with rewards from admin
+        // Give admin some tokens to fund with
+        vm.prank(treasury);
+        rdat.transfer(admin, amount);
+        
+        vm.startPrank(admin);
+        rdat.fundEpochRewards(amount);
+        
         vm.expectEmit(true, false, false, true);
         emit EpochRewardsSet(epoch, amount);
         
         rdat.setEpochRewards(epoch, amount);
+        vm.stopPrank();
+        
         assertEq(rdat.epochRewards(epoch), amount);
     }
 
     function test_SetEpochRewards_ExceedsSupply() public {
         uint256 epoch = 1;
-        uint256 tooMuch = rdat.TOTAL_SUPPLY() + 1;
+        uint256 tooMuch = 1000 ether;
         
-        vm.prank(admin);
-        vm.expectRevert("Exceeds max supply");
+        // Fund with less than what we'll try to set
+        vm.prank(treasury);
+        rdat.transfer(admin, 500 ether);
+        
+        vm.startPrank(admin);
+        rdat.fundEpochRewards(500 ether);
+        
+        vm.expectRevert("Insufficient contract balance for rewards");
         rdat.setEpochRewards(epoch, tooMuch);
+        vm.stopPrank();
     }
 
     function test_ClaimEpochRewards_NoRewards() public {
@@ -232,8 +248,14 @@ contract RDATUpgradeableVRC20Test is Test {
         // For now, it will revert with "No rewards to claim" because
         // _calculateEpochReward returns 0
         
-        vm.prank(admin);
+        // Fund the contract first
+        vm.prank(treasury);
+        rdat.transfer(admin, 1000 ether);
+        
+        vm.startPrank(admin);
+        rdat.fundEpochRewards(1000 ether);
         rdat.setEpochRewards(1, 1000 ether);
+        vm.stopPrank();
         
         vm.prank(user1);
         vm.expectRevert("No rewards to claim");

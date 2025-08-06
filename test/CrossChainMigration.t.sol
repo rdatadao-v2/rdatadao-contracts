@@ -149,9 +149,12 @@ contract CrossChainMigrationTest is Test {
         // Step 5: Verify results
         console2.log("\n5. Migration Complete!");
         console2.log("User1 V2 balance:", v2Token.balanceOf(user1));
-        console2.log("Expected (amount + bonus):", migrationAmount + bonus);
+        console2.log("Expected base amount:", migrationAmount);
+        console2.log("Bonus amount (vested separately):", bonus);
         
-        assertEq(v2Token.balanceOf(user1), migrationAmount + bonus);
+        // User should receive only the base amount immediately
+        // Bonus is handled through vesting contract (if configured)
+        assertEq(v2Token.balanceOf(user1), migrationAmount);
         assertEq(vanaBridge.totalMigrated(), migrationAmount);
         assertEq(vanaBridge.userMigrations(user1), migrationAmount);
     }
@@ -161,18 +164,18 @@ contract CrossChainMigrationTest is Test {
         
         // Give user1 more tokens for this test
         vm.prank(admin);
-        v1Token.mint(user1, 350_000e18);
+        v1Token.mint(user1, 350_001e18);
         
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 200_000e18;  // Most of daily limit
-        amounts[1] = 100_000e18;  // Would exceed limit with bonus
+        amounts[1] = 100_001e18;  // Would exceed limit by 1 token
         amounts[2] = 50_000e18;   // Next day migration
         
         bytes32[] memory burnHashes = new bytes32[](3);
         
         // Initiate all migrations on Base
         vm.startPrank(user1);
-        v1Token.approve(address(baseBridge), 350_000e18);
+        v1Token.approve(address(baseBridge), 350_001e18);
         
         for (uint i = 0; i < 3; i++) {
             vm.recordLogs();

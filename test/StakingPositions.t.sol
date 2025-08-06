@@ -64,13 +64,10 @@ contract StakingPositionsTest is Test {
         // RDAT no longer has MINTER_ROLE - all tokens minted at deployment
         
         // Transfer tokens from treasury to test users (no minting)
+        vm.stopPrank();
         vm.startPrank(treasury);
         rdat.transfer(alice, INITIAL_BALANCE);
         rdat.transfer(bob, INITIAL_BALANCE);
-        vm.stopPrank();
-        
-        vm.startPrank(admin);
-        
         vm.stopPrank();
         
         // Approve staking contract
@@ -180,7 +177,10 @@ contract StakingPositionsTest is Test {
         vm.startPrank(alice);
         
         uint256 positionId = staking.stake(STAKE_AMOUNT, staking.MONTH_1());
-        uint256 vrdatBefore = vrdat.balanceOf(alice); // Should be 0 since vRDAT minting moved to RewardsManager
+        
+        // Get the position to know how much vRDAT was minted
+        StakingPositions.Position memory position = staking.getPosition(positionId);
+        uint256 vrdatMinted = position.vrdatMinted;
         
         // Try to unstake before lock period ends
         vm.expectRevert(IStakingPositions.StakeStillLocked.selector);
@@ -190,7 +190,7 @@ contract StakingPositionsTest is Test {
         vm.warp(block.timestamp + staking.MONTH_1() + 1);
         
         vm.expectEmit(true, true, false, true);
-        emit Unstaked(alice, positionId, STAKE_AMOUNT, vrdatBefore);
+        emit Unstaked(alice, positionId, STAKE_AMOUNT, vrdatMinted);
         
         staking.unstake(positionId);
         
