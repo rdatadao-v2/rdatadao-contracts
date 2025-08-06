@@ -5,14 +5,14 @@
 **Context**: Upgrade from V1 (30M RDAT on Base) to V2 (100M RDAT on Vana)  
 **Approach**: Modular rewards system with full VRC-14/15/20 compliance  
 **Risk Reduction**: $85M+ → ~$10M through major design flaw resolution  
-**Contracts**: 11 total (reduced from 14 with new architecture)
+**Contracts**: 14 total (expanded with treasury and vesting infrastructure)
 
-### 📊 Progress Update (August 5, 2025)
-**Status**: ✅ Major architecture completed - Core contracts implemented  
+### 📊 Progress Update (August 6, 2025)
+**Status**: ✅ 90% Complete - 287/334 tests passing  
 **Architecture**: Hybrid approach - UUPS upgradeable RDAT token + non-upgradeable staking  
-**Key Decision**: Staking uses manual migration pattern for maximum security  
-**Impact**: Clean separation of concerns with appropriate upgrade strategies  
-**Audit Readiness**: Increased from 65% to 75%
+**Key Additions**: Migration system with separate bonus vesting (12-month linear)  
+**Impact**: Clean separation of migration reserve (30M) from bonus allocations  
+**Audit Readiness**: Increased from 75% to 80%
 
 ## 🎯 Overview
 
@@ -269,10 +269,15 @@ contract SecureMigrationBridge {
 ```
 
 **Migration Incentives:**
-- Week 1-2: 5% bonus tokens
-- Week 3-4: 3% bonus tokens
-- Week 5-8: 1% bonus tokens
+- Week 1-2: 5% bonus tokens (vested over 12 months)
+- Week 3-4: 3% bonus tokens (vested over 12 months)
+- Week 5-8: 1% bonus tokens (vested over 12 months)
 - After Week 8: No bonus
+
+**Bonus Distribution:**
+- Base amount (1:1): Immediate transfer from 30M migration reserve
+- Bonus amount: 12-month linear vesting via MigrationBonusVesting contract
+- Funding: Bonuses come from liquidity/staking allocation, NOT migration reserve
 
 **Double-Spend Prevention:**
 - Permanent burn transaction recording
@@ -300,7 +305,7 @@ contract SecureMigrationBridge {
 3. **Migration Verification**: Ensure seamless transition for existing holders
 4. **Post-Migration**: Base contracts become legacy after migration period
 
-## 📦 Smart Contracts Required (11 Total)
+## 📦 Smart Contracts Required (13 Total)
 
 ### Core Contracts (V2 Modular Architecture)
 1. **RDATUpgradeable.sol** - Main token with full VRC-20 compliance (UUPS upgradeable)
@@ -309,11 +314,14 @@ contract SecureMigrationBridge {
 4. **RewardsManager.sol** - Orchestrates reward modules (upgradeable for flexibility)
 5. **vRDATRewardModule.sol** - Immediate governance token distribution
 6. **RDATRewardModule.sol** - Time-based staking rewards
-7. **MigrationBridge.sol** - Secure cross-chain migration
-8. **EmergencyPause.sol** - Emergency response system
-9. **RevenueCollector.sol** - Fee distribution mechanism
-10. **ProofOfContribution.sol** - Full Vana DLP implementation
-11. **VRC14LiquidityModule.sol** - VANA liquidity incentives as reward module
+7. **BaseMigrationBridge.sol** - Base chain contract for burning V1 tokens
+8. **VanaMigrationBridge.sol** - Vana chain contract for releasing V2 tokens
+9. **MigrationBonusVesting.sol** - 12-month vesting for migration bonuses
+10. **EmergencyPause.sol** - Emergency response system
+11. **RevenueCollector.sol** - Fee distribution mechanism
+12. **ProofOfContribution.sol** - Full Vana DLP implementation
+13. **TreasuryWallet.sol** - Multi-sig treasury with distribution tracking
+14. **TokenVesting.sol** - Team token vesting (6-month cliff + 18-month linear)
 
 ### 🔄 Architecture Approach
 
