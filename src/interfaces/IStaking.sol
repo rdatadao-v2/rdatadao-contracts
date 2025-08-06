@@ -66,4 +66,7 @@ interface IStaking {
     function calculatePendingRewards(address user) external view returns (uint256);
     function canUnstake(address user) external view returns (bool);
     function getStakeEndTime(address user) external view returns (uint256);
+    
+    // Revenue distribution
+    function notifyRewardAmount(uint256 amount) external;
 }

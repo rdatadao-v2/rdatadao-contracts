@@ -360,4 +360,14 @@ contract Staking is IStaking, AccessControl, Pausable, ReentrancyGuard {
     function stakes(address user) external view override returns (StakeInfo memory) {
         return _stakes[user];
     }
+    
+    /**
+     * @dev Notify contract of revenue rewards (stub for compatibility)
+     * @param amount Amount of rewards (unused in this version)
+     */
+    function notifyRewardAmount(uint256 amount) external override {
+        // This is a stub implementation for interface compatibility
+        // The old Staking contract doesn't support external reward distribution
+        // Use StakingPositions for full functionality
+    }
 }
