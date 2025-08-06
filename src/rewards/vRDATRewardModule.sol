@@ -76,11 +76,11 @@ contract vRDATRewardModule is IRewardModule, AccessControl, ReentrancyGuard {
         _grantRole(ADMIN_ROLE, _admin);
         _grantRole(REWARDS_MANAGER_ROLE, _rewardsManager);
         
-        // Initialize proportional multipliers (365 days = 1:1)
-        lockMultipliers[30 days] = 833;     // 0.0833x (30/365)
-        lockMultipliers[90 days] = 2466;    // 0.2466x (90/365)
-        lockMultipliers[180 days] = 4932;   // 0.4932x (180/365)
-        lockMultipliers[365 days] = 10000;  // 1.0x (365/365)
+        // Initialize multipliers matching StakingPositions
+        lockMultipliers[30 days] = 10000;   // 1x = 100%
+        lockMultipliers[90 days] = 15000;   // 1.5x = 150%
+        lockMultipliers[180 days] = 20000;  // 2x = 200%
+        lockMultipliers[365 days] = 40000;  // 4x = 400%
         
         isActiveFlag = true;
     }

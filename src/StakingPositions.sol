@@ -167,8 +167,7 @@ contract StakingPositions is
         // Mint position NFT
         _safeMint(msg.sender, positionId);
         
-        // Mint vRDAT for governance
-        _vrdatToken.mint(msg.sender, vrdatAmount);
+        // vRDAT minting is now handled by RewardsManager/vRDATRewardModule
         
         emit Staked(msg.sender, positionId, amount, lockPeriod, lockMultipliers[lockPeriod]);
         
@@ -190,17 +189,7 @@ contract StakingPositions is
         Position memory position = _positions[positionId];
         
         // Rewards are now claimed through RewardsManager, not here
-        
-        // Burn vRDAT tokens - try to burn from current owner, if fails, skip
-        // This handles the case where NFT was transferred but vRDAT is soul-bound
-        if (position.vrdatMinted > 0) {
-            try _vrdatToken.burn(msg.sender, position.vrdatMinted) {
-                // Successfully burned
-            } catch {
-                // If burn fails (e.g., transferred NFT), continue anyway
-                // The vRDAT will remain with original staker
-            }
-        }
+        // vRDAT burning is now handled by RewardsManager/vRDATRewardModule
         
         // Delete position data
         delete _positions[positionId];
@@ -225,20 +214,19 @@ contract StakingPositions is
      * @param positionId The position to claim rewards for
      */
     function claimRewards(uint256 positionId) external virtual override nonReentrant whenNotPaused {
-        // StakingPositions no longer handles reward claims directly
-        // Use RewardsManager.claimRewards(positionId) instead
-        revert("Use RewardsManager for claiming");
+        if (_ownerOf(positionId) == address(0)) revert PositionDoesNotExist();
+        if (ownerOf(positionId) != msg.sender) revert NotPositionOwner();
+        
+        // Users should claim rewards directly from RewardsManager
+        revert("Use RewardsManager.claimRewards directly");
     }
     
     /**
      * @dev Claim rewards for all positions owned by the caller
      */
     function claimAllRewards() external override nonReentrant whenNotPaused {
-        uint256 balance = balanceOf(msg.sender);
-        for (uint256 i = 0; i < balance; i++) {
-            uint256 positionId = tokenOfOwnerByIndex(msg.sender, i);
-            _claimRewards(positionId);
-        }
+        // Users should claim rewards directly from RewardsManager
+        revert("Use RewardsManager.claimAllRewards directly");
     }
     
     /**
@@ -257,14 +245,9 @@ contract StakingPositions is
         uint256 penalty = (stakedAmount * EMERGENCY_WITHDRAW_PENALTY) / 100;
         uint256 withdrawAmount = stakedAmount - penalty;
         
-        // Burn vRDAT tokens - MUST succeed if vRDAT exists
-        if (vrdatAmount > 0) {
-            // This will revert if user doesn't have the vRDAT
-            // Preventing zombie positions
-            _vrdatToken.burn(msg.sender, vrdatAmount);
-            // Clear the vRDAT amount to enable transfers
-            position.vrdatMinted = 0;
-        }
+        // vRDAT burning is now handled by RewardsManager/vRDATRewardModule
+        // Clear the vRDAT amount to enable transfers  
+        position.vrdatMinted = 0;
         
         // Clear position amount but keep NFT for now (enables transfer)
         position.amount = 0;
@@ -369,16 +352,6 @@ contract StakingPositions is
         // StakingPositions no longer calculates rewards directly
         // This is now handled by RewardsManager and its modules
         return 0;
-    }
-    
-    /**
-     * @dev Internal function to claim rewards
-     * @param positionId Position ID
-     */
-    function _claimRewards(uint256 positionId) internal {
-        // StakingPositions no longer handles reward claims directly
-        // Rewards are now managed through RewardsManager and its modules
-        revert("Use RewardsManager for claiming");
     }
     
     /**
