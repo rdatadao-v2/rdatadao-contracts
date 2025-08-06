@@ -107,7 +107,7 @@ contract RewardsManagerTest is Test {
         );
         
         // Configure connections
-        // Note: StakingPositions doesn't have setRewardsManager in current implementation
+        stakingPositions.setRewardsManager(address(rewardsManager));
         vrdat.grantRole(vrdat.MINTER_ROLE(), address(vrdatModule));
         vrdat.grantRole(vrdat.BURNER_ROLE(), address(vrdatModule));
         vrdatModule.updateRewardsManager(address(rewardsManager));
@@ -282,14 +282,18 @@ contract RewardsManagerTest is Test {
         vm.startPrank(alice);
         rdat.approve(address(stakingPositions), STAKE_AMOUNT);
         
+        // Check initial vRDAT balance
+        uint256 initialVRDAT = vrdat.balanceOf(alice);
+        
         vm.expectEmit(true, true, false, true);
         emit StakeNotified(alice, 1, STAKE_AMOUNT, stakingPositions.MONTH_1());
         
         uint256 positionId = stakingPositions.stake(STAKE_AMOUNT, stakingPositions.MONTH_1());
         vm.stopPrank();
         
-        // Verify vRDAT was minted
-        assertEq(vrdat.balanceOf(alice), STAKE_AMOUNT);
+        // Verify vRDAT was minted with 1x multiplier for MONTH_1
+        uint256 expectedVRDAT = (STAKE_AMOUNT * stakingPositions.lockMultipliers(stakingPositions.MONTH_1())) / stakingPositions.PRECISION();
+        assertEq(vrdat.balanceOf(alice) - initialVRDAT, expectedVRDAT);
     }
     
     function test_NotifyStake_OnlyStakingManager() public {

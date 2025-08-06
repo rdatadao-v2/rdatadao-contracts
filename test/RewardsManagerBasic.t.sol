@@ -205,8 +205,8 @@ contract RewardsManagerBasicTest is Test {
         rewardsManager.notifyStake(alice, 1, STAKE_AMOUNT, 30 days);
         
         // Verify vRDAT was minted (through module)
-        // vRDAT module uses 833/10000 = 0.0833x multiplier for 30 days
-        uint256 expectedVRDAT = (STAKE_AMOUNT * 833) / 10000;
+        // vRDAT module uses 10000/10000 = 1x multiplier for 30 days (MONTH_1)
+        uint256 expectedVRDAT = (STAKE_AMOUNT * 10000) / 10000;
         assertEq(vrdat.balanceOf(alice), expectedVRDAT);
     }
     

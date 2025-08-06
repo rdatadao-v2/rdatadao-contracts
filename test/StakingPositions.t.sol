@@ -3,6 +3,7 @@ pragma solidity 0.8.23;
 
 import "forge-std/Test.sol";
 import "../src/StakingPositions.sol";
+import "../src/interfaces/IStakingPositions.sol";
 import "../src/RDATUpgradeable.sol";
 import "../src/vRDAT.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -59,8 +60,7 @@ contract StakingPositionsTest is Test {
         staking = StakingPositions(address(stakingProxy));
         
         // Setup roles
-        vrdat.grantRole(vrdat.MINTER_ROLE(), address(staking));
-        vrdat.grantRole(vrdat.BURNER_ROLE(), address(staking));
+        // vRDAT minting/burning is now handled by RewardsManager modules
         // RDAT no longer has MINTER_ROLE - all tokens minted at deployment
         
         // Transfer tokens from treasury to test users (no minting)
@@ -148,12 +148,9 @@ contract StakingPositionsTest is Test {
         // Verify total staked
         assertEq(staking.totalStaked(), STAKE_AMOUNT + STAKE_AMOUNT * 2 + STAKE_AMOUNT / 2);
         
-        // Verify vRDAT minted correctly
-        assertEq(vrdat.balanceOf(alice), 
-            STAKE_AMOUNT + // 1x position
-            (STAKE_AMOUNT * 2 * 15000) / 10000 + // 1.5x position
-            (STAKE_AMOUNT / 2 * 40000) / 10000   // 4x position
-        );
+        // vRDAT minting is now handled by RewardsManager modules
+        // StakingPositions no longer mints vRDAT directly
+        assertEq(vrdat.balanceOf(alice), 0);
         
         vm.stopPrank();
     }
@@ -183,7 +180,7 @@ contract StakingPositionsTest is Test {
         vm.startPrank(alice);
         
         uint256 positionId = staking.stake(STAKE_AMOUNT, staking.MONTH_1());
-        uint256 vrdatBefore = vrdat.balanceOf(alice);
+        uint256 vrdatBefore = vrdat.balanceOf(alice); // Should be 0 since vRDAT minting moved to RewardsManager
         
         // Try to unstake before lock period ends
         vm.expectRevert(IStakingPositions.StakeStillLocked.selector);
@@ -205,7 +202,7 @@ contract StakingPositionsTest is Test {
         assertGe(rdat.balanceOf(alice), INITIAL_BALANCE);
         assertEq(staking.totalStaked(), 0);
         
-        // Verify vRDAT burned
+        // vRDAT burning is now handled by RewardsManager modules
         assertEq(vrdat.balanceOf(alice), 0);
         
         vm.stopPrank();
@@ -231,19 +228,14 @@ contract StakingPositionsTest is Test {
         // Fast forward past lock period
         vm.warp(block.timestamp + staking.MONTH_1() + 1);
         
-        // Transfer should work now
+        // Transfer should NOT work if vRDAT is still active
+        // Users must emergency withdraw first to burn vRDAT
+        vm.expectRevert(IStakingPositions.TransferWithActiveRewards.selector);
         staking.transferFrom(alice, bob, positionId);
         
-        assertEq(staking.ownerOf(positionId), bob);
+        // Emergency withdraw to burn vRDAT (enables transfer)
+        staking.emergencyWithdraw(positionId);
         
-        vm.stopPrank();
-        
-        // Bob should be able to unstake
-        vm.startPrank(bob);
-        staking.unstake(positionId);
-        
-        // Bob should receive the staked amount
-        assertGe(rdat.balanceOf(bob), INITIAL_BALANCE + STAKE_AMOUNT);
         vm.stopPrank();
     }
     
@@ -267,16 +259,13 @@ contract StakingPositionsTest is Test {
         // Verify reduced tokens returned
         assertEq(rdat.balanceOf(alice), INITIAL_BALANCE - STAKE_AMOUNT + expectedReturn);
         
-        // Verify vRDAT burned
+        // vRDAT burning is now handled by RewardsManager modules
         assertEq(vrdat.balanceOf(alice), 0);
         
         vm.stopPrank();
     }
     
     function testRewardCalculation() public {
-        vm.prank(admin);
-        staking.setRewardRate(1000); // 0.1% per second
-        
         vm.startPrank(alice);
         
         uint256 positionId = staking.stake(STAKE_AMOUNT, staking.MONTH_1());
@@ -284,64 +273,39 @@ contract StakingPositionsTest is Test {
         // Fast forward 1 day
         vm.warp(block.timestamp + 1 days);
         
-        uint256 expectedRewards = (STAKE_AMOUNT * 1000 * 1 days * 10000) / (10000 * 10000);
+        // In the new architecture, rewards are calculated by RewardsManager
+        // StakingPositions always returns 0
         uint256 pendingRewards = staking.calculatePendingRewards(positionId);
-        
-        assertEq(pendingRewards, expectedRewards);
+        assertEq(pendingRewards, 0);
         
         vm.stopPrank();
     }
     
     function testClaimRewards() public {
-        vm.prank(admin);
-        staking.setRewardRate(1000); // 0.1% per second
-        
         vm.startPrank(alice);
         
         uint256 positionId = staking.stake(STAKE_AMOUNT, staking.MONTH_1());
         
-        // Fast forward 1 day
-        vm.warp(block.timestamp + 1 days);
-        
-        uint256 expectedRewards = staking.calculatePendingRewards(positionId);
-        uint256 balanceBefore = rdat.balanceOf(alice);
-        
-        vm.expectEmit(true, true, false, true);
-        emit RewardsClaimed(alice, positionId, expectedRewards);
-        
+        // The new architecture requires users to claim rewards directly from RewardsManager
+        // StakingPositions no longer handles reward claiming
+        vm.expectRevert("Use RewardsManager.claimRewards directly");
         staking.claimRewards(positionId);
-        
-        assertEq(rdat.balanceOf(alice), balanceBefore + expectedRewards);
-        assertEq(staking.calculatePendingRewards(positionId), 0);
         
         vm.stopPrank();
     }
     
     function testClaimAllRewards() public {
-        vm.prank(admin);
-        staking.setRewardRate(100); // 0.01% per second
-        
         vm.startPrank(alice);
         
         // Create multiple positions
         staking.stake(STAKE_AMOUNT, staking.MONTH_1());
-        
-        // No mint delay needed for soul-bound tokens
         staking.stake(STAKE_AMOUNT * 2, staking.MONTH_3());
-        
-        // No mint delay needed for soul-bound tokens
         staking.stake(STAKE_AMOUNT / 2, staking.MONTH_6());
         
-        // Fast forward 1 day
-        vm.warp(block.timestamp + 1 days);
-        
-        uint256 totalPending = staking.getUserTotalRewards(alice);
-        uint256 balanceBefore = rdat.balanceOf(alice);
-        
+        // The new architecture requires users to claim rewards directly from RewardsManager
+        // StakingPositions no longer handles reward claiming
+        vm.expectRevert("Use RewardsManager.claimAllRewards directly");
         staking.claimAllRewards();
-        
-        assertEq(rdat.balanceOf(alice), balanceBefore + totalPending);
-        assertEq(staking.getUserTotalRewards(alice), 0);
         
         vm.stopPrank();
     }
