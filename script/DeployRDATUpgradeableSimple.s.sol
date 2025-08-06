@@ -28,10 +28,13 @@ contract DeployRDATUpgradeableSimple is Script {
         console2.log("Implementation deployed at:", address(implementation));
         
         // 3. Deploy proxy with initialization
+        // For local testing, use treasury as migration contract temporarily
+        address migrationContract = treasury; // In production, this would be the actual migration bridge
         bytes memory initData = abi.encodeWithSelector(
             RDATUpgradeable.initialize.selector,
             treasury,
-            admin
+            admin,
+            migrationContract
         );
         
         ERC1967Proxy proxy = new ERC1967Proxy(
