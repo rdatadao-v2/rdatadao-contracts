@@ -1,9 +1,9 @@
 # 🚀 r/datadao Smart Contracts
 
 **Version**: 3.0 - Full VRC Compliance  
-**Last Updated**: August 6, 2025  
+**Last Updated**: January 6, 2025  
 **Blockchain**: Vana (Primary), Base (Migration Only)  
-**Contracts**: 16 total (11 completed, 5 remaining)
+**Contracts**: 16 total (11 completed + MigrationBridge implemented)
 
 ## 📋 Overview
 
@@ -20,9 +20,9 @@ RDAT V2 represents a major upgrade from V1, expanding token supply from 30M to 1
 6. **RDATRewardModule**: Time-based rewards with 1x-1.75x multipliers 🔴
 7. **TreasuryWallet**: Manages 70M RDAT with phased vesting schedules ✅
 8. **TokenVesting**: VRC-20 compliant team vesting (6-month cliff + 18-month linear) ✅
-9. **MigrationBridge**: Secure V1→V2 cross-chain migration 🔴
+9. **MigrationBridge**: Secure V1→V2 cross-chain migration ✅
 10. **EmergencyPause**: Shared emergency response system ✅
-11. **RevenueCollector**: Fee distribution mechanism (50/30/20 split) ✅
+11. **RevenueCollector**: Dynamic fee distribution with RewardsManager integration ✅
 12. **ProofOfContribution**: Vana DLP integration stub 🔴
 13. **CREATE2Factory**: Deterministic deployment infrastructure ✅
 14. **VRC14LiquidityModule**: VANA liquidity incentives 🔴
@@ -94,13 +94,15 @@ forge script script/Deploy.s.sol --rpc-url http://localhost:8546 --broadcast
 
 ### Test Status
 ```
-Total Tests: 301
-Passing: 255 (84.7%)
-Failing: 46 (15.3%)
+Total Tests: 336
+Passing: 294 (87.5%)
+Failing: 42 (12.5%)
 
 Core Contracts:
 ✅ TreasuryWallet: 14/14 tests passing (100%)
 ✅ TokenVesting: 38/38 tests passing (100%)
+✅ RevenueCollector: 28/28 tests passing (100%)
+✅ MigrationBridge: 30/34 tests passing (88%)
 ✅ RDATUpgradeable: 8/8 tests passing (100%)
 ✅ EmergencyPause: 19/19 tests passing (100%)
 ✅ CREATE2Deployment: 3/3 tests passing (100%)
@@ -202,8 +204,10 @@ Report security vulnerabilities to: security@rdatadao.org
 
 ### Core Documentation
 - [Full Specifications](./docs/SPECIFICATIONS.md) - Complete system design
-- [Implementation Update](./docs/IMPLEMENTATION_UPDATE.md) - What was actually built
-- [Implementation Specification](./docs/IMPLEMENTATION_SPECIFICATION.md) - Authoritative parameters
+- [Architecture Summary](./docs/ARCHITECTURE_SUMMARY.md) - High-level architecture overview
+- [Implementation Updates](./docs/) - Daily progress updates:
+  - [Day 6 Update](./docs/IMPLEMENTATION_UPDATE_DAY6.md) - Revenue distribution architecture
+  - [Day 5 Update](./docs/IMPLEMENTATION_UPDATE_DAY5.md) - Migration system completion
 - [Technical FAQ](./docs/TECHNICAL_FAQ.md) - Common questions answered
 
 ### Contract Specifications

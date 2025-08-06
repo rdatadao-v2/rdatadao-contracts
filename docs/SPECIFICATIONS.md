@@ -26,9 +26,10 @@ RDAT V2 Beta represents a major upgrade from the existing V1 deployment, introdu
 - **Features**: Basic ERC-20 → VRC-20 compliant with modular rewards
 - **Analytics**: Limited → Comprehensive tracking
 - **Security**: Basic → Reentrancy guards + module timelock + upgrade safety
-- **Value Accrual**: None → Fee distribution (50/30/20 split)
+- **Value Accrual**: None → Dynamic fee distribution (50/30/20 split)
 - **User Experience**: Simple staking → Flexible reward programs
 - **Tokenomics**: Inflationary → Fixed supply with pre-allocated reward pools
+- **Revenue Handling**: Static RDAT-only → Dynamic multi-token support via RewardsManager
 
 ## 💰 Tokenomics
 
@@ -318,7 +319,7 @@ contract SecureMigrationBridge {
 8. **VanaMigrationBridge.sol** - Vana chain contract for releasing V2 tokens
 9. **MigrationBonusVesting.sol** - 12-month vesting for migration bonuses
 10. **EmergencyPause.sol** - Emergency response system
-11. **RevenueCollector.sol** - Fee distribution mechanism
+11. **RevenueCollector.sol** - Dynamic fee distribution with RewardsManager integration
 12. **ProofOfContribution.sol** - Full Vana DLP implementation
 13. **TreasuryWallet.sol** - Multi-sig treasury with distribution tracking
 14. **TokenVesting.sol** - Team token vesting (6-month cliff + 18-month linear)
@@ -353,6 +354,49 @@ contract SecureMigrationBridge {
 - Users get penalty-free migration (better than early withdrawal)
 - Independent security audits for each contract version
 - Complete architectural freedom for new versions
+
+### 💰 Revenue Distribution Architecture
+
+**RevenueCollector.sol** - Dynamic Multi-Token Revenue Management
+
+**Key Features:**
+- **Dynamic Token Support**: Queries RewardsManager for supported tokens
+- **Flexible Distribution**: 50/30/20 split for supported tokens
+- **Treasury Fallback**: Unsupported tokens go 100% to treasury
+- **Governance Control**: DAO decides on new token distributions
+
+**Distribution Logic:**
+```solidity
+// Check if token has reward program
+bool hasRewardProgram = rewardsManager.isTokenSupported(token);
+
+if (hasRewardProgram) {
+    // Supported tokens: 50/30/20 distribution
+    // 50% → Stakers (via RewardsManager/StakingPositions)
+    // 30% → Treasury
+    // 20% → Contributors
+} else {
+    // Unsupported tokens (USDC, USDT, etc.)
+    // 100% → Treasury (awaiting DAO decision)
+}
+```
+
+**Integration Flow:**
+1. Protocol generates revenue in various tokens
+2. RevenueCollector receives and tracks revenue
+3. Checks with RewardsManager for token support
+4. Distributes according to token status
+5. Treasury holds unsupported tokens for DAO governance
+
+**Supported Token Examples:**
+- **RDAT**: Always supported (legacy fallback)
+- **Partner Tokens**: When reward programs are registered
+- **Revenue Tokens**: After DAO approves distribution
+
+**Unsupported Token Handling:**
+- **USDC/USDT**: Held in treasury
+- **New Tokens**: Await DAO decision
+- **Future Integration**: Can be supported by adding reward programs
 
 ### 1. Core Token Contract: `RDATV2.sol`
 

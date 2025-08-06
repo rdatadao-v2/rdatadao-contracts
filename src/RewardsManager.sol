@@ -504,6 +504,24 @@ contract RewardsManager is
         }
     }
     
+    /**
+     * @notice Check if a token has any active reward programs
+     * @param token Token address to check
+     * @return bool True if token has at least one active reward program
+     */
+    function isTokenSupported(address token) external view override returns (bool) {
+        for (uint256 i = 0; i < programIds.length; i++) {
+            uint256 programId = programIds[i];
+            RewardProgram memory program = programs[programId];
+            
+            // Check if this program uses the token and is active
+            if (program.rewardToken == token && _isProgramActive(program)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     // Admin Functions
     
     function setStakingManager(address _stakingManager) external override onlyRole(ADMIN_ROLE) {

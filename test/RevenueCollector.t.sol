@@ -7,6 +7,7 @@ import "../src/StakingPositions.sol";
 import "../src/RDATUpgradeable.sol";
 import "../src/vRDAT.sol";
 import "../src/mocks/MockERC20.sol";
+import "../src/mocks/MockRewardsManager.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /**
@@ -74,8 +75,8 @@ contract RevenueCollectorTest is Test {
         vrdat.grantRole(vrdat.MINTER_ROLE(), address(stakingPositions));
         revenueCollector.grantRole(revenueCollector.REVENUE_REPORTER_ROLE(), revenueSource);
         
-        // Grant ADMIN_ROLE to RevenueCollector so it can call notifyRewardAmount
-        stakingPositions.grantRole(stakingPositions.ADMIN_ROLE(), address(revenueCollector));
+        // Grant REVENUE_COLLECTOR_ROLE to RevenueCollector so it can call notifyRewardAmount
+        stakingPositions.grantRole(stakingPositions.REVENUE_COLLECTOR_ROLE(), address(revenueCollector));
         
         // Mint test tokens
         mockToken.mint(revenueSource, REVENUE_AMOUNT * 10);
@@ -190,7 +191,7 @@ contract RevenueCollectorTest is Test {
         vm.stopPrank();
     }
     
-    function test_AutomaticDistribution() public {
+    function test_AutomaticDistributionNonRDAT() public {
         // Add token with low threshold for testing
         vm.prank(admin);
         revenueCollector.addSupportedToken(address(mockToken), 100e18);
@@ -198,14 +199,14 @@ contract RevenueCollectorTest is Test {
         vm.startPrank(revenueSource);
         mockToken.approve(address(revenueCollector), REVENUE_AMOUNT);
         
-        // Revenue above threshold should trigger automatic distribution
+        // For non-RDAT tokens, all revenue goes to treasury
         vm.expectEmit(true, false, false, true);
         emit IRevenueCollector.RevenueDistributed(
             address(mockToken), 
             REVENUE_AMOUNT, 
-            5000e18, // 50% to stakers
-            3000e18, // 30% to treasury
-            2000e18  // 20% to contributors
+            0,          // 0% to stakers (non-RDAT)
+            REVENUE_AMOUNT, // 100% to treasury
+            0           // 0% to contributors
         );
         
         revenueCollector.notifyRevenue(address(mockToken), REVENUE_AMOUNT);
@@ -217,9 +218,40 @@ contract RevenueCollectorTest is Test {
         vm.stopPrank();
     }
     
+    function test_AutomaticDistributionRDAT() public {
+        // Mint RDAT to revenue source
+        vm.prank(treasury);
+        rdat.transfer(revenueSource, REVENUE_AMOUNT);
+        
+        // Add RDAT token with low threshold for testing
+        vm.prank(admin);
+        revenueCollector.addSupportedToken(address(rdat), 100e18);
+        
+        vm.startPrank(revenueSource);
+        rdat.approve(address(revenueCollector), REVENUE_AMOUNT);
+        
+        // For RDAT tokens, normal distribution
+        vm.expectEmit(true, false, false, true);
+        emit IRevenueCollector.RevenueDistributed(
+            address(rdat), 
+            REVENUE_AMOUNT, 
+            5000e18, // 50% to stakers
+            3000e18, // 30% to treasury
+            2000e18  // 20% to contributors
+        );
+        
+        revenueCollector.notifyRevenue(address(rdat), REVENUE_AMOUNT);
+        
+        // Verify distribution happened
+        assertEq(revenueCollector.pendingRevenue(address(rdat)), 0);
+        assertEq(revenueCollector.totalDistributed(address(rdat)), REVENUE_AMOUNT);
+        
+        vm.stopPrank();
+    }
+    
     // ============ Distribution Tests ============
     
-    function test_ManualDistribution() public {
+    function test_ManualDistributionNonRDAT() public {
         // Set high threshold to prevent automatic distribution
         vm.prank(admin);
         revenueCollector.addSupportedToken(address(mockToken), REVENUE_AMOUNT * 2);
@@ -238,20 +270,66 @@ contract RevenueCollectorTest is Test {
         (uint256 stakingAmount, uint256 treasuryAmount, uint256 contributorAmount) = 
             revenueCollector.distribute(address(mockToken));
         
-        // Verify amounts
-        assertEq(stakingAmount, 5000e18); // 50%
-        assertEq(treasuryAmount, 3000e18); // 30%
-        assertEq(contributorAmount, 2000e18); // 20%
+        // Verify amounts (non-RDAT: all goes to treasury)
+        assertEq(stakingAmount, 0); // 0% (non-RDAT)
+        assertEq(treasuryAmount, REVENUE_AMOUNT); // 100% to treasury
+        assertEq(contributorAmount, 0); // 0% to contributors
         
-        // Verify actual transfers
-        assertEq(mockToken.balanceOf(treasury), treasuryBefore + treasuryAmount);
-        assertEq(mockToken.balanceOf(contributorPool), contributorsBefore + contributorAmount);
+        // Verify actual transfers (all goes to treasury for non-RDAT)
+        assertEq(mockToken.balanceOf(treasury), treasuryBefore + REVENUE_AMOUNT);
+        assertEq(mockToken.balanceOf(contributorPool), contributorsBefore); // No change
         
         // Verify state cleanup
         assertEq(revenueCollector.pendingRevenue(address(mockToken)), 0);
     }
     
+    function test_ManualDistributionRDAT() public {
+        // Mint RDAT to revenue source and StakingPositions
+        vm.startPrank(treasury);
+        rdat.transfer(revenueSource, REVENUE_AMOUNT);
+        rdat.transfer(address(stakingPositions), REVENUE_AMOUNT); // For rewards
+        vm.stopPrank();
+        
+        // Set high threshold to prevent automatic distribution
+        vm.prank(admin);
+        revenueCollector.addSupportedToken(address(rdat), REVENUE_AMOUNT * 2);
+        
+        // Setup revenue
+        vm.startPrank(revenueSource);
+        rdat.approve(address(revenueCollector), REVENUE_AMOUNT);
+        revenueCollector.notifyRevenue(address(rdat), REVENUE_AMOUNT);
+        vm.stopPrank();
+        
+        // Record balances before distribution
+        uint256 treasuryBefore = rdat.balanceOf(treasury);
+        uint256 contributorsBefore = rdat.balanceOf(contributorPool);
+        uint256 stakingBefore = rdat.balanceOf(address(stakingPositions));
+        
+        // Manual distribution
+        (uint256 stakingAmount, uint256 treasuryAmount, uint256 contributorAmount) = 
+            revenueCollector.distribute(address(rdat));
+        
+        // Verify amounts (RDAT: normal distribution)
+        assertEq(stakingAmount, 5000e18); // 50%
+        assertEq(treasuryAmount, 3000e18); // 30%
+        assertEq(contributorAmount, 2000e18); // 20%
+        
+        // Verify actual transfers
+        assertEq(rdat.balanceOf(treasury), treasuryBefore + treasuryAmount);
+        assertEq(rdat.balanceOf(contributorPool), contributorsBefore + contributorAmount);
+        assertEq(rdat.balanceOf(address(stakingPositions)), stakingBefore + stakingAmount);
+        
+        // Verify state cleanup
+        assertEq(revenueCollector.pendingRevenue(address(rdat)), 0);
+    }
+    
     function test_DistributeAll() public {
+        // Add tokens with high thresholds to prevent automatic distribution
+        vm.startPrank(admin);
+        revenueCollector.addSupportedToken(address(mockToken), REVENUE_AMOUNT * 2);
+        revenueCollector.addSupportedToken(address(secondToken), REVENUE_AMOUNT * 2);
+        vm.stopPrank();
+        
         // Setup revenue for multiple tokens
         vm.startPrank(revenueSource);
         
@@ -286,6 +364,10 @@ contract RevenueCollectorTest is Test {
     }
     
     function test_DistributionRounding() public {
+        // Add token with high threshold to prevent automatic distribution
+        vm.prank(admin);
+        revenueCollector.addSupportedToken(address(mockToken), REVENUE_AMOUNT * 2);
+        
         // Test with odd number to check rounding handling
         uint256 oddAmount = 10001e18; // Results in fractional shares
         
@@ -300,11 +382,43 @@ contract RevenueCollectorTest is Test {
         // Verify all tokens are distributed (no loss due to rounding)
         assertEq(stakingAmount + treasuryAmount + contributorAmount, oddAmount);
         
-        // Treasury should get any rounding remainder
-        assertEq(stakingAmount, 5000.5e18); // 50% = 5000.5
-        assertEq(contributorAmount, 2000.2e18); // 20% = 2000.2
-        // Treasury gets 30% + remainder = 3000.3 + 0 = 3000.3
-        assertGe(treasuryAmount, 3000.3e18);
+        // For non-RDAT tokens, all goes to treasury
+        assertEq(stakingAmount, 0); // 0% (non-RDAT)
+        assertEq(contributorAmount, 0); // 0% to contributors
+        // Treasury gets 100%
+        assertEq(treasuryAmount, oddAmount);
+    }
+    
+    function test_NonRDATTokensGoToTreasury() public {
+        // Test that USDC, USDT, and other non-RDAT tokens go entirely to treasury
+        // This is the intended behavior until DAO governance decides on distribution
+        
+        // Add USDC-like token with high threshold
+        vm.prank(admin);
+        revenueCollector.addSupportedToken(address(mockToken), REVENUE_AMOUNT * 2);
+        
+        // Setup revenue
+        vm.startPrank(revenueSource);
+        mockToken.approve(address(revenueCollector), REVENUE_AMOUNT);
+        revenueCollector.notifyRevenue(address(mockToken), REVENUE_AMOUNT);
+        vm.stopPrank();
+        
+        // Record treasury balance
+        uint256 treasuryBefore = mockToken.balanceOf(treasury);
+        uint256 contributorsBefore = mockToken.balanceOf(contributorPool);
+        
+        // Distribute
+        (uint256 stakingAmount, uint256 treasuryAmount, uint256 contributorAmount) = 
+            revenueCollector.distribute(address(mockToken));
+        
+        // Verify ALL revenue went to treasury
+        assertEq(stakingAmount, 0, "No staking distribution for non-RDAT");
+        assertEq(treasuryAmount, REVENUE_AMOUNT, "All revenue to treasury");
+        assertEq(contributorAmount, 0, "No contributor distribution for non-RDAT");
+        
+        // Verify actual balances
+        assertEq(mockToken.balanceOf(treasury), treasuryBefore + REVENUE_AMOUNT);
+        assertEq(mockToken.balanceOf(contributorPool), contributorsBefore);
     }
     
     // ============ Admin Functions Tests ============
@@ -386,6 +500,12 @@ contract RevenueCollectorTest is Test {
     // ============ View Functions Tests ============
     
     function test_GetPendingRevenue() public {
+        // Add tokens with high thresholds to prevent automatic distribution
+        vm.startPrank(admin);
+        revenueCollector.addSupportedToken(address(mockToken), REVENUE_AMOUNT * 2);
+        revenueCollector.addSupportedToken(address(secondToken), REVENUE_AMOUNT * 2);
+        vm.stopPrank();
+        
         // Add multiple tokens with revenue
         vm.startPrank(revenueSource);
         
@@ -410,7 +530,7 @@ contract RevenueCollectorTest is Test {
     function test_IsDistributionNeeded() public {
         // Add token with specific threshold
         vm.prank(admin);
-        revenueCollector.addSupportedToken(address(mockToken), 1000e18);
+        revenueCollector.addSupportedToken(address(mockToken), 1300e18); // Higher threshold to prevent auto-distribution
         
         // Initially no distribution needed
         (bool needed,) = revenueCollector.isDistributionNeeded();
@@ -425,17 +545,21 @@ contract RevenueCollectorTest is Test {
         (needed,) = revenueCollector.isDistributionNeeded();
         assertFalse(needed);
         
-        // Add more revenue above threshold
+        // Add more revenue to exceed threshold
         vm.startPrank(revenueSource);
-        mockToken.approve(address(revenueCollector), 600e18);
-        revenueCollector.notifyRevenue(address(mockToken), 600e18);
+        mockToken.approve(address(revenueCollector), 900e18); // 500 + 900 = 1400, exceeds threshold of 1300
+        revenueCollector.notifyRevenue(address(mockToken), 900e18);
         vm.stopPrank();
         
+        // Check that distribution is needed after manually checking
         address[] memory tokensReady;
         (needed, tokensReady) = revenueCollector.isDistributionNeeded();
-        assertTrue(needed);
-        assertEq(tokensReady.length, 1);
-        assertEq(tokensReady[0], address(mockToken));
+        assertFalse(needed); // Should be false because auto-distribution happened
+        assertEq(tokensReady.length, 0);
+        
+        // Verify that distribution already happened
+        assertEq(revenueCollector.pendingRevenue(address(mockToken)), 0);
+        assertEq(revenueCollector.totalDistributed(address(mockToken)), 1400e18);
     }
     
     function test_GetStats() public {
@@ -445,6 +569,10 @@ contract RevenueCollectorTest is Test {
         assertEq(totalDistributions, 0);
         assertGt(lastDistributionTime, 0); // Should be set to block.timestamp in constructor
         assertEq(supportedTokenCount, 0);
+        
+        // Add token with high threshold to prevent automatic distribution
+        vm.prank(admin);
+        revenueCollector.addSupportedToken(address(mockToken), REVENUE_AMOUNT * 2);
         
         // Add a token and distribute
         vm.startPrank(revenueSource);
@@ -479,6 +607,77 @@ contract RevenueCollectorTest is Test {
     function test_DistributeAllNoRevenue() public {
         vm.expectRevert("No revenue to distribute");
         revenueCollector.distributeAll();
+    }
+    
+    function test_RewardsManagerIntegration() public {
+        // Deploy mock rewards manager
+        MockRewardsManager mockRewardsManager = new MockRewardsManager();
+        
+        // Set rewards manager
+        vm.prank(admin);
+        revenueCollector.setRewardsManager(address(mockRewardsManager));
+        
+        // Test 1: Token supported by RewardsManager gets proper distribution
+        MockERC20 supportedToken = new MockERC20("Supported Token", "SUP", 18);
+        supportedToken.mint(revenueSource, REVENUE_AMOUNT);
+        
+        // Mark token as supported in RewardsManager
+        mockRewardsManager.setTokenSupport(address(supportedToken), true);
+        
+        // Add token to revenue collector
+        vm.prank(admin);
+        revenueCollector.addSupportedToken(address(supportedToken), REVENUE_AMOUNT * 2);
+        
+        // Report revenue
+        vm.startPrank(revenueSource);
+        supportedToken.approve(address(revenueCollector), REVENUE_AMOUNT);
+        revenueCollector.notifyRevenue(address(supportedToken), REVENUE_AMOUNT);
+        vm.stopPrank();
+        
+        // Distribute and verify 50/30/20 split
+        (uint256 stakingAmount, uint256 treasuryAmount, uint256 contributorAmount) = 
+            revenueCollector.distribute(address(supportedToken));
+        
+        assertEq(stakingAmount, 5000e18, "50% to stakers");
+        assertEq(treasuryAmount, 3000e18, "30% to treasury");
+        assertEq(contributorAmount, 2000e18, "20% to contributors");
+        
+        // Verify RewardsManager received the staking amount
+        assertEq(mockRewardsManager.lastRevenueAmount(), 5000e18);
+        
+        // Test 2: Token NOT supported by RewardsManager goes entirely to treasury
+        MockERC20 unsupportedToken = new MockERC20("Unsupported Token", "UNS", 18);
+        unsupportedToken.mint(revenueSource, REVENUE_AMOUNT);
+        
+        // Add token but don't mark as supported in RewardsManager
+        vm.prank(admin);
+        revenueCollector.addSupportedToken(address(unsupportedToken), REVENUE_AMOUNT * 2);
+        
+        // Report revenue
+        vm.startPrank(revenueSource);
+        unsupportedToken.approve(address(revenueCollector), REVENUE_AMOUNT);
+        revenueCollector.notifyRevenue(address(unsupportedToken), REVENUE_AMOUNT);
+        vm.stopPrank();
+        
+        // Distribute and verify all goes to treasury
+        (stakingAmount, treasuryAmount, contributorAmount) = 
+            revenueCollector.distribute(address(unsupportedToken));
+        
+        assertEq(stakingAmount, 0, "No staking distribution");
+        assertEq(treasuryAmount, REVENUE_AMOUNT, "100% to treasury");
+        assertEq(contributorAmount, 0, "No contributor distribution");
+    }
+    
+    function test_SetRewardsManager() public {
+        address newRewardsManager = address(0x123);
+        
+        vm.prank(admin);
+        vm.expectEmit(true, false, false, false);
+        emit IRevenueCollector.RewardsManagerUpdated(newRewardsManager);
+        
+        revenueCollector.setRewardsManager(newRewardsManager);
+        
+        assertEq(address(revenueCollector.rewardsManager()), newRewardsManager);
     }
     
     // ============ Access Control Tests ============

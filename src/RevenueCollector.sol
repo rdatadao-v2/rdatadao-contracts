@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IRevenueCollector.sol";
 import "./interfaces/IStakingPositions.sol";
+import "./interfaces/IRewardsManager.sol";
 
 /**
  * @title RevenueCollector
@@ -19,10 +20,15 @@ import "./interfaces/IStakingPositions.sol";
  * 
  * Key Features:
  * - Automated revenue collection from protocol operations
- * - Fair distribution based on tokenomics ratios
+ * - Fair distribution based on tokenomics ratios (for RDAT only)
  * - Threshold-based distribution to optimize gas costs
- * - Integration with StakingPositions for staker rewards
+ * - Integration with StakingPositions for RDAT staker rewards
  * - Multi-token support for diverse revenue streams
+ * 
+ * Distribution Logic:
+ * - RDAT tokens: Distributed according to 50/30/20 tokenomics
+ * - Non-RDAT tokens (USDC, USDT, etc.): Sent entirely to treasury
+ *   until DAO governance decides on distribution mechanism
  */
 contract RevenueCollector is 
     Initializable,
@@ -48,8 +54,10 @@ contract RevenueCollector is
 
     // Core contracts
     IStakingPositions public stakingPositions;
+    IRewardsManager public rewardsManager;
     address public treasury;
     address public contributorPool;
+    address public rdatToken;
 
     // Revenue tracking
     mapping(address => uint256) public pendingRevenue;
@@ -66,7 +74,7 @@ contract RevenueCollector is
     uint256 public lastDistributionTime;
 
     // Storage gap for upgradeability
-    uint256[40] private __gap;
+    uint256[38] private __gap; // Reduced by 2 for rewardsManager
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -99,6 +107,10 @@ contract RevenueCollector is
         stakingPositions = IStakingPositions(stakingPositions_);
         treasury = treasury_;
         contributorPool = contributorPool_;
+        
+        // Get RDAT token address from StakingPositions
+        rdatToken = stakingPositions.rdatToken();
+        require(rdatToken != address(0), "Invalid RDAT token");
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
         _grantRole(ADMIN_ROLE, admin_);
@@ -241,24 +253,62 @@ contract RevenueCollector is
         pendingRevenue[token] = 0;
         totalDistributed[token] += totalAmount;
 
-        // Distribute to stakers via StakingPositions
-        IERC20(token).approve(address(stakingPositions), stakingAmount);
-        stakingPositions.notifyRewardAmount(stakingAmount);
-
-        // Distribute to treasury
-        if (treasuryAmount > 0) {
-            IERC20(token).safeTransfer(treasury, treasuryAmount);
+        // Check if we have a distribution mechanism for this token
+        bool hasRewardProgram = false;
+        
+        // First check if RewardsManager is set and supports this token
+        if (address(rewardsManager) != address(0)) {
+            hasRewardProgram = rewardsManager.isTokenSupported(token);
         }
-
-        // Distribute to contributors
-        if (contributorAmount > 0) {
-            IERC20(token).safeTransfer(contributorPool, contributorAmount);
+        
+        // Fall back to checking if it's RDAT (legacy support)
+        if (!hasRewardProgram && token == rdatToken) {
+            hasRewardProgram = true;
+        }
+        
+        if (hasRewardProgram) {
+            // We have a reward distribution mechanism for this token
+            // Distribute according to tokenomics: 50/30/20
+            
+            // Distribute to stakers
+            if (token == rdatToken && address(stakingPositions) != address(0)) {
+                // Legacy: Direct distribution to StakingPositions for RDAT
+                IERC20(token).approve(address(stakingPositions), stakingAmount);
+                stakingPositions.notifyRewardAmount(stakingAmount);
+            } else if (address(rewardsManager) != address(0)) {
+                // New: Send to RewardsManager for distribution
+                IERC20(token).approve(address(rewardsManager), stakingAmount);
+                // RewardsManager will handle distribution to the appropriate module
+                rewardsManager.notifyRevenueReward(stakingAmount);
+            }
+            
+            // Distribute to treasury
+            if (treasuryAmount > 0) {
+                IERC20(token).safeTransfer(treasury, treasuryAmount);
+            }
+            
+            // Distribute to contributors
+            if (contributorAmount > 0) {
+                IERC20(token).safeTransfer(contributorPool, contributorAmount);
+            }
+        } else {
+            // For tokens without reward programs (USDC, USDT, etc.), send all to treasury
+            // The DAO hasn't reached consensus on distribution for these tokens yet
+            // Treasury will hold these until governance decides on distribution
+            
+            IERC20(token).safeTransfer(treasury, totalAmount);
+            
+            // Reset the individual amounts to reflect actual distribution
+            stakingAmount = 0;
+            treasuryAmount = totalAmount;
+            contributorAmount = 0;
         }
 
         // Update statistics
         totalDistributions++;
         lastDistributionTime = block.timestamp;
 
+        // Emit event with actual distributed amounts
         emit RevenueDistributed(token, totalAmount, stakingAmount, treasuryAmount, contributorAmount);
     }
 
@@ -351,6 +401,16 @@ contract RevenueCollector is
         emit TokenRemoved(token);
     }
 
+    /**
+     * @dev Set the rewards manager address
+     * @param newRewardsManager New rewards manager address
+     */
+    function setRewardsManager(address newRewardsManager) external onlyRole(ADMIN_ROLE) {
+        // Can be set to address(0) to disable RewardsManager integration
+        rewardsManager = IRewardsManager(newRewardsManager);
+        emit RewardsManagerUpdated(newRewardsManager);
+    }
+    
     /**
      * @dev Pause the contract
      */

@@ -45,6 +45,10 @@ contract StakingPositions is
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    bytes32 public constant REVENUE_COLLECTOR_ROLE = keccak256("REVENUE_COLLECTOR_ROLE");
+    
+    // Events
+    event RevenueRewardsReceived(uint256 amount, uint256 totalPending);
     
     // Constants
     uint256 public constant MONTH_1 = 30 days;
@@ -497,9 +501,15 @@ contract StakingPositions is
      */
     function notifyRewardAmount(uint256 amount) external {
         // Only allow admin or a designated revenue collector to notify rewards
-        require(hasRole(ADMIN_ROLE, msg.sender), "Not authorized");
+        require(hasRole(ADMIN_ROLE, msg.sender) || hasRole(REVENUE_COLLECTOR_ROLE, msg.sender), "Not authorized");
+        
+        // Transfer RDAT rewards from RevenueCollector to this contract
+        require(_rdatToken.transferFrom(msg.sender, address(this), amount), "Transfer failed");
+        
         pendingRevenueRewards += amount;
-        // These rewards will be distributed proportionally when users claim
+        totalRewardsDistributed += amount;
+        
+        emit RevenueRewardsReceived(amount, pendingRevenueRewards);
     }
     
     /**

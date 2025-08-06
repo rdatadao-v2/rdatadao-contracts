@@ -129,4 +129,7 @@ interface IRewardsManager {
     
     // Revenue distribution
     function notifyRevenueReward(uint256 amount) external;
+    
+    // Token support check
+    function isTokenSupported(address token) external view returns (bool);
 }

@@ -9,6 +9,13 @@ import "../interfaces/IRewardsManager.sol";
  */
 contract MockRewardsManager is IRewardsManager {
     address public stakingManager;
+    mapping(address => bool) public tokenSupport;
+    uint256 public lastRevenueAmount;
+    
+    // Test helper function to set token support
+    function setTokenSupport(address token, bool supported) external {
+        tokenSupport[token] = supported;
+    }
     
     function notifyStake(
         address user,
@@ -84,6 +91,11 @@ contract MockRewardsManager is IRewardsManager {
     }
     
     function notifyRevenueReward(uint256 amount) external override {
-        // Mock implementation - does nothing
+        // Mock implementation - track the amount for testing
+        lastRevenueAmount = amount;
+    }
+    
+    function isTokenSupported(address token) external view override returns (bool) {
+        return tokenSupport[token];
     }
 }

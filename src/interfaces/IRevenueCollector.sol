@@ -22,6 +22,7 @@ interface IRevenueCollector {
     event TokenSupported(address indexed token, uint256 threshold);
     event TokenRemoved(address indexed token);
     event EmergencyRecovery(address indexed token, uint256 amount, address indexed recipient);
+    event RewardsManagerUpdated(address indexed newRewardsManager);
 
     // Core functions
     function notifyRevenue(address token, uint256 amount) external;
@@ -49,4 +50,5 @@ interface IRevenueCollector {
     function setContributorPool(address newContributorPool) external;
     function addSupportedToken(address token, uint256 threshold) external;
     function removeSupportedToken(address token) external;
+    function setRewardsManager(address newRewardsManager) external;
 }
