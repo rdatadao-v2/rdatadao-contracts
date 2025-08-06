@@ -29,6 +29,12 @@ contract MigrationBonusVesting is AccessControl, ReentrancyGuard {
     
     // State variables
     IERC20 public immutable rdatToken;
+    IERC20 public liquidityToken; // LP tokens (RDAT-VANA pair)
+    
+    // Admin controls
+    bool public bonusClaimingEnabled = false; // Disabled by default
+    bool public liquidityPoolConfigured = false;
+    
     mapping(address => uint256) public allocations;
     mapping(address => uint256) public beneficiaryClaimed;
     mapping(address => uint256) public beneficiaryEligibilityDates;
@@ -39,6 +45,9 @@ contract MigrationBonusVesting is AccessControl, ReentrancyGuard {
     event MigrationBonusGranted(address indexed beneficiary, uint256 amount, uint256 vestingStart);
     event BeneficiaryAdded(address indexed beneficiary, uint256 allocation);
     event TokensClaimed(address indexed beneficiary, uint256 amount, uint256 totalClaimedByBeneficiary);
+    event BonusClaimingEnabled(uint256 timestamp);
+    event LiquidityPoolConfigured(address indexed liquidityToken);
+    event LiquidityTokenFunded(uint256 amount);
     
     // Errors
     error InvalidVestingStart();
@@ -47,6 +56,9 @@ contract MigrationBonusVesting is AccessControl, ReentrancyGuard {
     error InvalidAmount();
     error NoTokensToClaim();
     error NotABeneficiary();
+    error BonusClaimingDisabled();
+    error LiquidityPoolNotConfigured();
+    error InvalidLiquidityToken();
     
     /**
      * @dev Constructor
@@ -61,6 +73,14 @@ contract MigrationBonusVesting is AccessControl, ReentrancyGuard {
         
         // Grant admin the ability to set migration bridge
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+    }
+    
+    /**
+     * @dev Modifier to ensure bonus claiming is enabled
+     */
+    modifier onlyWhenClaimingEnabled() {
+        if (!bonusClaimingEnabled) revert BonusClaimingDisabled();
+        _;
     }
     
     /**
@@ -147,7 +167,7 @@ contract MigrationBonusVesting is AccessControl, ReentrancyGuard {
      * @notice Claim vested tokens
      * @dev Anyone can call, but only claims for msg.sender
      */
-    function claim() external nonReentrant {
+    function claim() external nonReentrant onlyWhenClaimingEnabled {
         address beneficiary = msg.sender;
         uint256 allocation = allocations[beneficiary];
         
@@ -163,8 +183,12 @@ contract MigrationBonusVesting is AccessControl, ReentrancyGuard {
         // Update claimed amount before transfer
         beneficiaryClaimed[beneficiary] = vested;
         
-        // Transfer tokens
-        rdatToken.safeTransfer(beneficiary, claimable);
+        // Transfer LP tokens (or RDAT if LP not configured yet)
+        if (liquidityPoolConfigured) {
+            liquidityToken.safeTransfer(beneficiary, claimable);
+        } else {
+            rdatToken.safeTransfer(beneficiary, claimable);
+        }
         
         emit TokensClaimed(beneficiary, claimable, vested);
     }
@@ -185,6 +209,63 @@ contract MigrationBonusVesting is AccessControl, ReentrancyGuard {
     function setMigrationBridge(address bridge) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(bridge != address(0), "Invalid bridge address");
         _grantRole(MIGRATION_BRIDGE_ROLE, bridge);
+    }
+    
+    /**
+     * @notice Configure the liquidity pool token for LP-based bonuses
+     * @param _liquidityToken Address of the RDAT-VANA LP token
+     * @dev Only callable by admin, required before enabling bonus claiming
+     */
+    function configureLiquidityPool(address _liquidityToken) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_liquidityToken == address(0)) revert InvalidLiquidityToken();
+        
+        liquidityToken = IERC20(_liquidityToken);
+        liquidityPoolConfigured = true;
+        
+        emit LiquidityPoolConfigured(_liquidityToken);
+    }
+    
+    /**
+     * @notice Fund the contract with LP tokens for bonus distribution
+     * @param amount Amount of LP tokens to transfer to this contract
+     * @dev Only callable by admin, transfers LP tokens from treasury
+     */
+    function fundLiquidityTokens(uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (!liquidityPoolConfigured) revert LiquidityPoolNotConfigured();
+        if (amount == 0) revert InvalidAmount();
+        
+        // Transfer LP tokens from treasury/admin to this contract
+        liquidityToken.safeTransferFrom(msg.sender, address(this), amount);
+        
+        emit LiquidityTokenFunded(amount);
+    }
+    
+    /**
+     * @notice Enable migration bonus claiming after LP pool is ready
+     * @dev Only callable by admin, requires LP pool to be configured
+     */
+    function enableBonusClaiming() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (!liquidityPoolConfigured) revert LiquidityPoolNotConfigured();
+        
+        bonusClaimingEnabled = true;
+        
+        emit BonusClaimingEnabled(block.timestamp);
+    }
+    
+    /**
+     * @notice Disable migration bonus claiming (emergency function)
+     * @dev Only callable by admin
+     */
+    function disableBonusClaiming() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        bonusClaimingEnabled = false;
+    }
+    
+    /**
+     * @notice Check if the contract is ready for bonus claiming
+     * @return ready True if LP pool configured and claiming enabled
+     */
+    function isReadyForBonuses() external view returns (bool ready) {
+        return liquidityPoolConfigured && bonusClaimingEnabled;
     }
     
     /**
