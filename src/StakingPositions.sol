@@ -191,6 +191,11 @@ contract StakingPositions is
         // Rewards are now claimed through RewardsManager, not here
         // vRDAT burning is now handled by RewardsManager/vRDATRewardModule
         
+        // Notify rewards manager BEFORE deleting position data
+        if (rewardsManager != address(0)) {
+            IRewardsManager(rewardsManager).notifyUnstake(msg.sender, positionId, false);
+        }
+        
         // Delete position data
         delete _positions[positionId];
         totalStaked -= position.amount;
@@ -202,11 +207,6 @@ contract StakingPositions is
         _rdatToken.safeTransfer(msg.sender, position.amount);
         
         emit Unstaked(msg.sender, positionId, position.amount, position.vrdatMinted);
-        
-        // Notify rewards manager if set
-        if (rewardsManager != address(0)) {
-            IRewardsManager(rewardsManager).notifyUnstake(msg.sender, positionId, false);
-        }
     }
     
     /**
@@ -246,6 +246,12 @@ contract StakingPositions is
         uint256 withdrawAmount = stakedAmount - penalty;
         
         // vRDAT burning is now handled by RewardsManager/vRDATRewardModule
+        
+        // Notify rewards manager BEFORE deleting position data
+        if (rewardsManager != address(0)) {
+            IRewardsManager(rewardsManager).notifyUnstake(msg.sender, positionId, true);
+        }
+        
         // Clear the vRDAT amount to enable transfers  
         position.vrdatMinted = 0;
         
@@ -263,11 +269,6 @@ contract StakingPositions is
         // Penalty stays in contract for treasury rescue
         
         emit EmergencyWithdraw(msg.sender, positionId, withdrawAmount, penalty);
-        
-        // Notify rewards manager if set
-        if (rewardsManager != address(0)) {
-            IRewardsManager(rewardsManager).notifyUnstake(msg.sender, positionId, true);
-        }
     }
     
     /**
