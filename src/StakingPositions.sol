@@ -54,6 +54,8 @@ contract StakingPositions is
     
     uint256 public constant EMERGENCY_WITHDRAW_PENALTY = 50; // 50% penalty
     uint256 public constant PRECISION = 10000; // For percentage calculations
+    uint256 public constant MIN_STAKE_AMOUNT = 1e18; // 1 RDAT minimum to prevent dust attacks
+    uint256 public constant MAX_POSITIONS_PER_USER = 100; // Maximum positions per user to prevent DoS
     
     // State variables
     IERC20 private _rdatToken;
@@ -65,7 +67,7 @@ contract StakingPositions is
     
     uint256 public totalStaked;
     uint256 public totalRewardsDistributed;
-    uint256 public rewardRate; // Rewards per second per token staked (with precision)
+    uint256 public rewardRate; // DEPRECATED: Rewards now handled by RewardsManager
     uint256 public pendingRevenueRewards; // Revenue rewards from RevenueCollector
     address public rewardsManager; // RewardsManager contract for notifications
     
@@ -117,7 +119,7 @@ contract StakingPositions is
         lockMultipliers[MONTH_12] = 40000;  // 4x = 400%
         
         // Default reward rate: 0.1 RDAT per second per 1000 RDAT staked
-        rewardRate = 100; // 0.01% per second with PRECISION
+        // rewardRate = 100; // DEPRECATED: Rewards now handled by RewardsManager
     }
     
     /**
@@ -134,7 +136,9 @@ contract StakingPositions is
         returns (uint256 positionId) 
     {
         if (amount == 0) revert ZeroAmount();
+        if (amount < MIN_STAKE_AMOUNT) revert BelowMinimumStake();
         if (lockMultipliers[lockPeriod] == 0) revert InvalidLockDuration();
+        if (balanceOf(msg.sender) >= MAX_POSITIONS_PER_USER) revert TooManyPositions();
         
         // Transfer RDAT tokens from user
         _rdatToken.safeTransferFrom(msg.sender, address(this), amount);
@@ -181,8 +185,7 @@ contract StakingPositions is
         
         Position memory position = _positions[positionId];
         
-        // Claim any pending rewards
-        _claimRewards(positionId);
+        // Rewards are now claimed through RewardsManager, not here
         
         // Burn vRDAT tokens - try to burn from current owner, if fails, skip
         // This handles the case where NFT was transferred but vRDAT is soul-bound
@@ -218,10 +221,9 @@ contract StakingPositions is
      * @param positionId The position to claim rewards for
      */
     function claimRewards(uint256 positionId) external virtual override nonReentrant whenNotPaused {
-        if (_ownerOf(positionId) == address(0)) revert PositionDoesNotExist();
-        if (ownerOf(positionId) != msg.sender) revert NotPositionOwner();
-        
-        _claimRewards(positionId);
+        // StakingPositions no longer handles reward claims directly
+        // Use RewardsManager.claimRewards(positionId) instead
+        revert("Use RewardsManager for claiming");
     }
     
     /**
@@ -357,19 +359,12 @@ contract StakingPositions is
      * @dev Internal function to calculate rewards (protected for upgrades)
      * @param positionId Position ID
      * @return rewards Calculated rewards
+     * @dev DEPRECATED: Rewards are now calculated by RewardsManager modules
      */
     function _calculateRewards(uint256 positionId) internal view virtual returns (uint256) {
-        Position memory position = _positions[positionId];
-        if (position.amount == 0) return 0;
-        
-        uint256 timeElapsed = block.timestamp - position.lastRewardTime;
-        if (timeElapsed == 0) return 0;
-        
-        // Rewards = staked * rate * time * multiplier / precision^2
-        uint256 rewards = (position.amount * rewardRate * timeElapsed * position.multiplier) 
-                         / (PRECISION * PRECISION);
-        
-        return rewards;
+        // StakingPositions no longer calculates rewards directly
+        // This is now handled by RewardsManager and its modules
+        return 0;
     }
     
     /**
@@ -377,18 +372,9 @@ contract StakingPositions is
      * @param positionId Position ID
      */
     function _claimRewards(uint256 positionId) internal {
-        uint256 rewards = _calculateRewards(positionId);
-        if (rewards == 0) revert NoRewardsToClaim();
-        
-        Position storage position = _positions[positionId];
-        position.lastRewardTime = block.timestamp;
-        position.rewardsClaimed += rewards;
-        totalRewardsDistributed += rewards;
-        
-        // Mint rewards from RDAT token (requires MINTER_ROLE on RDAT)
-        IRDAT(address(_rdatToken)).mint(ownerOf(positionId), rewards);
-        
-        emit RewardsClaimed(ownerOf(positionId), positionId, rewards);
+        // StakingPositions no longer handles reward claims directly
+        // Rewards are now managed through RewardsManager and its modules
+        revert("Use RewardsManager for claiming");
     }
     
     /**
@@ -440,11 +426,11 @@ contract StakingPositions is
     /**
      * @dev Set new reward rate
      * @param newRate New reward rate (with PRECISION factor)
+     * @dev DEPRECATED: Reward rates are now set in RewardsManager modules
      */
     function setRewardRate(uint256 newRate) external override onlyRole(ADMIN_ROLE) {
-        uint256 oldRate = rewardRate;
-        rewardRate = newRate;
-        emit RewardRateUpdated(oldRate, newRate);
+        // No longer used - kept for interface compatibility
+        emit RewardRateUpdated(rewardRate, newRate);
     }
     
     /**

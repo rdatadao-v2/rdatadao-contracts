@@ -18,10 +18,11 @@ contract RDATUpgradeableTest is Test {
     address public pauser;
     address public user1;
     address public user2;
+    address public migrationBridge;
     
     bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    // MINTER_ROLE no longer exists in RDAT
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     
     uint256 public constant TOTAL_SUPPLY = 100_000_000 * 10**18;
@@ -36,6 +37,7 @@ contract RDATUpgradeableTest is Test {
         pauser = makeAddr("pauser");
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
+        migrationBridge = makeAddr("migrationBridge");
         
         // Deploy CREATE2 factory
         factory = new Create2Factory();
@@ -47,7 +49,8 @@ contract RDATUpgradeableTest is Test {
         bytes memory initData = abi.encodeWithSelector(
             RDATUpgradeable.initialize.selector,
             treasury,
-            admin
+            admin,
+            migrationBridge
         );
         
         ERC1967Proxy proxy = new ERC1967Proxy(
@@ -59,7 +62,7 @@ contract RDATUpgradeableTest is Test {
         
         // Grant roles
         vm.startPrank(admin);
-        rdat.grantRole(MINTER_ROLE, minter);
+        // RDAT no longer has MINTER_ROLE - all tokens minted at deployment
         rdat.grantRole(PAUSER_ROLE, pauser);
         vm.stopPrank();
     }
@@ -68,9 +71,10 @@ contract RDATUpgradeableTest is Test {
         assertEq(rdat.name(), "r/datadao");
         assertEq(rdat.symbol(), "RDAT");
         assertEq(rdat.decimals(), 18);
-        assertEq(rdat.totalSupply(), TOTAL_SUPPLY - MIGRATION_ALLOCATION);
-        assertEq(rdat.balanceOf(treasury), TOTAL_SUPPLY - MIGRATION_ALLOCATION);
-        assertEq(rdat.totalMinted(), TOTAL_SUPPLY - MIGRATION_ALLOCATION);
+        assertEq(rdat.totalSupply(), TOTAL_SUPPLY); // Full supply minted
+        assertEq(rdat.balanceOf(treasury), TOTAL_SUPPLY - MIGRATION_ALLOCATION); // 70M to treasury
+        assertEq(rdat.balanceOf(migrationBridge), MIGRATION_ALLOCATION); // 30M to migration
+        assertEq(rdat.totalMinted(), TOTAL_SUPPLY); // All 100M minted
         
         assertTrue(rdat.hasRole(DEFAULT_ADMIN_ROLE, admin));
         assertTrue(rdat.hasRole(PAUSER_ROLE, admin));
@@ -79,7 +83,7 @@ contract RDATUpgradeableTest is Test {
     
     function test_CannotReinitialize() public {
         vm.expectRevert();
-        rdat.initialize(user1, user2);
+        rdat.initialize(user1, user2, address(0x100));
     }
     
     function test_UpgradeAuthorization() public {
@@ -107,9 +111,9 @@ contract RDATUpgradeableTest is Test {
     }
     
     function test_StatePreservationAfterUpgrade() public {
-        // Setup some state
-        vm.prank(minter);
-        rdat.mint(user1, 1000 * 10**18);
+        // Setup some state (transfer from treasury, no minting)
+        vm.prank(treasury);
+        rdat.transfer(user1, 1000 * 10**18);
         
         vm.prank(user1);
         rdat.transfer(user2, 500 * 10**18);
@@ -127,11 +131,11 @@ contract RDATUpgradeableTest is Test {
         assertEq(rdat.balanceOf(user1), user1BalanceBefore);
         assertEq(rdat.balanceOf(user2), user2BalanceBefore);
         assertEq(rdat.totalMinted(), totalMintedBefore);
-        assertEq(rdat.totalSupply(), TOTAL_SUPPLY - MIGRATION_ALLOCATION + 1000 * 10**18);
+        assertEq(rdat.totalSupply(), TOTAL_SUPPLY); // Fixed supply, no minting
         
         // Verify roles are preserved
         assertTrue(rdat.hasRole(DEFAULT_ADMIN_ROLE, admin));
-        assertTrue(rdat.hasRole(MINTER_ROLE, minter));
+        // MINTER_ROLE no longer exists
         assertTrue(rdat.hasRole(PAUSER_ROLE, pauser));
     }
     
@@ -155,7 +159,8 @@ contract RDATUpgradeableTest is Test {
                 abi.encodeWithSelector(
                     RDATUpgradeable.initialize.selector,
                     treasury,
-                    admin
+                    admin,
+                    migrationBridge
                 )
             )
         );
@@ -169,7 +174,7 @@ contract RDATUpgradeableTest is Test {
         // Verify the proxy works
         RDATUpgradeable rdatFromCreate2 = RDATUpgradeable(deployedProxy);
         assertEq(rdatFromCreate2.name(), "r/datadao");
-        assertEq(rdatFromCreate2.totalSupply(), TOTAL_SUPPLY - MIGRATION_ALLOCATION);
+        assertEq(rdatFromCreate2.totalSupply(), TOTAL_SUPPLY); // Full supply minted
     }
     
     function test_UpgradeWithReinitialize() public {
@@ -231,8 +236,8 @@ contract RDATUpgradeableTest is Test {
         
         // Verify contract still works with original implementation
         assertEq(rdat.name(), "r/datadao");
-        vm.prank(minter);
-        rdat.mint(user1, 1000 * 10**18);
+        vm.prank(treasury);
+        rdat.transfer(user1, 1000 * 10**18);
         assertEq(rdat.balanceOf(user1), 1000 * 10**18);
     }
 }

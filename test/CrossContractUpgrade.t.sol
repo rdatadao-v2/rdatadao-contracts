@@ -40,14 +40,14 @@ contract CrossContractUpgradeTest is Test {
         RDATUpgradeable rdatImpl = new RDATUpgradeable();
         bytes memory rdatInitData = abi.encodeCall(
             rdatImpl.initialize,
-            (treasury, admin)
+            (treasury, admin, address(0x100))
         );
         rdatProxy = new ERC1967Proxy(address(rdatImpl), rdatInitData);
         rdat = RDATUpgradeable(address(rdatProxy));
         
         // Deploy vRDAT
         vrdat = new vRDAT(admin);
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         
         // Deploy StakingPositions with proxy
         StakingPositions stakingImpl = new StakingPositions();
@@ -61,15 +61,18 @@ contract CrossContractUpgradeTest is Test {
         // Setup roles (use staking contract address, not proxy separately)
         vrdat.grantRole(vrdat.MINTER_ROLE(), address(staking));
         vrdat.grantRole(vrdat.BURNER_ROLE(), address(staking));
-        rdat.grantRole(rdat.MINTER_ROLE(), address(staking));
-        rdat.grantRole(rdat.MINTER_ROLE(), admin);
+        // RDAT no longer has MINTER_ROLE - all tokens minted at deployment
         
         // Set very low reward rate for upgrade tests to avoid supply overflow
         staking.setRewardRate(1); // Minimal rewards to avoid NoRewardsToClaim error
         
-        // Mint tokens to users
-        rdat.mint(alice, INITIAL_BALANCE);
-        rdat.mint(bob, INITIAL_BALANCE);
+        // Transfer tokens from treasury to users (all tokens pre-minted)
+        vm.startPrank(treasury);
+        rdat.transfer(alice, INITIAL_BALANCE);
+        rdat.transfer(bob, INITIAL_BALANCE);
+        vm.stopPrank();
+        
+        vm.startPrank(admin);
         
         vm.stopPrank();
         
@@ -94,7 +97,7 @@ contract CrossContractUpgradeTest is Test {
         // Step 1: Create active staking positions
         vm.startPrank(alice);
         alicePosition1 = staking.stake(STAKE_AMOUNT, staking.MONTH_1());
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         alicePosition2 = staking.stake(STAKE_AMOUNT * 2, staking.MONTH_6());
         vm.stopPrank();
         
@@ -168,7 +171,7 @@ contract CrossContractUpgradeTest is Test {
         console.log("Alice successfully unstaked from upgraded RDAT contract");
         
         // Step 5: Test that new stakes work with upgraded RDAT
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         
         vm.startPrank(alice);
         uint256 newPosition = staking.stake(STAKE_AMOUNT / 2, staking.MONTH_3());
@@ -225,7 +228,7 @@ contract CrossContractUpgradeTest is Test {
         // Step 1: Create positions
         vm.startPrank(alice);
         alicePosition1 = staking.stake(STAKE_AMOUNT, staking.MONTH_6());
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         alicePosition2 = staking.stake(STAKE_AMOUNT * 2, staking.MONTH_12());
         vm.stopPrank();
         

@@ -32,7 +32,7 @@ contract StakingPositionsTest is Test {
         RDATUpgradeable rdatImpl = new RDATUpgradeable();
         bytes memory rdatInitData = abi.encodeCall(
             rdatImpl.initialize,
-            (treasury, admin)
+            (treasury, admin, address(0x100)) // migration contract address
         );
         ERC1967Proxy rdatProxy = new ERC1967Proxy(
             address(rdatImpl),
@@ -44,7 +44,7 @@ contract StakingPositionsTest is Test {
         vrdat = new vRDAT(admin);
         
         // Fast forward to bypass initial mint delay
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         
         // Deploy StakingPositions with proxy
         StakingPositions stakingImpl = new StakingPositions();
@@ -61,14 +61,15 @@ contract StakingPositionsTest is Test {
         // Setup roles
         vrdat.grantRole(vrdat.MINTER_ROLE(), address(staking));
         vrdat.grantRole(vrdat.BURNER_ROLE(), address(staking));
-        rdat.grantRole(rdat.MINTER_ROLE(), address(staking));
+        // RDAT no longer has MINTER_ROLE - all tokens minted at deployment
         
-        // Grant minter role to admin for test setup
-        rdat.grantRole(rdat.MINTER_ROLE(), admin);
+        // Transfer tokens from treasury to test users (no minting)
+        vm.startPrank(treasury);
+        rdat.transfer(alice, INITIAL_BALANCE);
+        rdat.transfer(bob, INITIAL_BALANCE);
+        vm.stopPrank();
         
-        // Mint tokens to test users
-        rdat.mint(alice, INITIAL_BALANCE);
-        rdat.mint(bob, INITIAL_BALANCE);
+        vm.startPrank(admin);
         
         vm.stopPrank();
         
@@ -112,14 +113,14 @@ contract StakingPositionsTest is Test {
         assertEq(position1, 1);
         
         // Warp time to bypass mint delay
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         
         // Create second position with different lock period
         uint256 position2 = staking.stake(STAKE_AMOUNT * 2, staking.MONTH_3());
         assertEq(position2, 2);
         
         // Warp time to bypass mint delay
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         
         // Create third position
         uint256 position3 = staking.stake(STAKE_AMOUNT / 2, staking.MONTH_12());
@@ -163,10 +164,10 @@ contract StakingPositionsTest is Test {
         // Create multiple positions
         staking.stake(STAKE_AMOUNT, staking.MONTH_1());
         
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         staking.stake(STAKE_AMOUNT, staking.MONTH_3());
         
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         staking.stake(STAKE_AMOUNT, staking.MONTH_6());
         
         uint256[] memory positions = staking.getUserPositions(alice);
@@ -325,10 +326,10 @@ contract StakingPositionsTest is Test {
         // Create multiple positions
         staking.stake(STAKE_AMOUNT, staking.MONTH_1());
         
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         staking.stake(STAKE_AMOUNT * 2, staking.MONTH_3());
         
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         staking.stake(STAKE_AMOUNT / 2, staking.MONTH_6());
         
         // Fast forward 1 day
@@ -427,7 +428,7 @@ contract StakingPositionsTest is Test {
         RDATUpgradeable mockTokenImpl = new RDATUpgradeable();
         bytes memory mockInitData = abi.encodeCall(
             mockTokenImpl.initialize,
-            (treasury, admin)
+            (treasury, admin, address(0x100)) // migration contract address
         );
         ERC1967Proxy mockTokenProxy = new ERC1967Proxy(
             address(mockTokenImpl),
@@ -435,9 +436,9 @@ contract StakingPositionsTest is Test {
         );
         RDATUpgradeable mockToken = RDATUpgradeable(address(mockTokenProxy));
         
-        vm.startPrank(admin);
-        mockToken.grantRole(mockToken.MINTER_ROLE(), admin);
-        mockToken.mint(address(staking), 1000 * 10**18);
+        // Transfer tokens from treasury (no minting)
+        vm.startPrank(treasury);
+        mockToken.transfer(address(staking), 1000 * 10**18);
         vm.stopPrank();
         
         uint256 balanceBefore = mockToken.balanceOf(admin);

@@ -8,7 +8,6 @@ interface IvRDAT {
     
     // Errors
     error NonTransferableToken();
-    error MintDelayNotMet();
     error ExceedsMaxBalance();
     
     // Functions
@@ -22,10 +21,8 @@ interface IvRDAT {
     function approve(address spender, uint256 amount) external pure returns (bool);
     
     // State getters
-    function lastMintTime(address account) external view returns (uint256);
     function totalSupply() external view returns (uint256);
     
     // Constants
-    function MINT_DELAY() external view returns (uint256);
     function MAX_PER_ADDRESS() external view returns (uint256);
 }

@@ -41,8 +41,8 @@ contract RDATUpgradeable is
 {
     // Roles
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    // MINTER_ROLE removed - all tokens minted at deployment
     
     // Constants
     uint256 public constant override TOTAL_SUPPLY = 100_000_000 * 10**18; // 100M tokens
@@ -84,12 +84,15 @@ contract RDATUpgradeable is
     }
     
     /**
-     * @dev Initializes the token with treasury allocation
-     * @param treasury Address to receive non-migration supply
+     * @dev Initializes the token with full supply minted
+     * @param treasury Address to receive non-migration supply (70M)
      * @param admin Address to receive admin role
+     * @param migrationContract Address to receive migration allocation (30M)
      */
-    function initialize(address treasury, address admin) public initializer {
-        if (treasury == address(0) || admin == address(0)) revert InvalidAddress();
+    function initialize(address treasury, address admin, address migrationContract) public initializer {
+        if (treasury == address(0) || admin == address(0) || migrationContract == address(0)) {
+            revert InvalidAddress();
+        }
         
         __ERC20_init("r/datadao", "RDAT");
         __ERC20Burnable_init();
@@ -103,28 +106,20 @@ contract RDATUpgradeable is
         _grantRole(PAUSER_ROLE, admin);
         _grantRole(UPGRADER_ROLE, admin);
         
-        // Mint non-migration supply to treasury
-        uint256 treasuryAmount = TOTAL_SUPPLY - MIGRATION_ALLOCATION;
-        _mint(treasury, treasuryAmount);
-        totalMinted = treasuryAmount;
+        // Mint ENTIRE supply at deployment
+        _mint(treasury, TOTAL_SUPPLY - MIGRATION_ALLOCATION); // 70M to treasury
+        _mint(migrationContract, MIGRATION_ALLOCATION); // 30M to migration contract
+        totalMinted = TOTAL_SUPPLY; // All 100M minted
+        
+        // No MINTER_ROLE granted - minting is complete and permanent
     }
     
     /**
-     * @dev Mints tokens to specified address
-     * @param to Recipient address
-     * @param amount Amount to mint
-     * @notice Only callable by MINTER_ROLE (migration bridge)
+     * @dev Mint function removed - all tokens minted at deployment
+     * @notice This function exists only to satisfy the IRDAT interface
      */
-    function mint(address to, uint256 amount) external override onlyRole(MINTER_ROLE) nonReentrant {
-        if (to == address(0)) revert InvalidAddress();
-        
-        uint256 newTotalMinted = totalMinted + amount;
-        if (newTotalMinted > TOTAL_SUPPLY) {
-            revert ExceedsMaxSupply(amount, TOTAL_SUPPLY - totalMinted);
-        }
-        
-        totalMinted = newTotalMinted;
-        _mint(to, amount);
+    function mint(address, uint256) external pure override {
+        revert("Minting is disabled - all tokens minted at deployment");
     }
     
     /**

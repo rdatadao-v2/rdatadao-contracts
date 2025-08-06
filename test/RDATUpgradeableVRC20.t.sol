@@ -37,7 +37,7 @@ contract RDATUpgradeableVRC20Test is Test {
         // Deploy proxy
         bytes memory initData = abi.encodeCall(
             RDATUpgradeable.initialize,
-            (treasury, admin)
+            (treasury, admin, address(0x100)) // migration contract address
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
         rdat = RDATUpgradeable(address(proxy));

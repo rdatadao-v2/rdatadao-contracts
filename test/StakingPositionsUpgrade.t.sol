@@ -36,13 +36,13 @@ contract StakingPositionsUpgradeTest is Test {
         RDATUpgradeable rdatImpl = new RDATUpgradeable();
         bytes memory rdatInitData = abi.encodeCall(
             rdatImpl.initialize,
-            (treasury, admin)
+            (treasury, admin, address(0x100)) // migration contract address
         );
         rdat = RDATUpgradeable(address(new ERC1967Proxy(address(rdatImpl), rdatInitData)));
         
         // Deploy vRDAT
         vrdat = new vRDAT(admin);
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         
         // Deploy StakingPositions V1 with proxy
         StakingPositions stakingImpl = new StakingPositions();
@@ -56,8 +56,8 @@ contract StakingPositionsUpgradeTest is Test {
         // Setup roles
         vrdat.grantRole(vrdat.MINTER_ROLE(), address(stakingProxy));
         vrdat.grantRole(vrdat.BURNER_ROLE(), address(stakingProxy));
-        rdat.grantRole(rdat.MINTER_ROLE(), address(stakingProxy));
-        rdat.grantRole(rdat.MINTER_ROLE(), admin);
+        // RDAT no longer has MINTER_ROLE - address(stakingProxy));
+        // RDAT no longer has MINTER_ROLE - admin);
         
         // Mint tokens
         rdat.mint(alice, INITIAL_BALANCE);
@@ -79,7 +79,7 @@ contract StakingPositionsUpgradeTest is Test {
         // Step 1: Create positions in V1
         vm.startPrank(alice);
         position1 = stakingV1.stake(STAKE_AMOUNT, stakingV1.MONTH_1());
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         position2 = stakingV1.stake(STAKE_AMOUNT * 2, stakingV1.MONTH_6());
         vm.stopPrank();
         
@@ -172,7 +172,7 @@ contract StakingPositionsUpgradeTest is Test {
         assertEq(stakingV2.ownerOf(newPosition), charlie, "Wrong owner");
         
         // Create position with referral
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         vm.startPrank(charlie);
         // Make sure charlie still has approval after the upgrade
         rdat.approve(address(stakingV2), type(uint256).max);
@@ -282,7 +282,7 @@ contract StakingPositionsUpgradeTest is Test {
         assertEq(loyaltyPoints, 4000, "Wrong loyalty points"); // 1000 * 4
         
         // Second stake should have boost
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         position2 = stakingV2.stakeWithReferral(
             STAKE_AMOUNT,
             stakingV2.MONTH_6(),

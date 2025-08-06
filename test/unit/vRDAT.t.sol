@@ -66,7 +66,6 @@ contract vRDATTest is Test {
         assertEq(vrdat.balanceOf(user1), amount);
         assertEq(vrdat.totalSupply(), amount);
         assertEq(vrdat.totalMinted(user1), amount);
-        assertGt(vrdat.lastMintTime(user1), 0);
     }
     
     function test_MintingWithoutRole() public {
@@ -81,26 +80,19 @@ contract vRDATTest is Test {
         vrdat.mint(user2, 1000);
     }
     
-    function test_MintDelay() public {
+    function test_MultipleMints() public {
         uint256 amount = 1000 * 10**18;
         
         // First mint
         vm.prank(minter);
         vrdat.mint(user1, amount);
         
-        // Try to mint again immediately
-        vm.prank(minter);
-        vm.expectRevert(IvRDAT.MintDelayNotMet.selector);
-        vrdat.mint(user1, amount);
-        
-        // Fast forward past delay
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
-        
-        // Now minting should work
+        // Should be able to mint again immediately (no delay for soul-bound tokens)
         vm.prank(minter);
         vrdat.mint(user1, amount);
         
         assertEq(vrdat.balanceOf(user1), amount * 2);
+        assertEq(vrdat.totalMinted(user1), amount * 2);
     }
     
     function test_MaxBalanceLimit() public {
@@ -109,9 +101,6 @@ contract vRDATTest is Test {
         // Mint up to max
         vm.prank(minter);
         vrdat.mint(user1, maxBalance);
-        
-        // Fast forward past mint delay
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
         
         // Try to mint more (should exceed max balance)
         vm.prank(minter);
@@ -249,8 +238,7 @@ contract vRDATTest is Test {
         // Mint tokens
         vm.startPrank(minter);
         vrdat.mint(user1, amount1);
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
-        vrdat.mint(user1, amount2);
+        vrdat.mint(user1, amount2); // No delay needed for soul-bound tokens
         vm.stopPrank();
         
         // Burn some tokens
@@ -272,30 +260,28 @@ contract vRDATTest is Test {
     
     function test_CanMint() public {
         // Check initial state
-        (bool canMint, uint256 timeUntilMint) = vrdat.canMint(user1);
+        (bool canMint, uint256 remainingCapacity) = vrdat.canMint(user1);
         assertTrue(canMint);
-        assertEq(timeUntilMint, 0);
+        assertEq(remainingCapacity, vrdat.MAX_PER_ADDRESS());
         
-        // Mint once
+        // Mint some tokens
+        uint256 mintAmount = 1000 * 10**18;
         vm.prank(minter);
-        vrdat.mint(user1, 1000 * 10**18);
+        vrdat.mint(user1, mintAmount);
         
-        // Check immediately after
-        (canMint, timeUntilMint) = vrdat.canMint(user1);
-        assertFalse(canMint);
-        assertEq(timeUntilMint, vrdat.MINT_DELAY());
-        
-        // Fast forward halfway
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() / 2);
-        (canMint, timeUntilMint) = vrdat.canMint(user1);
-        assertFalse(canMint);
-        assertEq(timeUntilMint, vrdat.MINT_DELAY() / 2);
-        
-        // Fast forward past delay
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() / 2 + 1);
-        (canMint, timeUntilMint) = vrdat.canMint(user1);
+        // Should still be able to mint (no delay)
+        (canMint, remainingCapacity) = vrdat.canMint(user1);
         assertTrue(canMint);
-        assertEq(timeUntilMint, 0);
+        assertEq(remainingCapacity, vrdat.MAX_PER_ADDRESS() - mintAmount);
+        
+        // Mint up to max
+        vm.prank(minter);
+        vrdat.mint(user1, vrdat.MAX_PER_ADDRESS() - mintAmount);
+        
+        // Now should not be able to mint
+        (canMint, remainingCapacity) = vrdat.canMint(user1);
+        assertFalse(canMint);
+        assertEq(remainingCapacity, 0);
     }
     
     function test_VotingPowerAfterBurn() public {
@@ -318,17 +304,14 @@ contract vRDATTest is Test {
         assertEq(vrdat.getVotes(user1), amount / 2);
     }
     
-    function test_MultipleMintsWithDelay() public {
+    function test_ConsecutiveMints() public {
         uint256 amount = 1000 * 10**18;
         uint256 mintCount = 5;
         
+        // Should be able to mint multiple times without delay
         for (uint256 i = 0; i < mintCount; i++) {
             vm.prank(minter);
             vrdat.mint(user1, amount);
-            
-            if (i < mintCount - 1) {
-                vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
-            }
         }
         
         assertEq(vrdat.balanceOf(user1), amount * mintCount);

@@ -46,14 +46,14 @@ contract UpgradeSafetyTest is Test {
         RDATUpgradeable rdatImpl = new RDATUpgradeable();
         bytes memory rdatInitData = abi.encodeCall(
             rdatImpl.initialize,
-            (treasury, admin)
+            (treasury, admin, address(0x100)) // migration contract address
         );
         rdatProxy = new ERC1967Proxy(address(rdatImpl), rdatInitData);
         rdat = RDATUpgradeable(address(rdatProxy));
         
         // Deploy vRDAT
         vrdat = new vRDAT(admin);
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         
         // Deploy StakingPositions V1
         StakingPositions stakingImpl = new StakingPositions();
@@ -78,7 +78,7 @@ contract UpgradeSafetyTest is Test {
         vrdat.grantRole(vrdat.MINTER_ROLE(), address(stakingV1));
         
         // Mint tokens
-        rdat.grantRole(rdat.MINTER_ROLE(), admin);
+        // RDAT no longer has MINTER_ROLE - admin);
         rdat.mint(alice, STAKE_AMOUNT * 10);
         rdat.mint(bob, STAKE_AMOUNT * 10);
         

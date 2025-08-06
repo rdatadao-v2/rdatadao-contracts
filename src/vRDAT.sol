@@ -35,11 +35,9 @@ contract vRDAT is
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
     
     // Constants
-    uint256 public constant override MINT_DELAY = 48 hours; // Anti flash-loan protection
     uint256 public constant override MAX_PER_ADDRESS = 10_000_000 * 10**18; // 10M vRDAT max per address
     
     // State
-    mapping(address => uint256) public override lastMintTime;
     mapping(address => uint256) public totalMinted; // Track total minted per address
     mapping(address => uint256) public totalBurned; // Track total burned per address
     
@@ -68,13 +66,6 @@ contract vRDAT is
         require(to != address(0), "Invalid recipient");
         require(amount > 0, "Invalid amount");
         
-        // Check mint delay (anti flash-loan)
-        if (lastMintTime[to] > 0) {
-            if (block.timestamp < lastMintTime[to] + MINT_DELAY) {
-                revert MintDelayNotMet();
-            }
-        }
-        
         // Check max balance
         uint256 newBalance = balanceOf(to) + amount;
         if (newBalance > MAX_PER_ADDRESS) {
@@ -82,7 +73,6 @@ contract vRDAT is
         }
         
         // Update state
-        lastMintTime[to] = block.timestamp;
         totalMinted[to] += amount;
         
         // Mint tokens
@@ -212,24 +202,19 @@ contract vRDAT is
     }
     
     /**
-     * @dev Check if an address can mint (respects delay)
+     * @dev Check if an address can mint (only checks max balance)
      * @param account Address to check
-     * @return canMintNow Whether the address can mint now
-     * @return timeUntilMint Seconds until next mint is allowed
+     * @return canMintNow Whether the address can mint now based on balance limit
+     * @return remainingCapacity How much more can be minted before hitting max
      */
-    function canMint(address account) external view returns (bool canMintNow, uint256 timeUntilMint) {
-        if (lastMintTime[account] == 0) {
-            canMintNow = true;
-            timeUntilMint = 0;
+    function canMint(address account) external view returns (bool canMintNow, uint256 remainingCapacity) {
+        uint256 currentBalance = balanceOf(account);
+        if (currentBalance >= MAX_PER_ADDRESS) {
+            canMintNow = false;
+            remainingCapacity = 0;
         } else {
-            uint256 nextMintTime = lastMintTime[account] + MINT_DELAY;
-            if (block.timestamp >= nextMintTime) {
-                canMintNow = true;
-                timeUntilMint = 0;
-            } else {
-                canMintNow = false;
-                timeUntilMint = nextMintTime - block.timestamp;
-            }
+            canMintNow = true;
+            remainingCapacity = MAX_PER_ADDRESS - currentBalance;
         }
     }
     

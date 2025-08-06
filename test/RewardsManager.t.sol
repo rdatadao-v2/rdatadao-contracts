@@ -59,14 +59,14 @@ contract RewardsManagerTest is Test {
         RDATUpgradeable rdatImpl = new RDATUpgradeable();
         bytes memory rdatInitData = abi.encodeCall(
             rdatImpl.initialize,
-            (treasury, admin)
+            (treasury, admin, address(0x100)) // migration contract address
         );
         rdatProxy = new ERC1967Proxy(address(rdatImpl), rdatInitData);
         rdat = RDATUpgradeable(address(rdatProxy));
         
         // Deploy vRDAT
         vrdat = new vRDAT(admin);
-        vm.warp(block.timestamp + vrdat.MINT_DELAY() + 1);
+        // No mint delay needed for soul-bound tokens
         
         // Deploy EmergencyPause
         emergencyPause = new EmergencyPause(admin);
@@ -116,13 +116,16 @@ contract RewardsManagerTest is Test {
         rewardsManager.grantRole(rewardsManager.PAUSER_ROLE(), pauser);
         rewardsManager.grantRole(rewardsManager.UPGRADER_ROLE(), upgrader);
         
-        // Allocate RDAT to users
-        rdat.grantRole(rdat.MINTER_ROLE(), admin);
-        rdat.mint(alice, INITIAL_BALANCE);
-        rdat.mint(bob, INITIAL_BALANCE);
-        rdat.mint(charlie, INITIAL_BALANCE);
-        rdat.mint(address(rdatModule), REWARD_ALLOCATION);
+        // Allocate RDAT to users (from treasury, no minting)
+        // RDAT no longer has MINTER_ROLE - all tokens minted at deployment
+        vm.startPrank(treasury);
+        rdat.transfer(alice, INITIAL_BALANCE);
+        rdat.transfer(bob, INITIAL_BALANCE);
+        rdat.transfer(charlie, INITIAL_BALANCE);
+        rdat.transfer(address(rdatModule), REWARD_ALLOCATION);
+        vm.stopPrank();
         
+        vm.startPrank(admin);
         vm.stopPrank();
     }
     
