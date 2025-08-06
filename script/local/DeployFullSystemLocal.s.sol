@@ -234,20 +234,20 @@ contract DeployFullSystemLocal is Script {
     function transferAllocations() internal {
         console2.log("\n=== Phase 5: Initial Allocations ===");
         
-        // Transfer to treasury wallet (if different from initial treasury)
-        if (address(treasury) != treasuryAddr) {
-            uint256 treasuryAllocation = 70_000_000e18; // 70M RDAT
-            rdat.transfer(address(treasury), treasuryAllocation);
-            console2.log("Transferred 70M RDAT to TreasuryWallet");
-        }
-        
         // Migration bridge already received 30M during RDAT initialization
         console2.log("Migration bridge balance:", rdat.balanceOf(address(migrationBridge)) / 1e18, "RDAT");
         
-        // Transfer to bonus vesting (from treasury allocation)
-        uint256 bonusAllocation = 3_000_000e18; // 3M RDAT for migration bonuses
+        // Transfer to bonus vesting first (3M RDAT for migration bonuses)
+        uint256 bonusAllocation = 3_000_000e18; 
         rdat.transfer(address(bonusVesting), bonusAllocation);
         console2.log("Transferred 3M RDAT to BonusVesting");
+        
+        // Transfer remaining to treasury wallet (100M - 30M - 3M = 67M RDAT)
+        if (address(treasury) != treasuryAddr) {
+            uint256 treasuryAllocation = 67_000_000e18; 
+            rdat.transfer(address(treasury), treasuryAllocation);
+            console2.log("Transferred 67M RDAT to TreasuryWallet");
+        }
     }
     
     function printSummary() internal view {
