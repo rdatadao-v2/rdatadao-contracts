@@ -7,50 +7,439 @@ This document captures important technical decisions, architectural patterns, an
 
 ## 📋 Table of Contents
 1. [RDAT Tokenomics](#rdat-tokenomics)
-2. [TreasuryWallet Implementation](#treasurywallet-implementation)
-3. [TokenVesting for VRC-20](#tokenvesting-for-vrc-20)
-4. [CREATE2 Deployment](#create2-deployment)
-5. [Emergency Pause Architecture](#emergency-pause-architecture)
-6. [Emergency Migration Architecture](#emergency-migration-architecture)
-7. [Token Architecture](#token-architecture)
-8. [Security Decisions](#security-decisions)
+2. [vRDAT Governance Token](#vrdat-governance-token)
+3. [VRC-20 Compliance](#vrc-20-compliance)
+4. [Access Control & Multi-sig](#access-control--multi-sig)
+5. [Phase 3 Activation](#phase-3-activation)
+6. [Revenue Distribution](#revenue-distribution)
+7. [Treasury Allocations](#treasury-allocations)
+8. [TreasuryWallet Implementation](#treasurywallet-implementation)
+9. [TokenVesting for VRC-20](#tokenvesting-for-vrc-20)
+10. [CREATE2 Deployment](#create2-deployment)
+11. [Emergency Pause Architecture](#emergency-pause-architecture)
+12. [Emergency Migration Architecture](#emergency-migration-architecture)
+13. [Token Architecture](#token-architecture)
+14. [Security Decisions](#security-decisions)
 
 ---
 
 ## RDAT Tokenomics
 
-### Q: Why is RDAT non-mintable after deployment?
+### Q: Why is RDAT fixed supply with no ongoing minting capability?
 
-**A:** RDAT uses a fixed supply model for several critical reasons:
+**A:** RDAT uses a strict fixed supply model with all minting infrastructure removed after initial deployment:
 
-#### 1. **Predictable Economics**
-- Fixed 100M supply ensures no inflation
-- Token holders know exact supply forever
-- Rewards come from pre-allocated pools
-- No dilution through minting
-
-#### 2. **Security Benefits**
-- Eliminates minting attack vectors
-- No need for complex minting controls
-- Simpler contract with fewer risks
-- No infinite mint bugs possible
-
-#### 3. **Sustainable Rewards**
-Instead of minting new tokens for rewards, we use:
-- **Treasury Allocations**: Pre-funded reward pools
-- **Revenue Sharing**: Protocol fees distributed to stakers
-- **Limited Programs**: Rewards end when pools deplete
-- **Market-Based**: Creates natural supply/demand dynamics
-
-#### 4. **Implementation Details**
+#### 1. **True Fixed Supply Implementation**
 ```solidity
-uint256 public constant TOTAL_SUPPLY = 100_000_000 * 10**18; // 100M fixed
-uint256 public constant MIGRATION_ALLOCATION = 30_000_000 * 10**18; // 30M reserved
-
+// Initial deployment only - then minting infrastructure removed entirely
 function initialize(address treasury, address admin, address migrationContract) {
-    // Mint ENTIRE supply at deployment
-    _mint(treasury, TOTAL_SUPPLY - MIGRATION_ALLOCATION); // 70M to treasury
-    _mint(migrationContract, MIGRATION_ALLOCATION); // 30M to migration contract
+    __ERC20_init("r/datadao", "RDAT");
+    _mint(msg.sender, 100_000_000e18); // One-time mint of 100M tokens
+    
+    // NO MINTER_ROLE exists
+    // NO mint() function exists after deployment
+    // NO emergency minting possible
+}
+```
+
+#### 2. **Predictable Economics**
+- Fixed 100M supply ensures zero inflation forever
+- Token holders have certainty about maximum supply
+- No dilution risk from emergency minting
+- Market dynamics based purely on demand/utility
+
+#### 3. **Security Benefits**
+- Eliminates all minting attack vectors
+- No complex role-based access controls needed for minting
+- No governance attacks targeting mint functions
+- Simpler contract = fewer attack surfaces
+
+#### 4. **Sustainable Rewards via Pre-allocation**
+Instead of minting new tokens for rewards, we use:
+- **Treasury Allocations**: 70M tokens pre-allocated for rewards and operations
+- **Revenue Sharing**: Protocol fees distributed to stakers (50/30/20 model)
+- **Finite Reward Pools**: Creates scarcity and value accrual
+- **Phase-based Unlocks**: 30M additional rewards unlocked in Phase 3
+
+### Q: How does initial token distribution work without ongoing minting?
+
+**A:** All 100M tokens are minted once during deployment, then distributed:
+
+```
+Migration Reserve:   30M (30%) → VanaMigrationBridge contract
+Treasury Operations: 25M (25%) → TreasuryWallet for DAO operations  
+Future Rewards:      30M (30%) → Locked until Phase 3 activation
+Liquidity Incentives: 15M (15%) → DEX liquidity (includes 3M for bonus LP tokens)
+```
+
+**Post-deployment**: Zero tokens can ever be created, ensuring true fixed supply.
+
+---
+
+## vRDAT Governance Token
+
+### Q: How is vRDAT different from RDAT in terms of supply management?
+
+**A:** vRDAT uses a dynamic supply model that directly reflects active staking positions:
+
+#### **Dynamic Mint/Burn Model**
+```solidity
+// vRDAT mints when positions are created
+function onStake(address user, uint256 positionId, uint256 amount, uint256 lockDuration) external {
+    uint256 multiplier = lockMultipliers[lockDuration];
+    uint256 vrdatAmount = (amount * multiplier) / 10000;
+    vrdatToken.mint(user, vrdatAmount); // Mint governance tokens
+}
+
+// vRDAT burns when positions are unstaked
+function onUnstake(address user, uint256 positionId, uint256 vrdatAmount) external {
+    vrdatToken.burn(user, vrdatAmount); // Burn governance tokens
+}
+```
+
+#### **No Maximum Supply**
+- **RDAT**: Fixed 100M maximum supply ✅
+- **vRDAT**: No maximum - dynamically adjusts to total staked amount
+- **Purpose**: Voting power should reflect actual stake, not historical stake
+
+#### **Soul-bound During Lock Period**  
+- Transferable only after position unlock
+- Prevents vote buying during active staking
+- Maintains governance token integrity
+
+### Q: What are the vRDAT multipliers and how do they work?
+
+**A:** vRDAT rewards scale with lock duration to incentivize longer commitments:
+
+```solidity
+// Lock duration multipliers (basis points)
+lockMultipliers[30 days] = 10000;   // 1x = 100% 
+lockMultipliers[90 days] = 15000;   // 1.5x = 150%
+lockMultipliers[180 days] = 20000;  // 2x = 200%
+lockMultipliers[365 days] = 40000;  // 4x = 400%
+```
+
+**Example**: Staking 1,000 RDAT for 1 year = 4,000 vRDAT governance tokens
+
+---
+
+## VRC-20 Compliance
+
+### Q: What level of VRC-20 compliance does RDAT implement?
+
+**A:** RDAT implements **full VRC-20 compliance** for complete integration with Vana's data licensing protocol:
+
+#### **Core VRC-20 Interface Implementation**
+```solidity
+interface IVRC20DataLicensing {
+    function onDataLicenseCreated(bytes32 licenseId, address licensor, uint256 value) external;
+    function calculateDataRewards(address user, uint256 dataValue) external view returns (uint256);
+    function processDataLicensePayment(bytes32 licenseId, uint256 amount) external;
+    function getDataLicenseInfo(bytes32 licenseId) external view returns (bytes memory);
+    function updateDataValuation(address dataProvider, uint256 newValue) external;
+}
+```
+
+#### **Dynamic Data Rewards Calculation**
+- **Formula**: Based on kismet functionality (to be defined)
+- **Configurability**: DAO can vote to update reward calculation parameters
+- **Integration**: All data license fees route through RevenueCollector for 50/30/20 distribution
+
+#### **Full DLP Eligibility**  
+Complete VRC-20 compliance ensures RDAT qualifies for:
+- Vana Data Liquidity Pool rewards
+- Cross-protocol data licensing opportunities  
+- Integration with Vana ecosystem partners
+
+### Q: How do data license rewards integrate with staking rewards?
+
+**A:** Data rewards complement but don't replace staking rewards:
+
+```solidity
+// Data contributors earn rewards based on data value and kismet formula
+uint256 dataReward = calculateDataRewards(user, dataValue);
+
+// These rewards are distributed through RevenueCollector
+revenueCollector.reportRevenue(address(this), dataReward);
+
+// RevenueCollector then distributes 50/30/20:
+// - 50% to all stakers (proportional to staked amount)  
+// - 30% to treasury for DAO operations
+// - 20% to data contributors pool
+```
+
+---
+
+## Access Control & Multi-sig
+
+### Q: How are administrative permissions managed across contracts?
+
+**A:** All administrative functions use existing Gnosis Safe multi-sig wallets (3-of-5 signature threshold):
+
+#### **Network-Specific Multi-sig Addresses**
+```solidity
+// Vana Networks
+Vana Mainnet: 0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319
+Vana Moksha:  0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319
+
+// Base Networks  
+Base Mainnet: 0x90013583c66D2bf16327cB5Bc4a647AcceCF4B9A
+Base Sepolia: 0x90013583c66D2bf16327cB5Bc4a647AcceCF4B9A
+```
+
+#### **Multi-sig Controlled Operations**
+All critical functions require 3-of-5 multi-sig approval:
+- **Contract Upgrades** (UPGRADER_ROLE)
+- **Emergency Pausing** (PAUSER_ROLE)  
+- **Reward Program Management** (PROGRAM_MANAGER_ROLE)
+- **Parameter Updates** (ADMIN_ROLE)
+
+#### **Single Admin Operations (Operational Efficiency)**
+- **Revenue Reporting** (REVENUE_REPORTER_ROLE) - Can be automated bot
+- **Configuration within pre-defined limits**
+- **Non-critical parameter adjustments**
+
+### Q: Why not implement custom multi-sig logic in contracts?
+
+**A:** Using Gnosis Safe provides superior security and operational benefits:
+
+#### **Proven Security**
+- Battle-tested with $100B+ secured
+- Extensive audits and formal verification
+- Standard interface all wallets understand
+
+#### **Operational Benefits**  
+- Hardware wallet integration
+- Mobile app for emergency responses
+- Transaction batching and queuing
+- Upgrade path without contract changes
+
+#### **Implementation Approach**
+```solidity
+// Contracts simply check if caller is the multi-sig address
+modifier onlyMultiSig() {
+    require(msg.sender == MULTISIG_ADDRESS, "Only multi-sig");
+    _;
+}
+
+// Multi-sig complexity handled externally by Gnosis Safe
+```
+
+---
+
+## Phase 3 Activation
+
+### Q: How and when does Phase 3 get activated to unlock the 30M future rewards?
+
+**A:** Phase 3 activation is controlled by a boolean parameter in RewardsManager, set when the DAO votes to acknowledge Vana Foundation's Phase 3 recognition:
+
+#### **Activation Mechanism**
+```solidity
+// RewardsManager.sol
+bool public phase3Activated = false;
+
+function activatePhase3() external onlyRole(ADMIN_ROLE) {
+    require(!phase3Activated, "Phase 3 already activated");
+    phase3Activated = true;
+    
+    emit Phase3Activated(block.timestamp);
+    // Note: This only sets the flag - treasury manually manages the 30M unlock
+}
+```
+
+#### **External Recognition Process**
+1. **Vana Foundation Assessment**: External evaluation of r/datadao progress and integration
+2. **Phase 3 Recognition**: Vana Foundation acknowledges DAO has reached Phase 3 status  
+3. **DAO Vote**: Community votes to accept Phase 3 status (via Snapshot)
+4. **Multi-sig Execution**: 3-of-5 multi-sig calls `activatePhase3()`
+
+#### **Unlock-Only Functionality**
+When `phase3Activated = true`:
+- **Treasury Access**: 30M tokens become available for treasury management
+- **No Automatic Distribution**: Treasury manually decides how to deploy rewards
+- **DAO Governance**: Future decisions about 30M usage require DAO votes
+- **Flexibility**: Enables RDATRewardModule deployment, new programs, or other uses
+
+### Q: What criteria does the Vana Foundation use for Phase 3 recognition?
+
+**A:** Phase 3 recognition is based on Vana Foundation's assessment of r/datadao's:
+- Data liquidity contribution to Vana ecosystem
+- Community growth and engagement metrics  
+- Technical integration depth with Vana protocols
+- Long-term sustainability and governance maturity
+
+**Important**: This is external recognition, not automated on-chain metrics. The DAO votes whether to accept Phase 3 status when offered.
+
+---
+
+## Revenue Distribution
+
+### Q: How does the 50/30/20 revenue distribution work in practice?
+
+**A:** Revenue distribution is currently manual (admin-triggered) with automation planned for post-launch:
+
+#### **Distribution Model**
+```solidity
+// RevenueCollector.sol - Manual distribution for V2
+function distributeRevenue(address token) external onlyRole(REVENUE_REPORTER_ROLE) {
+    uint256 totalAmount = IERC20(token).balanceOf(address(this));
+    
+    if (rewardsManager.isTokenSupported(token)) {
+        // Supported tokens: 50/30/20 split
+        uint256 stakersAmount = (totalAmount * 5000) / 10000;  // 50%
+        uint256 treasuryAmount = (totalAmount * 3000) / 10000; // 30%  
+        uint256 contributorsAmount = totalAmount - stakersAmount - treasuryAmount; // 20%
+        
+        // Distribute to each pool
+        IERC20(token).transfer(address(rewardsManager), stakersAmount);
+        IERC20(token).transfer(treasuryAddress, treasuryAmount);
+        IERC20(token).transfer(contributorsAddress, contributorsAmount);
+    } else {
+        // Unsupported tokens: 100% to treasury until DAO decides
+        IERC20(token).transfer(treasuryAddress, totalAmount);
+    }
+}
+```
+
+#### **Manual vs. Automatic**
+- **V2 Launch**: Manual triggering by admin or bot
+- **Benefits**: Lower gas costs, admin oversight, easier debugging
+- **Future V3**: Automatic distribution on revenue receipt
+- **Migration Path**: Upgrade RevenueCollector when ready
+
+#### **Token Support Detection**
+```solidity
+// RewardsManager determines which tokens have active reward programs
+function isTokenSupported(address token) external view returns (bool) {
+    // Returns true if any active reward program uses this token
+    // Initially: only RDAT supported, later: USDC, partner tokens, etc.
+}
+```
+
+---
+
+## Treasury Allocations
+
+### Q: What is the exact breakdown of the 100M RDAT token allocation?
+
+**A:** The standard allocation model (implemented and deployed):
+
+#### **Primary Allocation (100M Total)**
+```
+Migration Reserve: 30M (30%) → V1→V2 token exchange (1:1 ratio)
+Treasury Pool:     70M (70%) → DAO management, split as follows:
+```
+
+#### **Treasury Pool Breakdown (70M)**
+```
+Operations & Ecosystem: 25M (25%) → DAO operations, partnerships, development
+Future Rewards:        30M (30%) → Phase 3 unlock for additional reward programs  
+Liquidity Incentives:  15M (15%) → DEX liquidity provision and trading incentives
+Migration Bonuses:      3M ( 3%) → Early migration bonuses (deducted from operations)
+Total Treasury:        73M (73%) → But only 70M due to 3M bonus allocation
+```
+
+#### **Final Verified Allocation**
+```
+VanaMigrationBridge:     30M (30.0%) → V1→V2 token exchange
+TreasuryWallet:         70M (70.0%) → DAO management (25M + 30M + 15M)
+  ├─ Operations:         25M (25.0%) → Immediate DAO operations
+  ├─ Future Rewards:     30M (30.0%) → Phase 3 unlock
+  └─ Liquidity:          15M (15.0%) → DEX liquidity + LP bonus tokens
+Total:                 100M (100.0%) ✅
+```
+
+### Q: How are allocations verified across all documentation?
+
+**A:** All documentation now standardizes on this implementation model:
+- **CONTRACTS_SPEC.md**: ✅ Updated to match
+- **WHITEPAPER.md**: ✅ Updated to match
+- **TECHNICAL_FAQ.md**: ✅ Updated to match (this document)
+- **DEPLOYMENT_GUIDE.md**: ✅ Updated to match
+
+**Previous Inconsistencies**: TECHNICAL_FAQ.md previously showed 25M/15M instead of 30M/25M for Future Rewards/Treasury - now corrected.
+
+### Q: How do migration bonuses work with the liquidity allocation?
+
+**A:** Migration bonuses are provided as LP (liquidity pair) tokens rather than direct RDAT to align with DAO directives and create sustainable liquidity:
+
+#### **LP Token Bonus Mechanism**
+- **Source**: 3M RDAT equivalent from the 15M liquidity allocation (not additional minting)
+- **Format**: RDAT-VANA liquidity pair tokens (not direct RDAT tokens)
+- **Vesting**: 12-month linear vesting for LP tokens with no cliff
+- **Benefits**: Users earn trading fees during entire vesting period
+
+#### **Critical Design Decisions Made:**
+
+**Q1: Why LP tokens instead of direct RDAT?**
+- **DAO Alignment**: Uses designated liquidity allocation as intended
+- **Liquidity Creation**: Directly supports RDAT trading liquidity
+- **Dual Value**: Users benefit from both RDAT and VANA price appreciation
+- **Sustainable Rewards**: Trading fee yield during vesting period
+
+**Q2: Why post-launch implementation?**
+- **Timeline Constraints**: Allows focus on core launch functionality
+- **Vana Integration**: Requires VRC-20 compliance and Vana token allocation
+- **Optimal Pool Ratios**: DataDex team guidance ensures best LP configuration
+- **Risk Mitigation**: Admin controls prevent premature bonus claiming
+
+**Q3: Where do VANA tokens come from?**
+- **Vana Foundation Allocation**: Provided once RDAT meets compliance standards
+- **Registration Process**: RDAT must be registered with Vana first
+- **Compliance-Gated**: Pool creation depends on successful VANA allocation
+
+#### **Implementation Timeline & Controls**
+```solidity
+contract MigrationBonusVesting {
+    // Admin controls - disabled by default
+    bool public bonusClaimingEnabled = false;
+    bool public liquidityPoolConfigured = false;
+    IERC20 public liquidityToken; // RDAT-VANA LP token
+    
+    // Post-launch activation sequence
+    function configureLiquidityPool(address _liquidityToken) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        liquidityToken = IERC20(_liquidityToken);
+        liquidityPoolConfigured = true;
+    }
+    
+    function enableBonusClaiming() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(liquidityPoolConfigured, "LP pool must be ready");
+        bonusClaimingEnabled = true;
+    }
+    
+    // Claims only work when properly configured
+    function claim() external onlyWhenClaimingEnabled {
+        // Users receive LP tokens instead of RDAT
+    }
+}
+```
+
+#### **User Benefits & Experience**
+1. **Immediate Yield**: Earn RDAT-VANA trading fees during 12-month vesting
+2. **Dual Token Exposure**: Benefit from both RDAT and VANA price movements
+3. **Liquidity Contribution**: Help create sustainable RDAT trading liquidity
+4. **Flexible Post-Vesting**: Choose to hold LP tokens or separate after unlock
+5. **No Additional Dilution**: Bonuses come from existing allocations, not new minting
+
+#### **Post-Launch Activation Process**
+1. **RDAT Launch**: Core V2 system launches without bonus claiming
+2. **VRC-20 Compliance**: Achieve full Vana integration standards  
+3. **Vana Token Allocation**: Receive VANA tokens for liquidity provision
+4. **DataDex Consultation**: Determine optimal RDAT-VANA pool ratios
+5. **LP Pool Creation**: Create RDAT-VANA liquidity pool with proper funding
+6. **Bonus System Activation**: Admin enables migration bonus claiming
+7. **User Claims Begin**: Migration users can claim vested LP tokens
+
+#### **Math Verification: Token Allocation Stays at 100M**
+```
+Before Fix (BROKEN):
+Migration: 30M + Treasury: 67M + Bonus: 3M = 100M ❌ 
+But deployment tried to mint 103M tokens!
+
+After Fix (CORRECT):
+Migration: 30M + Treasury: 70M = 100M ✅
+Treasury manages: 25M operations + 30M Phase 3 + 15M liquidity (includes 3M for LP bonuses)
+```
     
     // No MINTER_ROLE granted - minting is complete
 }
