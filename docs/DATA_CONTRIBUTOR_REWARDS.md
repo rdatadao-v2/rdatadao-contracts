@@ -10,27 +10,36 @@ The RDAT V2 token allocation includes 30 million tokens (30% of 100M total suppl
 ## Token Allocation
 
 **Future Rewards Pool**: 30,000,000 RDAT (30% of 100M supply)
-- **Purpose**: Reward users who contribute high-quality data to r/datadao
+- **Purpose**: Split between staking rewards and data contributor rewards per future DAO vote
 - **Lock Period**: 
   - V2 Beta: Basic rewards via ProofOfContribution
   - Phase 2: Enhanced rewards with Kismet integration
-  - Phase 3: Full data marketplace with automated distribution
-- **Distribution**: Merit-based through ProofOfContribution scoring
+  - Phase 3: Full rewards unlock pending DAO vote on allocation split
+- **Distribution**: Merit-based through ProofOfContribution scoring for data portion
 - **Revenue Integration**: Additional rewards from 20% of RevenueCollector distributions
+- **Note**: Exact allocation between staking and data rewards to be determined by DAO governance
 
 ## Reward Distribution Mechanism
 
 ### 1. Phase 3 Trigger
-When the DAO determines that Phase 3 data aggregation should begin:
+When the DAO determines that Phase 3 should begin:
 ```solidity
 // Admin triggers Phase 3 unlock
-vestingContract.triggerPhase3Unlock(dataRewardsContract);
+treasuryWallet.setPhase3Active();
+
+// After DAO vote on allocation split
+// Example: If DAO allocates 10M for data contributors
+treasuryWallet.distribute(
+    dataContributorRewards,
+    10_000_000e18, // Amount per DAO vote
+    "Fund data contributor rewards per DAO proposal #X"
+);
 ```
 
 This:
 - Unlocks the 30M RDAT future rewards pool
-- Approves the rewards contract to distribute tokens
-- Enables creation of reward rounds
+- DAO votes on split between staking and data rewards
+- Enables creation of reward rounds for data contributors
 
 ### 2. Reward Rounds
 Data contributor rewards are distributed in rounds:
@@ -99,20 +108,21 @@ claimRewards(
 ## Distribution Strategy
 
 ### Phase 3 Initial Distribution
-**Recommended Approach**:
-1. **Round 1** (Months 1-3): 5M RDAT
+**Note**: Final allocation depends on DAO vote. Example assuming 10M allocated to data contributors:
+
+1. **Round 1** (Months 1-3): 2M RDAT
    - Early adopter bonus
    - Focus on data quality establishment
    
-2. **Round 2** (Months 4-6): 7M RDAT
+2. **Round 2** (Months 4-6): 3M RDAT
    - Scale up as more contributors join
    - Refined scoring metrics
 
-3. **Round 3** (Months 7-12): 8M RDAT
+3. **Round 3** (Months 7-12): 3M RDAT
    - Mature ecosystem rewards
    - Long-term contributor incentives
 
-4. **Reserve**: 10M RDAT
+4. **Reserve**: 2M RDAT
    - Future rounds
    - Special campaigns
    - Emergency allocations
@@ -177,9 +187,10 @@ The rewards system integrates with r/datadao's data aggregation:
 
 ## Budget Management
 
-**Total Budget**: 30,000,000 RDAT
+**Total Future Rewards Budget**: 30,000,000 RDAT
+**Data Contributor Portion**: To be determined by DAO vote
 **Recommended Distribution Timeline**: 2-3 years
-**Emergency Reserve**: 10% (3M RDAT)
+**Emergency Reserve**: 10% of allocated amount
 
 ### Monitoring
 - Track distribution rate

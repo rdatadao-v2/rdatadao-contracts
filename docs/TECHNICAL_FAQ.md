@@ -926,6 +926,154 @@ This balances flexibility with security guarantees.
 
 *Last Updated: August 6, 2025*
 
+## DAO Governance and Community Decisions
+
+### Q: What decisions will the DAO need to make with vRDAT governance?
+
+**A:** The vRDAT governance system will enable critical community-driven decisions:
+
+**Phase 3 Activation Criteria**:
+- When to unlock the 30M Future Rewards allocation
+- Options include:
+  - Time-based: X months after launch
+  - Migration-based: X% of V1 tokens migrated
+  - Milestone-based: Specific metrics achieved
+  - Combined criteria: Multiple conditions met
+
+**Future Rewards Allocation Split**:
+- How to divide the 30M RDAT between:
+  - Staking rewards (via RDATRewardModule)
+  - Data contributor rewards
+  - Other future incentive programs
+- Each program's duration and distribution rate
+
+**Team Token Distribution**:
+- Approval to transfer 10M RDAT from Treasury to TokenVesting
+- Setting vesting terms and beneficiaries
+- Compliance with Vana DLP requirements
+
+**Protocol Parameters**:
+- Adjust fee distribution ratios (currently 50/30/20)
+- Modify staking parameters or multipliers
+- Update reward distribution rates
+- Set new protocol fees or thresholds
+
+**Strategic Decisions**:
+- Partnership approvals and terms
+- Treasury allocation for ecosystem growth
+- Emergency response procedures
+- Protocol upgrade proposals
+
+This community-driven approach ensures the protocol evolves based on stakeholder consensus rather than centralized control.
+
+### Q: Why defer Phase 3 activation to DAO governance?
+
+**A:** Strategic and philosophical reasons:
+
+1. **Community Empowerment**: Major tokenomics decisions should be made by token holders
+2. **Market Timing**: DAO can activate when market conditions are optimal
+3. **Flexibility**: Allows adjustment based on protocol growth and needs
+4. **Risk Mitigation**: Ensures system stability before major reward programs
+5. **True Decentralization**: Removes admin control over significant treasury allocation
+
+The whitepaper emphasizes democratic governance - this puts it into practice from day one.
+
+### Q: How does the CREATE2 deployment strategy work?
+
+**A:** CREATE2 enables deterministic contract addresses, solving our circular dependency:
+
+**The Problem**:
+```solidity
+// RDAT needs these addresses at deployment:
+initialize(treasuryWallet, admin, migrationContract)
+
+// But TreasuryWallet needs RDAT address:
+initialize(admin, rdatAddress)
+
+// Circular dependency!
+```
+
+**The Solution**:
+```solidity
+// 1. Calculate RDAT address before deployment
+bytes32 salt = keccak256("RDAT_V2");
+address predictedRDAT = computeCreate2Address(
+    keccak256(bytecode),
+    salt,
+    factory
+);
+
+// 2. Deploy TreasuryWallet with predicted address
+TreasuryWallet treasury = new TreasuryWallet();
+treasury.initialize(admin, predictedRDAT);
+
+// 3. Deploy MigrationBridge 
+MigrationBridge bridge = new MigrationBridge();
+bridge.initialize(predictedRDAT, validators);
+
+// 4. Deploy RDAT at the predicted address
+RDAT rdat = deployWithCreate2(
+    bytecode,
+    salt,
+    abi.encode(address(treasury), admin, address(bridge))
+);
+
+// Validates: address(rdat) == predictedRDAT ✓
+```
+
+This allows clean deployment without post-deployment configuration.
+
+### Q: What happens to liquidity provider configuration?
+
+**A:** The liquidity provider address is set post-deployment:
+
+1. **Initial State**: TreasuryWallet holds 4.95M RDAT for liquidity
+2. **Admin Verification**: Ensures migration bridge is properly set up
+3. **Provider Selection**: Admin identifies DEX or liquidity provider
+4. **Manual Distribution**: Admin calls `distribute()` with provider address
+5. **On-chain Record**: Distribution tracked with reason
+
+This flexibility allows choosing the best liquidity venue after deployment.
+
+### Q: How will staking incentives (10.05M) be used?
+
+**A:** The 10.05M staking incentives are separate from Future Rewards:
+
+**Purpose**: Bootstrap ecosystem growth during Phase 1-2
+**Potential Uses**:
+- **LP Incentives**: Rewards for liquidity providers
+- **vRDAT Boost Campaigns**: Extra rewards for governance participation  
+- **Early Staker Bonuses**: Incentivize initial adoption
+- **Partnership Programs**: Co-marketing with other protocols
+
+**Key Distinction**: 
+- These are available immediately (not Phase 3 gated)
+- Distributed at admin/DAO discretion
+- Separate from the 30M Future Rewards staking allocation
+
+### Q: Why manual distribution triggers instead of automatic?
+
+**A:** Safety and verification:
+
+1. **Migration Verification**: Ensure bridge is working before releasing funds
+2. **Prevent Mistakes**: Admin can verify addresses before distribution
+3. **Flexible Timing**: Can wait for optimal market conditions
+4. **Security**: Reduces attack surface during deployment
+5. **Transparency**: Each distribution has on-chain reason
+
+Automatic distribution could send funds to wrong addresses or before system verification.
+
+### Q: What's the difference between StakingPositions and StakingManager?
+
+**A:** These refer to the same contract - naming inconsistency in documentation:
+
+- **Official Name**: StakingPositions.sol
+- **Incorrect References**: Some docs mention "StakingManager"
+- **Functionality**: NFT-based staking with multiple concurrent positions
+- **Architecture Role**: Core immutable staking logic
+
+This will be corrected to use "StakingPositions" consistently.
+
 ## Contributing to this FAQ
 
 When adding new entries:

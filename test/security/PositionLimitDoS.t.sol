@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+import "forge-std/console2.sol";
 pragma solidity 0.8.23;
 
 import "forge-std/Test.sol";
@@ -72,8 +73,8 @@ contract PositionLimitDoSTest is Test {
     // ============ CRITICAL: Test Actual Position Limit ============
     
     function test_ActualMaxPositionsEnforcement() public {
-        console.log("Testing actual MAX_POSITIONS_PER_USER:", actualMaxPositions);
-        console.log("MIN_STAKE_AMOUNT:", minStakeAmount);
+        console2.log("Testing actual MAX_POSITIONS_PER_USER:", actualMaxPositions);
+        console2.log("MIN_STAKE_AMOUNT:", minStakeAmount);
         
         vm.startPrank(attacker);
         
@@ -84,7 +85,7 @@ contract PositionLimitDoSTest is Test {
             
             // Log progress every 10 positions
             if (i % 10 == 0) {
-                console.log("Created positions:", i);
+                console2.log("Created positions:", i);
             }
             
             // Verify position was created
@@ -93,14 +94,14 @@ contract PositionLimitDoSTest is Test {
         
         // Verify we have exactly max positions
         assertEq(stakingPositions.balanceOf(attacker), actualMaxPositions);
-        console.log("Successfully created maximum positions:", actualMaxPositions);
+        console2.log("Successfully created maximum positions:", actualMaxPositions);
         
         // CRITICAL TEST: Next position MUST fail with specific error
         rdat.approve(address(stakingPositions), minStakeAmount);
         vm.expectRevert(IStakingPositions.TooManyPositions.selector);
         stakingPositions.stake(minStakeAmount, 30 days);
         
-        console.log("Position limit correctly enforced at:", actualMaxPositions);
+        console2.log("Position limit correctly enforced at:", actualMaxPositions);
         
         vm.stopPrank();
     }
@@ -119,7 +120,7 @@ contract PositionLimitDoSTest is Test {
         uint256[] memory positions = stakingPositions.getUserPositions(attacker);
         uint256 gasUsed = gasBefore - gasleft();
         
-        console.log("Gas used for getUserPositions with", actualMaxPositions, "positions:", gasUsed);
+        console2.log("Gas used for getUserPositions with", actualMaxPositions, "positions:", gasUsed);
         
         // Verify all positions returned
         assertEq(positions.length, actualMaxPositions);
@@ -134,7 +135,7 @@ contract PositionLimitDoSTest is Test {
             stakingPositions.getPosition(positions[i]);
         }
         gasUsed = (gasBefore - gasleft()) / 10;
-        console.log("Average gas per getPosition:", gasUsed);
+        console2.log("Average gas per getPosition:", gasUsed);
         
         vm.stopPrank();
     }
@@ -154,7 +155,7 @@ contract PositionLimitDoSTest is Test {
         stakingPositions.stake(minStakeAmount, 30 days);
         uint256 gasUsed = gasBefore - gasleft();
         
-        console.log("Gas used for creating position #", actualMaxPositions, ":", gasUsed);
+        console2.log("Gas used for creating position #", actualMaxPositions, ":", gasUsed);
         
         // Gas should not increase dramatically with position count
         assertLt(gasUsed, 300000, "Stake gas cost too high at limit");
@@ -262,10 +263,10 @@ contract PositionLimitDoSTest is Test {
         uint256 detailsGas = (gasBefore - gasleft()) * positions.length / 10;
         totalGas += detailsGas;
         
-        console.log("Total estimated gas for frontend to load user data:", totalGas);
-        console.log("- Position count:", positionCount);
-        console.log("- Get all positions gas:", gasBefore - gasleft());
-        console.log("- Estimated details gas:", detailsGas);
+        console2.log("Total estimated gas for frontend to load user data:", totalGas);
+        console2.log("- Position count:", positionCount);
+        console2.log("- Get all positions gas:", gasBefore - gasleft());
+        console2.log("- Estimated details gas:", detailsGas);
         
         // This should not be prohibitively expensive
         assertLt(totalGas, 1000000, "Frontend gas cost too high");
@@ -299,7 +300,7 @@ contract PositionLimitDoSTest is Test {
         stakingPositions.getUserPositions(users[0]);
         uint256 gasUsed = gasBefore - gasleft();
         
-        console.log("Gas for position query with multiple users at capacity:", gasUsed);
+        console2.log("Gas for position query with multiple users at capacity:", gasUsed);
         assertLt(gasUsed, 500000, "System not scalable at capacity");
         
         vm.stopPrank();
@@ -326,7 +327,7 @@ contract PositionLimitDoSTest is Test {
         uint256 victimPositionId = stakingPositions.stake(minStakeAmount, 30 days);
         assertGt(victimPositionId, 0);
         
-        console.log("Confirmed: Position limit is per-user, not global");
+        console2.log("Confirmed: Position limit is per-user, not global");
         
         vm.stopPrank();
     }

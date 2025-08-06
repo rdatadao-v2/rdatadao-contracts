@@ -24,15 +24,26 @@ Per DAO vote 0xa0c701b7f26855b3861e150fb31d637f70ae6f50cb4e1c92e2b5675a048a54bb:
 - **Future Rewards**: 30,000,000 RDAT (30%)
   - 0% unlocked at TGE
   - Unlocks when Phase 3 is activated
-  - Funds RDATRewardModule for staking rewards
+  - Split determined by future DAO vote between:
+    - Staking rewards (via RDATRewardModule)
+    - Data contributor rewards
+    - Other future incentive programs
+  - Note: vRDAT activation requires 50% migration + 3 epoch cooldown per snapshot vote
   
 - **Treasury & Ecosystem Development**: 25,000,000 RDAT (25%)
+  - Breakdown:
+    - 10M for team allocation (requires DAO vote to transfer to TokenVesting)
+    - 2.5M unlocked at TGE (10%)
+    - 12.5M for general treasury operations, partnerships, ecosystem grants
   - 10% unlocked at TGE (2.5M RDAT)
   - 6-month cliff, then 5% monthly (1.25M/month)
   
 - **Liquidity & Staking**: 15,000,000 RDAT (15%)
-  - 33% unlocked at TGE for liquidity (4.95M RDAT)
+  - 33% unlocked at TGE for liquidity (exactly 4.95M RDAT)
   - Remaining 67% for staking incentives (10.05M RDAT)
+    - Separate from Future Rewards staking allocation
+    - Used for: LP incentives, vRDAT boost campaigns, early staker bonuses
+    - Distributed at admin/DAO discretion during Phase 1-2
 
 ### Staking Parameters
 **Lock Periods & Multipliers**:
@@ -84,7 +95,7 @@ Per DAO vote 0xa0c701b7f26855b3861e150fb31d637f70ae6f50cb4e1c92e2b5675a048a54bb:
 **RDATRewardModule** (Phase 3 only):
 - Distributes RDAT from pre-allocated pool
 - Time-based accumulation with multipliers
-- Funded from Future Rewards allocation
+- Funded from Future Rewards allocation (amount per future DAO vote)
 - Deployed when Phase 3 activates
 
 ### 6. **TreasuryWallet.sol** (UUPS Upgradeable) 
@@ -96,7 +107,9 @@ Per DAO vote 0xa0c701b7f26855b3861e150fb31d637f70ae6f50cb4e1c92e2b5675a048a54bb:
   - `setPhase3Active()`: Unlocks Future Rewards allocation
   - `distribute()`: DAO-approved transfers
   - `executeDAOProposal()`: On-chain proposal execution
-- **Immediate Distributions at TGE**:
+- **Initial Distribution Process**:
+  - TreasuryWallet holds all funds until admin manually triggers distributions
+  - Admin calls `distribute()` after migration verification
   - 4.95M RDAT to liquidity provision
   - 2.5M RDAT available for ecosystem
 
@@ -137,27 +150,32 @@ Per DAO vote 0xa0c701b7f26855b3861e150fb31d637f70ae6f50cb4e1c92e2b5675a048a54bb:
 // 1. Deploy vRDAT (non-upgradeable)
 vRDAT = new vRDAT(admin);
 
-// 2. Deploy TreasuryWallet implementation and proxy
+// 2. Calculate RDAT address using CREATE2
+rdatAddress = computeCreate2Address(
+    keccak256(bytecode),
+    salt,
+    factory
+);
+
+// 3. Deploy TreasuryWallet implementation and proxy
 treasuryImpl = new TreasuryWallet();
 treasuryProxy = new ERC1967Proxy(
     treasuryImpl,
-    abi.encodeCall(initialize, (admin))
+    abi.encodeCall(initialize, (admin, rdatAddress))
 );
 
-// 3. Deploy RDATUpgradeable implementation
+// 4. Deploy MigrationBridge (regular deployment)
+migrationBridge = new MigrationBridge();
+migrationBridge.initialize(rdatAddress, validators);
+
+// 5. Deploy RDAT via CREATE2 with calculated address
 rdatImpl = new RDATUpgradeable();
-
-// 4. Calculate MigrationBridge address (CREATE2)
-migrationAddress = computeAddress(salt, bytecode);
-
-// 5. Deploy RDAT proxy with initialization
-rdatProxy = new ERC1967Proxy(
-    rdatImpl,
-    abi.encodeCall(initialize, (treasuryProxy, admin, migrationAddress))
+rdatProxy = deployWithCreate2(
+    bytecode,
+    salt,
+    abi.encodeCall(initialize, (treasuryProxy, admin, migrationBridge))
 );
-
-// 6. Deploy MigrationBridge at computed address
-migrationBridge = new MigrationBridge{salt: salt}(rdatProxy, treasuryProxy);
+// Verifies: address(rdatProxy) == rdatAddress
 ```
 
 ### Phase 3: Staking System
@@ -203,9 +221,9 @@ treasuryWallet.setupVestingSchedule(
     false // Time-based
 );
 
-// 3. Execute TGE distributions
-treasuryWallet.distribute(liquidityProvider, 4_950_000e18); // Liquidity
-treasuryWallet.checkAndRelease(); // Process other TGE unlocks
+// 3. Execute TGE distributions (admin manually triggers after migration verification)
+treasuryWallet.checkAndRelease(); // Process TGE unlocks
+treasuryWallet.distribute(liquidityProvider, 4_950_000e18); // Exactly 4.95M for liquidity
 
 // 4. Register vRDAT program (RDAT rewards wait for Phase 3)
 rewardsManager.registerProgram(vrdatModule, "vRDAT Governance", 0, 0);
@@ -279,22 +297,26 @@ Modules
 
 1. **Naming**: StakingPositions (not StakingManager)
 2. **vRDAT Formula**: Discrete multipliers (not continuous)
-3. **Reward Pool**: 20M RDAT (not 30M)
-4. **Deployment**: CREATE2 for circular dependency
+3. **Reward Pool**: Future Rewards split determined by DAO vote
+4. **Deployment**: CREATE2 for RDAT to resolve circular dependency
 5. **Module Security**: Future timelock implementation
 6. **Fee Burning**: No burning (contributor pool instead)
 7. **PoC Status**: Stub for now, full implementation later
+8. **Liquidity Amount**: Exactly 4.95M RDAT (not rounded to 5M)
+9. **Team Tokens**: Requires DAO vote to transfer from Treasury to TokenVesting
+10. **Initial Distributions**: Admin manually triggers after migration verification
 
 ## 🎯 Success Criteria
 
 ### Pre-Mainnet Checklist
 - [ ] All contracts deployed to testnet
-- [ ] 20M RDAT transferred to reward module
+- [ ] Future Rewards allocation ready (split TBD by DAO)
 - [ ] Migration bridge tested with mock V1
 - [ ] Emergency pause tested across contracts
 - [ ] Reward distribution verified
 - [ ] Gas optimization completed
 - [ ] Security audit passed
+- [ ] TokenVesting contract implemented for team allocation
 
 ### Post-Launch Metrics
 - [ ] 10M+ RDAT staked in first month

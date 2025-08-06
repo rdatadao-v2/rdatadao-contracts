@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+import "forge-std/console2.sol";
 pragma solidity 0.8.23;
 
 import "forge-std/Test.sol";
@@ -69,9 +70,9 @@ contract PositionLimitCoreTest is Test {
         uint256 maxPositions = stakingPositions.MAX_POSITIONS_PER_USER();
         uint256 minStake = stakingPositions.MIN_STAKE_AMOUNT();
         
-        console.log("=== CRITICAL POSITION LIMIT TEST ===");
-        console.log("MAX_POSITIONS_PER_USER:", maxPositions);
-        console.log("MIN_STAKE_AMOUNT:", minStake / 1e18, "RDAT");
+        console2.log("=== CRITICAL POSITION LIMIT TEST ===");
+        console2.log("MAX_POSITIONS_PER_USER:", maxPositions);
+        console2.log("MIN_STAKE_AMOUNT:", minStake / 1e18, "RDAT");
         
         // Verify constant matches our expectation
         assertEq(maxPositions, ACTUAL_MAX_POSITIONS, "MAX_POSITIONS not 100!");
@@ -88,24 +89,24 @@ contract PositionLimitCoreTest is Test {
             assertEq(positionId, i + 1);
             
             // Log progress
-            if (i == 0) console.log("First position created successfully");
-            if (i == 24) console.log("25 positions created...");
-            if (i == 49) console.log("50 positions created...");
-            if (i == 74) console.log("75 positions created...");
-            if (i == 99) console.log("100 positions created!");
+            if (i == 0) console2.log("First position created successfully");
+            if (i == 24) console2.log("25 positions created...");
+            if (i == 49) console2.log("50 positions created...");
+            if (i == 74) console2.log("75 positions created...");
+            if (i == 99) console2.log("100 positions created!");
         }
         
         // Verify we have exactly max positions
         assertEq(stakingPositions.balanceOf(attacker), maxPositions);
-        console.log("[SUCCESS] Successfully created", maxPositions, "positions");
+        console2.log("[SUCCESS] Successfully created", maxPositions, "positions");
         
         // CRITICAL: Next position MUST fail
         rdat.approve(address(stakingPositions), minStake);
         vm.expectRevert(IStakingPositions.TooManyPositions.selector);
         stakingPositions.stake(minStake, 30 days);
         
-        console.log("[SUCCESS] Position", maxPositions + 1, "correctly rejected");
-        console.log("[VERIFIED] POSITION LIMIT ENFORCEMENT WORKING");
+        console2.log("[SUCCESS] Position", maxPositions + 1, "correctly rejected");
+        console2.log("[VERIFIED] POSITION LIMIT ENFORCEMENT WORKING");
         
         vm.stopPrank();
     }
@@ -126,16 +127,16 @@ contract PositionLimitCoreTest is Test {
             stakingPositions.stake(minStake, 30 days);
         }
         
-        console.log("=== GAS COST ANALYSIS ===");
+        console2.log("=== GAS COST ANALYSIS ===");
         
         // Test 1: getUserPositions gas cost
         uint256 gasBefore = gasleft();
         uint256[] memory positions = stakingPositions.getUserPositions(attacker);
         uint256 gasUsed = gasBefore - gasleft();
         
-        console.log("getUserPositions() with", maxPositions, "positions:");
-        console.log("- Gas used:", gasUsed);
-        console.log("- Gas per position:", gasUsed / maxPositions);
+        console2.log("getUserPositions() with", maxPositions, "positions:");
+        console2.log("- Gas used:", gasUsed);
+        console2.log("- Gas per position:", gasUsed / maxPositions);
         
         assertEq(positions.length, maxPositions);
         assertLt(gasUsed, 3000000, "getUserPositions too expensive"); // 3M gas limit
@@ -147,13 +148,13 @@ contract PositionLimitCoreTest is Test {
             stakingPositions.getPosition(positions[i]);
             totalGas += gasBefore - gasleft();
         }
-        console.log("getPosition() average gas:", totalGas / 10);
+        console2.log("getPosition() average gas:", totalGas / 10);
         
         // Test 3: Balance query
         gasBefore = gasleft();
         uint256 balance = stakingPositions.balanceOf(attacker);
         gasUsed = gasBefore - gasleft();
-        console.log("balanceOf() gas:", gasUsed);
+        console2.log("balanceOf() gas:", gasUsed);
         assertEq(balance, maxPositions);
         
         vm.stopPrank();
@@ -190,7 +191,7 @@ contract PositionLimitCoreTest is Test {
         uint256 newPositionId = stakingPositions.stake(minStake, 30 days);
         assertGt(newPositionId, 0);
         
-        console.log("[SUCCESS] Unstaking properly frees position slots");
+        console2.log("[SUCCESS] Unstaking properly frees position slots");
         
         vm.stopPrank();
     }
@@ -220,7 +221,7 @@ contract PositionLimitCoreTest is Test {
         uint256 positionId = stakingPositions.stake(minStake, 30 days);
         assertGt(positionId, 0);
         
-        console.log("[SUCCESS] Position limit confirmed as per-user");
+        console2.log("[SUCCESS] Position limit confirmed as per-user");
         
         vm.stopPrank();
     }

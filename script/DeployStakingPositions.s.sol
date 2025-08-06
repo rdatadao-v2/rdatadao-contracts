@@ -2,6 +2,7 @@
 pragma solidity 0.8.23;
 
 import "forge-std/Script.sol";
+import "forge-std/console2.sol";
 import "../src/StakingPositions.sol";
 import "../src/RDATUpgradeable.sol";
 import "../src/vRDAT.sol";
@@ -56,7 +57,7 @@ contract DeployStakingPositions is Script {
         
         // Deploy implementation
         StakingPositions stakingImpl = new StakingPositions();
-        console.log("StakingPositions implementation deployed at:", address(stakingImpl));
+        console2.log("StakingPositions implementation deployed at:", address(stakingImpl));
         
         // Deploy proxy
         bytes memory initData = abi.encodeCall(
@@ -68,7 +69,7 @@ contract DeployStakingPositions is Script {
             address(stakingImpl),
             initData
         );
-        console.log("StakingPositions proxy deployed at:", address(proxy));
+        console2.log("StakingPositions proxy deployed at:", address(proxy));
         
         // Cast proxy to interface
         StakingPositions staking = StakingPositions(address(proxy));
@@ -79,26 +80,26 @@ contract DeployStakingPositions is Script {
             
             // Grant MINTER_ROLE to staking contract
             vrdat.grantRole(vrdat.MINTER_ROLE(), address(proxy));
-            console.log("Granted MINTER_ROLE to StakingPositions");
+            console2.log("Granted MINTER_ROLE to StakingPositions");
             
             // Grant BURNER_ROLE to staking contract
             vrdat.grantRole(vrdat.BURNER_ROLE(), address(proxy));
-            console.log("Granted BURNER_ROLE to StakingPositions");
+            console2.log("Granted BURNER_ROLE to StakingPositions");
             
             // Note: RDAT has fixed supply - no MINTER_ROLE exists or needed
-            console.log("RDAT has fixed supply - no minting permissions required");
+            console2.log("RDAT has fixed supply - no minting permissions required");
         }
         
         vm.stopBroadcast();
         
         // Log deployment info
-        console.log("==== StakingPositions Deployment Complete ====");
-        console.log("Proxy Address:", address(proxy));
-        console.log("Implementation Address:", address(stakingImpl));
-        console.log("Admin:", adminAddress);
-        console.log("RDAT Token:", rdatAddress);
-        console.log("vRDAT Token:", vrdatAddress);
-        console.log("============================================");
+        console2.log("==== StakingPositions Deployment Complete ====");
+        console2.log("Proxy Address:", address(proxy));
+        console2.log("Implementation Address:", address(stakingImpl));
+        console2.log("Admin:", adminAddress);
+        console2.log("RDAT Token:", rdatAddress);
+        console2.log("vRDAT Token:", vrdatAddress);
+        console2.log("============================================");
         
         return address(proxy);
     }

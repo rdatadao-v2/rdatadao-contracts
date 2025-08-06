@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+import "forge-std/console2.sol";
 pragma solidity 0.8.23;
 
 import "forge-std/Test.sol";
@@ -77,16 +78,16 @@ contract CrossContractUpgradeTest is Test {
         vm.stopPrank();
         
         // Users approve staking contract (both proxy and interface addresses)
-        console.log("Staking proxy address:", address(stakingProxy));
-        console.log("Staking interface address:", address(staking));
+        console2.log("Staking proxy address:", address(stakingProxy));
+        console2.log("Staking interface address:", address(staking));
         
         vm.prank(alice);
         rdat.approve(address(staking), type(uint256).max);
-        console.log("Alice allowance after approval:", rdat.allowance(alice, address(staking)));
+        console2.log("Alice allowance after approval:", rdat.allowance(alice, address(staking)));
         
         vm.prank(bob);  
         rdat.approve(address(staking), type(uint256).max);
-        console.log("Bob allowance after approval:", rdat.allowance(bob, address(staking)));
+        console2.log("Bob allowance after approval:", rdat.allowance(bob, address(staking)));
     }
     
     /**
@@ -115,8 +116,8 @@ contract CrossContractUpgradeTest is Test {
         IStakingPositions.Position memory pos2Before = staking.getPosition(alicePosition2);
         IStakingPositions.Position memory pos3Before = staking.getPosition(bobPosition1);
         
-        console.log("Pre-upgrade staking RDAT balance:", stakingRDATBalanceBefore);
-        console.log("Pre-upgrade total staked:", totalStakedBefore);
+        console2.log("Pre-upgrade staking RDAT balance:", stakingRDATBalanceBefore);
+        console2.log("Pre-upgrade total staked:", totalStakedBefore);
         
         // Step 2: Upgrade RDAT contract
         vm.startPrank(admin);
@@ -144,8 +145,8 @@ contract CrossContractUpgradeTest is Test {
         vm.warp(pos1Before.startTime + pos1Before.lockPeriod + 1);
         
         uint256 aliceRDATBeforeUnstake = rdat.balanceOf(alice);
-        console.log("Alice balance before unstake:", aliceRDATBeforeUnstake);
-        console.log("Position amount to unstake:", pos1Before.amount);
+        console2.log("Alice balance before unstake:", aliceRDATBeforeUnstake);
+        console2.log("Position amount to unstake:", pos1Before.amount);
         
         // Note: We expect rewards to be minted during unstaking
         
@@ -153,7 +154,7 @@ contract CrossContractUpgradeTest is Test {
         staking.unstake(alicePosition1);
         
         uint256 aliceRDATAfterUnstake = rdat.balanceOf(alice);
-        console.log("Alice balance after unstake:", aliceRDATAfterUnstake);
+        console2.log("Alice balance after unstake:", aliceRDATAfterUnstake);
         
         // Critical test: Verify Alice got her original RDAT tokens back from upgraded contract
         // This proves that RDAT upgrade doesn't break the staking→unstaking flow
@@ -168,7 +169,7 @@ contract CrossContractUpgradeTest is Test {
             "No rewards were paid out from upgraded RDAT contract"
         );
         
-        console.log("Alice successfully unstaked from upgraded RDAT contract");
+        console2.log("Alice successfully unstaked from upgraded RDAT contract");
         
         // Step 5: Test that new stakes work with upgraded RDAT
         // No mint delay needed for soul-bound tokens
@@ -178,7 +179,7 @@ contract CrossContractUpgradeTest is Test {
         vm.stopPrank();
         
         assertTrue(newPosition > 0, "Could not create new position with upgraded RDAT");
-        console.log("New staking position created with upgraded RDAT contract");
+        console2.log("New staking position created with upgraded RDAT contract");
     }
     
     /**
@@ -217,7 +218,7 @@ contract CrossContractUpgradeTest is Test {
         assertEq(upgradedRDAT.version(), 2, "RDAT upgrade failed");
         assertEq(upgradedRDAT.newFeature(), "V2 Feature Active", "V2 features not available");
         
-        console.log("RDAT upgrade preserved all balances and staking positions");
+        console2.log("RDAT upgrade preserved all balances and staking positions");
     }
     
     /**
@@ -282,7 +283,7 @@ contract CrossContractUpgradeTest is Test {
             "Alice didn't receive at least her original stake back after both upgrades"
         );
         
-        console.log("Successfully unstaked with both RDAT and StakingPositions upgraded");
+        console2.log("Successfully unstaked with both RDAT and StakingPositions upgraded");
     }
     
     /**
@@ -324,7 +325,7 @@ contract CrossContractUpgradeTest is Test {
             "Alice didn't receive at least her original stake back after failed upgrade attempt"
         );
         
-        console.log("Contract recovered successfully from bad upgrade attempt");
+        console2.log("Contract recovered successfully from bad upgrade attempt");
     }
     
     /**
@@ -383,7 +384,7 @@ contract CrossContractUpgradeTest is Test {
             "Alice didn't receive at least her original stake back after paused upgrade"
         );
         
-        console.log("Paused contract upgrade completed successfully");
+        console2.log("Paused contract upgrade completed successfully");
     }
 }
 

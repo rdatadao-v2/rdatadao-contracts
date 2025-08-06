@@ -48,20 +48,22 @@ RDAT V2 Beta represents a major upgrade from the existing V1 deployment, introdu
 
 ## 🚀 Deployment Process
 
-### **RDAT Token Deployment**
-1. **Deploy TreasuryWallet** (UUPS upgradeable)
-2. **Deploy RDATUpgradeable implementation**
-3. **Deploy ERC1967Proxy with initialization**:
+### **RDAT Token Deployment (Using CREATE2)**
+1. **Calculate RDAT address via CREATE2** (resolves circular dependencies)
+2. **Deploy TreasuryWallet** with predicted RDAT address
+3. **Deploy MigrationBridge** with predicted RDAT address
+4. **Deploy RDATUpgradeable via CREATE2**:
    ```solidity
    initialize(treasuryWallet, admin, migrationContract)
    // This mints:
    // - 70M RDAT to TreasuryWallet (manages vesting)
    // - 30M RDAT to MigrationBridge
    ```
-4. **TreasuryWallet distributes per DAO vote**:
-   - 4.95M to liquidity (immediate)
+5. **TreasuryWallet distributes per DAO vote**:
+   - Admin manually triggers distributions after migration verification
+   - 4.95M to liquidity (exactly 33% of 15M)
    - Remaining follows vesting schedules
-5. **No further minting possible**: `mint()` function always reverts
+6. **No further minting possible**: `mint()` function always reverts
 
 ### **Security Guarantees**
 - **No MINTER_ROLE**: Role doesn't exist in the contract
@@ -591,18 +593,25 @@ function getDeploymentAddress(bytes32 salt) external view returns (address)
 | Allocation | Percentage | Amount | Vesting Schedule |
 |------------|------------|--------|------------------|
 | Migration Reserve | 30% | 30,000,000 | 100% unlocked at TGE |
-| Future Rewards | 30% | 30,000,000 | 0% at TGE, unlocks when Phase 3 initiates |
-| Treasury & Ecosystem | 25% | 25,000,000 | 10% at TGE, 6-month cliff, then 5% monthly |
-| Liquidity & Staking | 15% | 15,000,000 | 33% at TGE for liquidity, remainder for staking |
+| Future Rewards | 30% | 30,000,000 | 0% at TGE, split determined by future DAO vote |
+| Treasury & Ecosystem | 25% | 25,000,000 | 10M team (DAO vote required), 2.5M TGE, 12.5M treasury |
+| Liquidity & Staking | 15% | 15,000,000 | 4.95M TGE liquidity (33%), 10.05M staking incentives |
+
+**Key Clarifications:**
+- **Future Rewards**: 30M total, split between staking/data per future DAO vote
+- **Team Tokens**: 10M from Treasury requires DAO approval to transfer to TokenVesting
+- **Liquidity**: Exactly 4.95M (not rounded to 5M)
+- **Staking Incentives**: 10.05M for LP rewards, vRDAT boosts (separate from Future Rewards)
+- **Initial Distributions**: Admin manually triggers after migration verification
 
 **Vesting Implementation Requirements:**
 - Migration Reserve: Immediately available for 1:1 token swap
-- Future Rewards: Locked until Phase 3 data aggregation begins
-- Treasury: 2.5M at TGE, 6-month cliff, then 1.25M monthly for 18 months
-- Liquidity: 5M at TGE for DEX liquidity, 10M for staking rewards
+- Future Rewards: Locked until Phase 3, then distributed per DAO vote on split
+- Treasury: 2.5M at TGE, 10M team allocation (DAO vote), 12.5M general treasury
+- Liquidity: 4.95M at TGE for DEX liquidity, 10.05M for staking incentives
 
 **Data Contributor Rewards:**
-- Source: Future Rewards allocation (30M RDAT)
+- Source: Future Rewards allocation (portion of 30M per DAO vote)
 - Distribution: Based on quality and quantity of data contributions
 - Unlock: Triggered when Phase 3 data aggregation begins
 - Management: Through DataDAO governance and contribution scoring
