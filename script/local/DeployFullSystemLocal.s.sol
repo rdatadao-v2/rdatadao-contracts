@@ -198,12 +198,6 @@ contract DeployFullSystemLocal is Script {
     function configureSystem() internal {
         console2.log("\n=== Phase 4: System Configuration ===");
         
-        // Update migration contracts with actual RDAT address
-        console2.log("Updating migration contracts with RDAT address...");
-        migrationBridge.setV2Token(address(rdat));
-        bonusVesting.setRewardToken(address(rdat));
-        console2.log("Updated migration contracts");
-        
         // Grant necessary roles
         vrdat.grantRole(vrdat.MINTER_ROLE(), address(staking));
         console2.log("Granted MINTER_ROLE to StakingPositions");
