@@ -61,6 +61,7 @@ interface IStakingPositions {
     error PositionDoesNotExist();
     error NotPositionOwner();
     error TransferWhileLocked();
+    error TransferWithActiveRewards();
     
     // Core functions
     function stake(uint256 amount, uint256 lockPeriod) external returns (uint256 positionId);

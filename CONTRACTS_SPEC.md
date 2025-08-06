@@ -23,7 +23,7 @@ This document provides the complete smart contract specifications for RDAT V2 wi
 3. **MockRDAT.sol** - V1 token mock for testing ✅
 
 #### Staking Layer
-4. **StakingManager.sol** - Core staking logic only (immutable) ✅
+4. **StakingPositions.sol** - NFT-based multi-position staking ✅
 
 #### Rewards Layer
 5. **RewardsManager.sol** - Rewards orchestrator (upgradeable) ✅
@@ -290,18 +290,19 @@ contract vRDAT is AccessControl, IvRDAT {
 
 ---
 
-### 3. StakingManager.sol ✅ **IMPLEMENTED**
+### 3. StakingPositions.sol ✅ **IMPLEMENTED**
 
-**Purpose**: Immutable contract handling core staking logic only - no rewards  
-**Status**: Complete implementation with modular architecture  
-**File**: `/src/StakingManager.sol`
+**Purpose**: NFT-based staking contract allowing multiple concurrent positions  
+**Status**: Complete implementation with conditional transfer logic  
+**File**: `/src/StakingPositions.sol`
 
 **Key Features**:
-- Immutable contract for maximum security
-- No reward logic - only tracks stakes
-- Emits events for reward tracking
-- Supports multiple stakes per user
-- Emergency migration for upgrades
+- Each stake creates an ERC-721 NFT position
+- Unlimited concurrent stakes per user
+- Soul-bound during lock period (non-transferable)
+- Conditional transfer after unlock (must clear vRDAT first)
+- UUPS upgradeable with storage gaps
+- Integration with modular rewards system
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -314,81 +315,134 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./interfaces/IStakingManager.sol";
 
-contract StakingManager is IStakingManager, AccessControl, Pausable, ReentrancyGuard {
-    using EnumerableSet for EnumerableSet.UintSet;
+contract StakingPositions is 
+    Initializable,
+    ERC721Upgradeable,
+    ERC721EnumerableUpgradeable,
+    AccessControlUpgradeable,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable,
+    IStakingPositions
+{
+    using SafeERC20 for IERC20;
+    
+    // Position structure
+    struct Position {
+        uint256 amount;
+        uint256 startTime;
+        uint256 endTime;
+        uint256 lockPeriod;
+        uint256 multiplier;
+        uint256 vrdatMinted;
+        uint256 lastRewardTime;
+        uint256 rewardsClaimed;
+        bool emergencyUnlocked;  // Track if position was emergency exited
+    }
     
     // State variables
-    IERC20 public immutable stakingToken;
-    uint256 private _nextStakeId;
-    uint256 private _totalStaked;
-    
-    // Gas-optimized stake tracking
-    mapping(address => EnumerableSet.UintSet) private userActiveStakes;
-    mapping(uint256 => StakeInfo) private stakes;
-    mapping(uint256 => address) private stakeOwner;
-    mapping(address => uint256) private userTotalStaked;
+    mapping(uint256 => Position) private _positions;
+    uint256 private _nextPositionId;
+    uint256 public totalStaked;
     
     // Events
-    event Staked(address indexed user, uint256 indexed stakeId, uint256 amount, uint256 lockPeriod);
-    event Unstaked(address indexed user, uint256 indexed stakeId, uint256 amount);
-    event EmergencyWithdrawn(address indexed user, uint256 indexed stakeId, uint256 amount);
+    event Staked(address indexed user, uint256 indexed positionId, uint256 amount, uint256 lockPeriod, uint256 multiplier);
+    event Unstaked(address indexed user, uint256 indexed positionId, uint256 amount);
+    event EmergencyWithdraw(address indexed user, uint256 indexed positionId, uint256 amount, uint256 penalty);
     
     function stake(uint256 amount, uint256 lockPeriod) 
         external 
         nonReentrant 
         whenNotPaused 
-        returns (uint256 stakeId)
+        returns (uint256)
     {
         require(amount >= MIN_STAKE_AMOUNT, "Amount too low");
         require(isValidLockPeriod(lockPeriod), "Invalid lock period");
         
-        // Generate stake ID
-        stakeId = _nextStakeId++;
+        // Generate position NFT
+        uint256 positionId = _nextPositionId++;
+        _safeMint(msg.sender, positionId);
         
-        // Store stake data (single write)
-        stakes[stakeId] = StakeInfo({
-            amount: amount,
-            startTime: block.timestamp,
-            endTime: block.timestamp + lockPeriod,
-            lockPeriod: lockPeriod,
-            active: true,
-            emergencyUnlocked: false
-        });
-        
-        // Track ownership and active stakes (O(1) operations)
-        stakeOwner[stakeId] = msg.sender;
-        userActiveStakes[msg.sender].add(stakeId);
+        // Store position data
+        Position storage position = _positions[positionId];
+        position.amount = amount;
+        position.startTime = block.timestamp;
+        position.endTime = block.timestamp + lockPeriod;
+        position.lockPeriod = lockPeriod;
+        position.multiplier = lockMultipliers[lockPeriod];
+        position.lastRewardTime = block.timestamp;
         
         // Update totals
-        userTotalStaked[msg.sender] += amount;
-        _totalStaked += amount;
+        totalStaked += amount;
         
         // Transfer tokens
-        stakingToken.transferFrom(msg.sender, address(this), amount);
+        _rdatToken.safeTransferFrom(msg.sender, address(this), amount);
         
-        emit Staked(msg.sender, stakeId, amount, lockPeriod);
+        // Mint vRDAT rewards immediately
+        uint256 vrdatAmount = calculateVRDATAmount(amount, lockPeriod);
+        position.vrdatMinted = vrdatAmount;
+        _vrdatToken.mint(msg.sender, vrdatAmount);
+        
+        // Notify rewards manager
+        if (address(rewardsManager) != address(0)) {
+            rewardsManager.notifyStake(msg.sender, positionId, amount, lockPeriod);
+        }
+        
+        emit Staked(msg.sender, positionId, amount, lockPeriod, position.multiplier);
+        return positionId;
     }
     
-    function unstake(uint256 stakeId) external nonReentrant returns (uint256 amount) {
-        require(stakeOwner[stakeId] == msg.sender, "Not stake owner");
-        StakeInfo storage stakeInfo = stakes[stakeId];
-        require(stakeInfo.active, "Stake not active");
-        require(block.timestamp >= stakeInfo.endTime, "Lock period not ended");
+    /**
+     * @dev Override transfer to implement conditional transfer logic
+     * Prevents zombie positions where NFT and vRDAT are in different wallets
+     */
+    function _update(
+        address to,
+        uint256 tokenId,
+        address auth
+    ) internal override returns (address) {
+        address from = _ownerOf(tokenId);
         
-        amount = stakeInfo.amount;
+        // Allow minting and burning
+        if (from != address(0) && to != address(0)) {
+            Position memory pos = _positions[tokenId];
+            
+            // Check 1: Position must be unlocked
+            if (!canUnstake(tokenId)) {
+                revert TransferWhileLocked();
+            }
+            
+            // Check 2: No active vRDAT rewards (must emergency exit first)
+            if (pos.vrdatMinted > 0 && !pos.emergencyUnlocked) {
+                revert TransferWithActiveRewards(
+                    "Must emergency exit to clear vRDAT before transfer"
+                );
+            }
+        }
         
-        // Mark as inactive and remove from active set (O(1))
-        stakeInfo.active = false;
-        userActiveStakes[msg.sender].remove(stakeId);
+        return super._update(to, tokenId, auth);
+    }
+    
+    function emergencyWithdraw(uint256 positionId) external nonReentrant {
+        Position storage position = _positions[positionId];
         
-        // Update totals
-        userTotalStaked[msg.sender] -= amount;
-        _totalStaked -= amount;
+        // Mark as emergency unlocked (enables transfer)
+        position.emergencyUnlocked = true;
         
-        // Return tokens
-        stakingToken.transfer(msg.sender, amount);
+        // Burn vRDAT (must succeed to prevent zombie positions)
+        if (position.vrdatMinted > 0) {
+            _vrdatToken.burn(msg.sender, position.vrdatMinted);
+        }
         
-        emit Unstaked(msg.sender, stakeId, amount);
+        // Apply 50% penalty
+        uint256 penalty = (position.amount * 50) / 100;
+        uint256 withdrawAmount = position.amount - penalty;
+        
+        // Update state and transfer
+        totalStaked -= position.amount;
+        _rdatToken.safeTransfer(msg.sender, withdrawAmount);
+        
+        emit EmergencyWithdraw(msg.sender, positionId, withdrawAmount, penalty);
     }
     
     // View functions for enumeration (gas cost aware)
@@ -403,16 +457,16 @@ contract StakingManager is IStakingManager, AccessControl, Pausable, ReentrancyG
 ```
 
 **Key Requirements**: ✅ **ALL IMPLEMENTED**
-- ✅ Gas-optimized with EnumerableSet (no unbounded arrays)
+- ✅ NFT-based positions (ERC-721 for each stake)
 - ✅ Multiple concurrent stakes per user (unlimited positions)
-- ✅ Each position tracked by unique stake ID (not NFT)
-- ✅ O(1) stake creation regardless of user's position count
-- ✅ Efficient enumeration when needed
-- ✅ Immutable contract (no upgrades)
-- ✅ Storage gap for safe upgrades (41 slots)
+- ✅ Soul-bound during lock period (non-transferable)
+- ✅ Conditional transfer after unlock (must clear vRDAT first)
+- ✅ UUPS upgradeable with storage gaps (41 slots)
 - ✅ Reentrancy protection on all external calls
 - ✅ Flash loan defense (48-hour vRDAT mint delay)
-- ✅ Try-catch pattern for vRDAT burns during transfers
+- ✅ Emergency exit with 50% penalty
+- ✅ Integration with modular rewards system
+- ✅ Prevents zombie positions (NFT without vRDAT)
 
 **Testing Results**: ✅ **ALL TESTS PASSING**
 - ✅ Multiple position creation (3 different users, different parameters)

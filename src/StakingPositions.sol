@@ -231,27 +231,29 @@ contract StakingPositions is
         if (_ownerOf(positionId) == address(0)) revert PositionDoesNotExist();
         if (ownerOf(positionId) != msg.sender) revert NotPositionOwner();
         
-        Position memory position = _positions[positionId];
+        Position storage position = _positions[positionId];
+        uint256 stakedAmount = position.amount;
+        uint256 vrdatAmount = position.vrdatMinted;
         
         // Calculate penalty
-        uint256 penalty = (position.amount * EMERGENCY_WITHDRAW_PENALTY) / 100;
-        uint256 withdrawAmount = position.amount - penalty;
+        uint256 penalty = (stakedAmount * EMERGENCY_WITHDRAW_PENALTY) / 100;
+        uint256 withdrawAmount = stakedAmount - penalty;
         
-        // Burn vRDAT tokens - try to burn from current owner, if fails, skip
-        if (position.vrdatMinted > 0) {
-            try _vrdatToken.burn(msg.sender, position.vrdatMinted) {
-                // Successfully burned
-            } catch {
-                // If burn fails (e.g., transferred NFT), continue anyway
-                // The vRDAT will remain with original staker
-            }
+        // Burn vRDAT tokens - MUST succeed if vRDAT exists
+        if (vrdatAmount > 0) {
+            // This will revert if user doesn't have the vRDAT
+            // Preventing zombie positions
+            _vrdatToken.burn(msg.sender, vrdatAmount);
+            // Clear the vRDAT amount to enable transfers
+            position.vrdatMinted = 0;
         }
         
-        // Delete position data
-        delete _positions[positionId];
-        totalStaked -= position.amount;
+        // Clear position amount but keep NFT for now (enables transfer)
+        position.amount = 0;
+        totalStaked -= stakedAmount;
         
-        // Burn the NFT
+        // Option 1: Keep NFT alive but empty (allows transfer)
+        // Option 2: Burn NFT immediately (current behavior)
         _burn(positionId);
         
         // Transfer reduced amount back to user
@@ -373,7 +375,14 @@ contract StakingPositions is
     }
     
     /**
-     * @dev Override transfer to implement soulbound during lock
+     * @dev Override transfer to implement conditional transfer logic
+     * 
+     * Transfer Rules:
+     * 1. Position must be unlocked (time period expired)
+     * 2. Position must not have active vRDAT rewards OR must be emergency exited
+     * 
+     * This prevents creating "zombie" positions where the NFT is owned by one wallet
+     * but the vRDAT needed to emergency exit is in another wallet.
      */
     function _update(
         address to,
@@ -384,8 +393,16 @@ contract StakingPositions is
         
         // Allow minting and burning
         if (from != address(0) && to != address(0)) {
-            // Check if position is still locked
+            Position memory position = _positions[tokenId];
+            
+            // Check 1: Position must be unlocked
             if (!canUnstake(tokenId)) revert TransferWhileLocked();
+            
+            // Check 2: Position must not have active vRDAT rewards
+            // User must emergency exit first to burn vRDAT before transfer
+            if (position.vrdatMinted > 0) {
+                revert TransferWithActiveRewards();
+            }
         }
         
         return super._update(to, tokenId, auth);

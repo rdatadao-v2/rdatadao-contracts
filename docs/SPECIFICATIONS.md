@@ -263,7 +263,7 @@ contract SecureMigrationBridge {
 ### Core Contracts (V2 Modular Architecture)
 1. **RDATUpgradeable.sol** - Main token with full VRC-20 compliance (UUPS upgradeable)
 2. **vRDAT.sol** - Soul-bound governance token (non-upgradeable)
-3. **StakingManager.sol** - Core staking logic only (non-upgradeable, immutable)
+3. **StakingPositions.sol** - NFT-based staking with conditional transfers (UUPS upgradeable)
 4. **RewardsManager.sol** - Orchestrates reward modules (upgradeable for flexibility)
 5. **vRDATRewardModule.sol** - Immediate governance token distribution
 6. **RDATRewardModule.sol** - Time-based staking rewards
@@ -286,9 +286,11 @@ contract SecureMigrationBridge {
   - Multi-sig with timelock control
   - Storage gaps prevent collisions
   
-- **Staking Layer (StakingManager.sol)**: Immutable for maximum security
-  - Only handles core staking state
-  - No reward logic whatsoever
+- **Staking Layer (StakingPositions.sol)**: NFT-based with transfer protection
+  - Each stake creates an ERC-721 NFT position
+  - Soul-bound during lock period
+  - Conditional transfers after unlock (must clear vRDAT)
+  - Prevents zombie positions
   - Emergency migration if needed
   - Events for reward tracking
   

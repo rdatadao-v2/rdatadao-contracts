@@ -227,10 +227,39 @@ rewardsManager.notifyRevenueReward(stakerShare);
 
 ---
 
+## 🔒 NFT Transfer Strategy: Conditional Transfer
+
+### The Challenge
+When users stake and receive vRDAT (soul-bound), transferring the NFT position creates a problem:
+- Original wallet has the vRDAT
+- New wallet has the NFT position
+- New wallet can't emergency exit (no vRDAT to burn)
+
+### Our Solution: GMX-Style Conditional Transfer
+```solidity
+// Positions can only be transferred if:
+// 1. Lock period has expired AND
+// 2. No active vRDAT rewards (must emergency exit first)
+```
+
+**Transfer Rules**:
+1. **While Locked**: No transfers allowed
+2. **After Unlock with vRDAT**: Must emergency exit first (burns vRDAT, 50% penalty)
+3. **After Unlock without vRDAT**: Free to transfer
+
+**Benefits**:
+- Prevents zombie positions (untouchable NFTs)
+- Protects users from accidental reward loss
+- Clear two-step process for early transfers
+- Aligns with blue-chip DeFi patterns (GMX, Synthetix)
+
+---
+
 ## ✅ Success Metrics
 
 ### End of Day 3:
 - [ ] All duplicate contracts removed
+- [ ] StakingPositions transfer logic updated
 - [ ] RewardsManager 100% complete
 - [ ] MigrationBridge 50% complete
 - [ ] RDATUpgradeable integration fixes done
@@ -249,7 +278,7 @@ rewardsManager.notifyRevenueReward(stakerShare);
    - Create multiple stakes with different strategies
    - Visualize positions as NFTs
    - Claim all rewards in one transaction
-   - Transfer mature positions if needed
+   - Transfer mature positions safely (no zombie positions)
 
 2. **Developer Experience**:
    - Clear separation of concerns
