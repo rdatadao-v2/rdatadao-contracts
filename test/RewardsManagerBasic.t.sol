@@ -230,7 +230,8 @@ contract RewardsManagerBasicTest is Test {
         rewardsManager.notifyUnstake(alice, 1, false);
         
         // vRDAT is NOT burned on normal unstake (only on emergency)
-        uint256 expectedVRDAT = (STAKE_AMOUNT * 833) / 10000;
+        // For 30 days stake, multiplier is 10000 (1x), so vRDAT = STAKE_AMOUNT
+        uint256 expectedVRDAT = STAKE_AMOUNT;
         assertEq(vrdat.balanceOf(alice), expectedVRDAT);
     }
     

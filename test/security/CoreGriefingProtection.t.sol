@@ -196,7 +196,7 @@ contract CoreGriefingProtectionTest is Test {
         assertEq(balanceAfter - balanceBefore, expectedAmount);
         
         // Position should be completely gone (no zombie)
-        vm.expectRevert("ERC721: invalid token ID");
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("ERC721NonexistentToken(uint256)")), positionId));
         stakingPositions.ownerOf(positionId);
         
         vm.stopPrank();
@@ -214,9 +214,11 @@ contract CoreGriefingProtectionTest is Test {
         uint256 positionId = stakingPositions.stake(minStake, 30 days);
         assertEq(positionId, 1);
         
-        // Check that vRDAT was minted properly
-        uint256 expectedvRDAT = (minStake * stakingPositions.lockMultipliers(30 days)) / stakingPositions.PRECISION();
-        assertEq(vrdat.balanceOf(victim), expectedvRDAT);
+        // In the new architecture, vRDAT is minted by RewardsManager modules
+        // StakingPositions no longer mints vRDAT directly
+        // Just verify the position was created
+        IStakingPositions.Position memory position = stakingPositions.getPosition(positionId);
+        assertEq(position.amount, minStake);
         
         vm.stopPrank();
     }
@@ -230,8 +232,12 @@ contract CoreGriefingProtectionTest is Test {
         SimpleReentrantTest malicious = new SimpleReentrantTest(address(stakingPositions));
         rdat.transfer(address(malicious), STAKE_AMOUNT);
         
-        // Simple attempt should work (no reentrancy)
-        rdat.approve(address(malicious), STAKE_AMOUNT);
+        // The malicious contract needs approval from itself to StakingPositions
+        vm.stopPrank();
+        vm.prank(address(malicious));
+        rdat.approve(address(stakingPositions), STAKE_AMOUNT);
+        
+        vm.prank(attacker);
         malicious.simpleStake(STAKE_AMOUNT, 30 days);
         
         vm.stopPrank();

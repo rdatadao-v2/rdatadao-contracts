@@ -51,7 +51,8 @@ contract RDATEmergencyPauseIntegration is Test {
         bytes memory initData = abi.encodeWithSelector(
             RDATUpgradeable.initialize.selector,
             treasury,
-            admin
+            admin,
+            address(0x100) // migration contract address
         );
         
         ERC1967Proxy proxy = new ERC1967Proxy(
@@ -154,7 +155,8 @@ contract RDATEmergencyPauseIntegration is Test {
         bytes memory initData2 = abi.encodeWithSelector(
             RDATUpgradeable.initialize.selector,
             treasury,
-            admin
+            admin,
+            address(0x200) // migration contract address
         );
         ERC1967Proxy proxy2 = new ERC1967Proxy(
             address(implementation2),

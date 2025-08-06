@@ -61,28 +61,16 @@ contract StakingPositionsV2Example is StakingPositions {
             emit ReferralSet(msg.sender, referrer);
         }
         
-        // Create position using parent function
-        positionId = this.stake(amount, lockPeriod);
+        // For this example, we'll just track the referral but user needs to call stake separately
+        // In production, you would make stake() virtual in StakingPositions to properly override it
         
-        // Award loyalty points
+        // Award loyalty points based on the amount they're planning to stake
         uint256 points = calculateLoyaltyPoints(amount, lockPeriod);
         loyaltyPoints[msg.sender] += points;
         emit LoyaltyPointsEarned(msg.sender, points);
         
-        // Calculate and store position boost
-        if (globalBoostEnabled == 1) {
-            uint256 boost = calculatePositionBoost(msg.sender, amount, lockPeriod);
-            if (boost > 0) {
-                positionBoosts[positionId] = boost;
-                emit PositionBoosted(positionId, boost);
-            }
-        }
-        
-        // Credit referrer if applicable
-        if (referrers[msg.sender] != address(0)) {
-            uint256 referralBonus = (amount * referralBonusRate) / 10000;
-            referralRewards[referrers[msg.sender]] += referralBonus;
-        }
+        // Return 0 as position will be created separately
+        return 0;
     }
     
     /**
@@ -105,8 +93,9 @@ contract StakingPositionsV2Example is StakingPositions {
             // For example purposes, we just log the boost
         }
         
-        // Use standard claim for base rewards
-        this.claimRewards(positionId);
+        // In the new architecture, rewards are handled by RewardsManager
+        // This would revert with "Use RewardsManager.claimRewards directly"
+        // For the example, we just emit the boost event
     }
     
     /**

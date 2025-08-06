@@ -275,8 +275,9 @@ contract vRDATTest is Test {
         assertEq(remainingCapacity, vrdat.MAX_PER_ADDRESS() - mintAmount);
         
         // Mint up to max
+        uint256 maxPerAddress = vrdat.MAX_PER_ADDRESS();
         vm.prank(minter);
-        vrdat.mint(user1, vrdat.MAX_PER_ADDRESS() - mintAmount);
+        vrdat.mint(user1, maxPerAddress - mintAmount);
         
         // Now should not be able to mint
         (canMint, remainingCapacity) = vrdat.canMint(user1);

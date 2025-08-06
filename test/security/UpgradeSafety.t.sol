@@ -77,11 +77,12 @@ contract UpgradeSafetyTest is Test {
         stakingV1.setRewardsManager(address(rewardsManager));
         vrdat.grantRole(vrdat.MINTER_ROLE(), address(stakingV1));
         
-        // Mint tokens
-        // RDAT no longer has MINTER_ROLE - admin);
-        rdat.mint(alice, STAKE_AMOUNT * 10);
-        rdat.mint(bob, STAKE_AMOUNT * 10);
+        vm.stopPrank();
         
+        // Transfer tokens from treasury (no minting)
+        vm.startPrank(treasury);
+        rdat.transfer(alice, STAKE_AMOUNT * 10);
+        rdat.transfer(bob, STAKE_AMOUNT * 10);
         vm.stopPrank();
         
         // Create active positions

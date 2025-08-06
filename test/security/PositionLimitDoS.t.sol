@@ -63,7 +63,8 @@ contract PositionLimitDoSTest is Test {
         // Transfer tokens for testing from treasury (need enough for max positions)
         vm.startPrank(treasury);
         rdat.transfer(attacker, minStakeAmount * (actualMaxPositions + 10));
-        rdat.transfer(victim, minStakeAmount * 10);
+        rdat.transfer(victim, minStakeAmount * actualMaxPositions);
+        rdat.transfer(address(0x999), minStakeAmount * actualMaxPositions);
         vm.stopPrank();
         
         vm.startPrank(admin);

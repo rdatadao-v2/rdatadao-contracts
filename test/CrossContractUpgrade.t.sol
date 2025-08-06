@@ -163,10 +163,12 @@ contract CrossContractUpgradeTest is Test {
             "Alice didn't receive at least her original stake back from upgraded RDAT contract"
         );
         
-        // Also verify she got rewards (should be more than just principal)
-        assertTrue(
-            aliceRDATAfterUnstake > aliceRDATBeforeUnstake + pos1Before.amount,
-            "No rewards were paid out from upgraded RDAT contract"
+        // Note: In the fixed supply model, rewards are handled by RewardsManager, not StakingPositions
+        // StakingPositions returns 0 rewards, so Alice gets exactly her principal back
+        assertEq(
+            aliceRDATAfterUnstake,
+            aliceRDATBeforeUnstake + pos1Before.amount,
+            "Unexpected amount returned - should be exactly the principal"
         );
         
         console2.log("Alice successfully unstaked from upgraded RDAT contract");
