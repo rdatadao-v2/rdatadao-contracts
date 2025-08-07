@@ -340,12 +340,13 @@ contract DataContributionJourney is Test {
         // Step 5: Set epoch rewards and claim
         console2.log("\n[STEP5] Setting epoch rewards and claiming");
         
-        vm.prank(admin);
-        rdatToken.setEpochRewards(1, EPOCH_REWARD_POOL);
-        
-        // Fund the contract for rewards
+        // Fund the contract for rewards FIRST
         vm.prank(treasury);
         rdatToken.transfer(address(rdatToken), EPOCH_REWARD_POOL);
+        
+        // THEN set epoch rewards (which checks balance)
+        vm.prank(admin);
+        rdatToken.setEpochRewards(1, EPOCH_REWARD_POOL);
         
         uint256 balanceBefore = rdatToken.balanceOf(dataContributor1);
         
@@ -500,8 +501,8 @@ contract DataContributionJourney is Test {
         simulator.simulateSnapshotVote(proposalId, dataContributor3, 1, 3000e18); // For
         simulator.simulateSnapshotVote(proposalId, dataContributor4, 2, 1500e18); // Against
         
-        // Fast forward to end of voting period
-        simulator.simulateTimeProgression(7);
+        // Fast forward to end of voting period (need > 7 days, not exactly 7)
+        simulator.simulateTimeProgression(8); // 8 days to ensure we're past the deadline
         
         bool passed = simulator.finalizeSnapshot(proposalId);
         assertTrue(passed, "Proposal should pass");
@@ -693,13 +694,13 @@ contract DataContributionJourney is Test {
         // Simulate epoch advancement
         simulator.simulateTimeProgression(7); // 1 week epoch
         
-        // Set epoch rewards
-        vm.prank(admin);
-        rdatToken.setEpochRewards(1, EPOCH_REWARD_POOL);
-        
-        // Fund rewards
+        // Fund rewards FIRST
         vm.prank(treasury);
         rdatToken.transfer(address(rdatToken), EPOCH_REWARD_POOL);
+        
+        // THEN set epoch rewards (which checks balance)
+        vm.prank(admin);
+        rdatToken.setEpochRewards(1, EPOCH_REWARD_POOL);
         
         console2.log("   Epoch 1 reward pool:", EPOCH_REWARD_POOL / 1e18, "RDAT");
         
