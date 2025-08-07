@@ -1,0 +1,65 @@
+{
+  "network": "Vana Moksha Testnet",
+  "chainId": 14800,
+  "deploymentDate": "2024-08-07",
+  "deployer": "0x58eCB94e6F5e6521228316b55c465ad2A2938FbB",
+  "contracts": {
+    "RDATUpgradeable": {
+      "proxy": "0xEb0c43d5987de0672A22e350930F615Af646e28c",
+      "implementation": "0xd546C45872eeA596155EAEAe9B8495f02ca4fc58",
+      "txHash": "Check broadcast/DeployRDATUpgradeableSimple.s.sol/14800/run-latest.json",
+      "blockNumber": "3878782",
+      "verified": false
+    },
+    "CREATE2Factory": {
+      "address": "0x87C5F9661E7223D9d97899B3Ba89327FCaf51EFB",
+      "verified": false
+    },
+    "EmergencyPause": {
+      "address": "0xF73c6216d7D6218d722968e170Cfff6654A8936c",
+      "verified": false
+    },
+    "vRDAT": {
+      "address": "0x386f44505DB03a387dF1402884d5326247DCaaC8",
+      "verified": false,
+      "notes": "Requires manual role configuration"
+    },
+    "StakingPositions": {
+      "proxy": "0x3f2236ef5360BEDD999378672A145538f701E662",
+      "implementation": "0x7BF56eFa7E03b72705d732F7f32829a288fAf805",
+      "verified": false
+    },
+    "TreasuryWallet": {
+      "proxy": "0x31C3e3F091FB2A25d4dac82474e7dc709adE754a",
+      "implementation": "0x34d8A37b4Cf1F1BDD0f05318eB5a36E9Be5BC2c8",
+      "verified": false
+    },
+    "RevenueCollector": {
+      "proxy": "0x5588e399206880Fcd2C7Ca8dE04126854ce273cE",
+      "implementation": "0xF9d4C899C2E01bbBb4e2Cc4CcD7c21502901ad77",
+      "verified": false
+    },
+    "ProofOfContributionStub": {
+      "address": "0xdbb1926C6cA2a68A8832d550d94C648c19Dbae6b",
+      "verified": false
+    }
+  },
+  "configuration": {
+    "totalSupply": "100000000000000000000000000",
+    "treasury": "0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319",
+    "admin": "0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319",
+    "roles": {
+      "DEFAULT_ADMIN_ROLE": ["0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319"],
+      "PAUSER_ROLE": ["0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319"],
+      "UPGRADER_ROLE": ["0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319"]
+    }
+  },
+  "status": "Active",
+  "notes": "All core contracts deployed. Requires manual role configuration by admin multisig.",
+  "pendingActions": [
+    "Admin multisig must grant MINTER_ROLE and BURNER_ROLE on vRDAT to StakingPositions",
+    "Admin multisig must add pausers to EmergencyPause",
+    "Transfer RDAT tokens to TreasuryWallet",
+    "Register DLP on Vana (requires 1 VANA)"
+  ]
+}

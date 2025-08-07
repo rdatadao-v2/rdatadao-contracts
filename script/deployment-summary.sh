@@ -34,17 +34,21 @@ check_contract() {
 # Vana Moksha Testnet
 echo "📍 Vana Moksha Testnet (Chain ID: 14800)"
 echo "==========================================="
-check_contract "Moksha" "https://rpc.moksha.vana.org" "RDAT Token" "0xEb0c43d5987de0672A22e350930F615Af646e28c"
-check_contract "Moksha" "https://rpc.moksha.vana.org" "TreasuryWallet" "0x0000000000000000000000000000000000000000"
-check_contract "Moksha" "https://rpc.moksha.vana.org" "StakingPositions" "0x0000000000000000000000000000000000000000"
-check_contract "Moksha" "https://rpc.moksha.vana.org" "vRDAT" "0x0000000000000000000000000000000000000000"
+check_contract "Moksha" "https://rpc.moksha.vana.org" "RDAT Token (Proxy)" "0xEb0c43d5987de0672A22e350930F615Af646e28c"
+check_contract "Moksha" "https://rpc.moksha.vana.org" "RDAT Implementation" "0xd546C45872eeA596155EAEAe9B8495f02ca4fc58"
+check_contract "Moksha" "https://rpc.moksha.vana.org" "CREATE2 Factory" "0x87C5F9661E7223D9d97899B3Ba89327FCaf51EFB"
+check_contract "Moksha" "https://rpc.moksha.vana.org" "TreasuryWallet" "0x31C3e3F091FB2A25d4dac82474e7dc709adE754a"
+check_contract "Moksha" "https://rpc.moksha.vana.org" "StakingPositions" "0x3f2236ef5360BEDD999378672A145538f701E662"
+check_contract "Moksha" "https://rpc.moksha.vana.org" "vRDAT" "0x386f44505DB03a387dF1402884d5326247DCaaC8"
+check_contract "Moksha" "https://rpc.moksha.vana.org" "EmergencyPause" "0xF73c6216d7D6218d722968e170Cfff6654A8936c"
+check_contract "Moksha" "https://rpc.moksha.vana.org" "RevenueCollector" "0x5588e399206880Fcd2C7Ca8dE04126854ce273cE"
 echo ""
 
 # Base Sepolia Testnet
 echo "📍 Base Sepolia Testnet (Chain ID: 84532)"
 echo "==========================================="
-check_contract "Sepolia" "https://sepolia.base.org" "MigrationBridge" "0x0000000000000000000000000000000000000000"
-check_contract "Sepolia" "https://sepolia.base.org" "V1 RDAT Mock" "0x0000000000000000000000000000000000000000"
+check_contract "Sepolia" "https://sepolia.base.org" "MigrationBridge" "0xb7d6f8eadfD4415cb27686959f010771FE94561b"
+check_contract "Sepolia" "https://sepolia.base.org" "V1 RDAT Mock" "0x2c1CB448cAf3579B2374EFe20068Ea97F72A996E"
 echo ""
 
 # Vana Mainnet

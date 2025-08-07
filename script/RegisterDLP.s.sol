@@ -125,8 +125,8 @@ contract RegisterDLP is Script {
         console2.log("  Name:", DLP_NAME);
         console2.log("  Registration Fee:", REGISTRATION_FEE / 1e18, "VANA");
         
-        // Check balance for registration fee
-        uint256 balance = admin.balance;
+        // Check balance for registration fee (use msg.sender which is the deployer)
+        uint256 balance = msg.sender.balance;
         require(balance >= REGISTRATION_FEE, "Insufficient VANA for registration fee");
         
         // Register the DLP

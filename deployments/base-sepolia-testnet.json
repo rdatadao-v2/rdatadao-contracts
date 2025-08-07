@@ -1,0 +1,43 @@
+{
+  "network": "Base Sepolia Testnet",
+  "chainId": 84532,
+  "deploymentDate": "2024-08-07",
+  "deployer": "0x58eCB94e6F5e6521228316b55c465ad2A2938FbB",
+  "contracts": {
+    "MockRDATv1": {
+      "address": "0x2c1CB448cAf3579B2374EFe20068Ea97F72A996E",
+      "totalSupply": "30000000000000000000000000",
+      "verified": false,
+      "notes": "Mock V1 token for testing migration"
+    },
+    "BaseMigrationBridge": {
+      "address": "0xb7d6f8eadfD4415cb27686959f010771FE94561b",
+      "v1Token": "0x2c1CB448cAf3579B2374EFe20068Ea97F72A996E",
+      "verified": false,
+      "notes": "Needs to be funded with V2 tokens for migration"
+    }
+  },
+  "testAccounts": {
+    "account1": {
+      "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "v1Balance": "1000000000000000000000"
+    },
+    "account2": {
+      "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "v1Balance": "1000000000000000000000"
+    },
+    "account3": {
+      "address": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "v1Balance": "1000000000000000000000"
+    }
+  },
+  "configuration": {
+    "admin": "0x90013583c66D2bf16327cB5Bc4a647AcceCF4B9A",
+    "roles": {
+      "DEFAULT_ADMIN_ROLE": ["0x90013583c66D2bf16327cB5Bc4a647AcceCF4B9A"],
+      "PAUSER_ROLE": ["0x90013583c66D2bf16327cB5Bc4a647AcceCF4B9A"]
+    }
+  },
+  "status": "Active",
+  "notes": "Test environment for migration flow. Bridge needs V2 token funding."
+}

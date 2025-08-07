@@ -43,21 +43,23 @@ export const CONTRACT_ADDRESSES = {
   },
   // Vana Moksha Testnet (Chain ID: 14800)
   14800: {
-    RDAT: '0xEb0c43d5987de0672A22e350930F615Af646e28c', // Predicted
-    vRDAT: '',
-    StakingPositions: '',
-    TreasuryWallet: '',
+    RDAT: '0xEb0c43d5987de0672A22e350930F615Af646e28c', // DEPLOYED!
+    RDATImplementation: '0xd546C45872eeA596155EAEAe9B8495f02ca4fc58',
+    CREATE2Factory: '0x87C5F9661E7223D9d97899B3Ba89327FCaf51EFB',
+    vRDAT: '0x386f44505DB03a387dF1402884d5326247DCaaC8', // DEPLOYED!
+    StakingPositions: '0x3f2236ef5360BEDD999378672A145538f701E662', // DEPLOYED!
+    TreasuryWallet: '0x31C3e3F091FB2A25d4dac82474e7dc709adE754a', // DEPLOYED!
     TokenVesting: '',
     VanaMigrationBridge: '',
-    RevenueCollector: '',
+    RevenueCollector: '0x5588e399206880Fcd2C7Ca8dE04126854ce273cE', // DEPLOYED!
     RewardsManager: '',
-    EmergencyPause: '',
-    ProofOfContribution: '',
+    EmergencyPause: '0xF73c6216d7D6218d722968e170Cfff6654A8936c', // DEPLOYED!
+    ProofOfContribution: '0xdbb1926C6cA2a68A8832d550d94C648c19Dbae6b', // DEPLOYED!
   },
   // Base Sepolia (Chain ID: 84532)
   84532: {
-    BaseMigrationBridge: '',
-    V1TokenMock: '',
+    BaseMigrationBridge: '0xb7d6f8eadfD4415cb27686959f010771FE94561b', // DEPLOYED!
+    V1TokenMock: '0x2c1CB448cAf3579B2374EFe20068Ea97F72A996E', // DEPLOYED!
   }
 } as const;
 
