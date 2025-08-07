@@ -123,13 +123,12 @@ contract vRDATRewardModule is IRewardModule, AccessControl, ReentrancyGuard {
      * @notice Called when a stake is removed - burns vRDAT on emergency withdrawal
      * @param user Address of the staker
      * @param stakeId Unique stake identifier
-     * @param amount Amount being unstaked
      * @param emergency Whether this is an emergency withdrawal
      */
     function onUnstake(
         address user,
         uint256 stakeId,
-        uint256 amount,
+        uint256,
         bool emergency
     ) external override onlyRewardsManager nonReentrant {
         uint256 vrdatAmount = mintedAmounts[user][stakeId];
@@ -153,9 +152,9 @@ contract vRDATRewardModule is IRewardModule, AccessControl, ReentrancyGuard {
      * @return amount Always 0 (no pending rewards)
      */
     function calculateRewards(
-        address user,
-        uint256 stakeId
-    ) external view override returns (uint256) {
+        address,
+        uint256
+    ) external pure override returns (uint256) {
         // vRDAT is minted immediately, so no pending rewards
         return 0;
     }
@@ -165,9 +164,9 @@ contract vRDATRewardModule is IRewardModule, AccessControl, ReentrancyGuard {
      * @return amount Always 0 (nothing to claim)
      */
     function claimRewards(
-        address user,
-        uint256 stakeId
-    ) external override onlyRewardsManager returns (uint256) {
+        address,
+        uint256
+    ) external view override onlyRewardsManager returns (uint256) {
         // vRDAT is minted immediately, so nothing to claim
         return 0;
     }

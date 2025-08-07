@@ -145,13 +145,12 @@ contract RDATRewardModule is IRewardModule, AccessControl, ReentrancyGuard {
      * @notice Called when a stake is removed
      * @param user Address of the staker
      * @param stakeId Unique stake identifier
-     * @param amount Amount being unstaked
      * @param emergency Whether this is an emergency withdrawal
      */
     function onUnstake(
         address user,
         uint256 stakeId,
-        uint256 amount,
+        uint256,
         bool emergency
     ) external override onlyRewardsManager {
         RewardState storage reward = rewards[user][stakeId];

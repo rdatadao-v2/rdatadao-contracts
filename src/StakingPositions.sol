@@ -239,7 +239,6 @@ contract StakingPositions is
         
         Position storage position = _positions[positionId];
         uint256 stakedAmount = position.amount;
-        uint256 vrdatAmount = position.vrdatMinted;
         
         // Calculate penalty
         uint256 penalty = (stakedAmount * EMERGENCY_WITHDRAW_PENALTY) / 100;
@@ -345,11 +344,10 @@ contract StakingPositions is
     
     /**
      * @dev Internal function to calculate rewards (protected for upgrades)
-     * @param positionId Position ID
      * @return rewards Calculated rewards
      * @dev DEPRECATED: Rewards are now calculated by RewardsManager modules
      */
-    function _calculateRewards(uint256 positionId) internal view virtual returns (uint256) {
+    function _calculateRewards(uint256) internal view virtual returns (uint256) {
         // StakingPositions no longer calculates rewards directly
         // This is now handled by RewardsManager and its modules
         return 0;

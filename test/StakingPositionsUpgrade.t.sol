@@ -177,7 +177,7 @@ contract StakingPositionsUpgradeTest is Test {
         vm.startPrank(charlie);
         // Make sure charlie still has approval after the upgrade
         rdat.approve(address(stakingV2), type(uint256).max);
-        uint256 referralPosition = stakingV2.stakeWithReferral(
+        stakingV2.stakeWithReferral(
             STAKE_AMOUNT,
             stakingV2.MONTH_6(),
             alice

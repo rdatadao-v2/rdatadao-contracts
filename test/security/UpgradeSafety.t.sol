@@ -247,7 +247,7 @@ contract UpgradeSafetyTest is Test {
         rdat.approve(address(stakingV2), STAKE_AMOUNT);
         stakingV2.stakeWithReferral(STAKE_AMOUNT, 30 days, bob);
         // Actually create the position
-        uint256 newPosition = stakingV2.stake(STAKE_AMOUNT, 30 days);
+        stakingV2.stake(STAKE_AMOUNT, 30 days);
         vm.stopPrank();
         
         // Second upgrade back to V1 (simulating rollback)

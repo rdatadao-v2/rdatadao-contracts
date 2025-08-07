@@ -273,7 +273,7 @@ contract RewardsManagerTest is Test {
     
     function test_NotifyStake() public {
         vm.prank(admin);
-        uint256 programId = rewardsManager.registerProgram(
+        rewardsManager.registerProgram(
             address(vrdatModule),
             "vRDAT Rewards",
             0,
@@ -289,7 +289,7 @@ contract RewardsManagerTest is Test {
         vm.expectEmit(true, true, false, true);
         emit StakeNotified(alice, 1, STAKE_AMOUNT, stakingPositions.MONTH_1());
         
-        uint256 positionId = stakingPositions.stake(STAKE_AMOUNT, stakingPositions.MONTH_1());
+        stakingPositions.stake(STAKE_AMOUNT, stakingPositions.MONTH_1());
         vm.stopPrank();
         
         // Verify vRDAT was minted with 1x multiplier for MONTH_1
@@ -305,7 +305,7 @@ contract RewardsManagerTest is Test {
     
     function test_NotifyStake_WhenPaused() public {
         vm.prank(admin);
-        uint256 programId = rewardsManager.registerProgram(
+        rewardsManager.registerProgram(
             address(vrdatModule),
             "vRDAT Rewards",
             0,
@@ -337,7 +337,7 @@ contract RewardsManagerTest is Test {
     function test_NotifyUnstake() public {
         // Setup: Register program and stake
         vm.prank(admin);
-        uint256 programId = rewardsManager.registerProgram(
+        rewardsManager.registerProgram(
             address(vrdatModule),
             "vRDAT Rewards",
             0,
@@ -370,7 +370,7 @@ contract RewardsManagerTest is Test {
     function test_NotifyUnstake_Emergency() public {
         // Setup: Register program and stake
         vm.prank(admin);
-        uint256 programId = rewardsManager.registerProgram(
+        rewardsManager.registerProgram(
             address(vrdatModule),
             "vRDAT Rewards",
             0,
@@ -442,14 +442,14 @@ contract RewardsManagerTest is Test {
     function test_ClaimRewards_MultiplePrograms() public {
         // Register both programs
         vm.startPrank(admin);
-        uint256 vrdatProgramId = rewardsManager.registerProgram(
+        rewardsManager.registerProgram(
             address(vrdatModule),
             "vRDAT Governance Rewards",
             0,
             0
         );
         
-        uint256 rdatProgramId = rewardsManager.registerProgram(
+        rewardsManager.registerProgram(
             address(rdatModule),
             "RDAT Staking Rewards",
             0,
@@ -485,9 +485,9 @@ contract RewardsManagerTest is Test {
         vm.startPrank(alice);
         rdat.approve(address(stakingPositions), STAKE_AMOUNT * 3);
         
-        uint256 position1 = stakingPositions.stake(STAKE_AMOUNT, stakingPositions.MONTH_1());
-        uint256 position2 = stakingPositions.stake(STAKE_AMOUNT, stakingPositions.MONTH_3());
-        uint256 position3 = stakingPositions.stake(STAKE_AMOUNT, stakingPositions.MONTH_6());
+        stakingPositions.stake(STAKE_AMOUNT, stakingPositions.MONTH_1());
+        stakingPositions.stake(STAKE_AMOUNT, stakingPositions.MONTH_3());
+        stakingPositions.stake(STAKE_AMOUNT, stakingPositions.MONTH_6());
         
         // Fast forward
         vm.warp(block.timestamp + 7 days);
@@ -650,8 +650,8 @@ contract RewardsManagerTest is Test {
     function test_GetUserClaimablePrograms() public {
         // Setup programs
         vm.startPrank(admin);
-        uint256 id1 = rewardsManager.registerProgram(address(rdatModule), "RDAT Rewards", 0, 0);
-        uint256 id2 = rewardsManager.registerProgram(address(vrdatModule), "vRDAT Rewards", 0, 0);
+        rewardsManager.registerProgram(address(rdatModule), "RDAT Rewards", 0, 0);
+        rewardsManager.registerProgram(address(vrdatModule), "vRDAT Rewards", 0, 0);
         vm.stopPrank();
         
         // Stake
@@ -808,9 +808,9 @@ contract RewardsManagerTest is Test {
 contract MockInvalidModule is IRewardModule {
     function onStake(address, uint256, uint256, uint256) external {}
     function onUnstake(address, uint256, uint256, bool) external {}
-    function calculateRewards(address, uint256) external view returns (uint256) { return 0; }
-    function claimRewards(address, uint256) external returns (uint256) { return 0; }
-    function getModuleInfo() external view returns (ModuleInfo memory) {
+    function calculateRewards(address, uint256) external pure returns (uint256) { return 0; }
+    function claimRewards(address, uint256) external pure returns (uint256) { return 0; }
+    function getModuleInfo() external pure returns (ModuleInfo memory) {
         return ModuleInfo({
             name: "Invalid",
             version: "1.0.0",
@@ -821,11 +821,11 @@ contract MockInvalidModule is IRewardModule {
             totalDistributed: 0
         });
     }
-    function isActive() external view returns (bool) { return true; }
-    function rewardToken() external view returns (address) { return address(0); }
-    function totalAllocated() external view returns (uint256) { return 0; }
-    function totalDistributed() external view returns (uint256) { return 0; }
-    function remainingAllocation() external view returns (uint256) { return 0; }
+    function isActive() external pure returns (bool) { return true; }
+    function rewardToken() external pure returns (address) { return address(0); }
+    function totalAllocated() external pure returns (uint256) { return 0; }
+    function totalDistributed() external pure returns (uint256) { return 0; }
+    function remainingAllocation() external pure returns (uint256) { return 0; }
     function emergencyWithdraw(address, uint256) external {}
 }
 
@@ -835,9 +835,9 @@ contract MockFailingModule is IRewardModule {
         revert("Module failed");
     }
     function onUnstake(address, uint256, uint256, bool) external {}
-    function calculateRewards(address, uint256) external view returns (uint256) { return 0; }
-    function claimRewards(address, uint256) external returns (uint256) { return 0; }
-    function getModuleInfo() external view returns (ModuleInfo memory) {
+    function calculateRewards(address, uint256) external pure returns (uint256) { return 0; }
+    function claimRewards(address, uint256) external pure returns (uint256) { return 0; }
+    function getModuleInfo() external pure returns (ModuleInfo memory) {
         return ModuleInfo({
             name: "Failing",
             version: "1.0.0",
@@ -848,10 +848,10 @@ contract MockFailingModule is IRewardModule {
             totalDistributed: 0
         });
     }
-    function isActive() external view returns (bool) { return true; }
-    function rewardToken() external view returns (address) { return address(1); }
-    function totalAllocated() external view returns (uint256) { return 0; }
-    function totalDistributed() external view returns (uint256) { return 0; }
-    function remainingAllocation() external view returns (uint256) { return 0; }
+    function isActive() external pure returns (bool) { return true; }
+    function rewardToken() external pure returns (address) { return address(1); }
+    function totalAllocated() external pure returns (uint256) { return 0; }
+    function totalDistributed() external pure returns (uint256) { return 0; }
+    function remainingAllocation() external pure returns (uint256) { return 0; }
     function emergencyWithdraw(address, uint256) external {}
 }

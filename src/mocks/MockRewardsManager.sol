@@ -36,11 +36,11 @@ contract MockRewardsManager is IRewardsManager {
     
     // Required but not used in tests
     function registerProgram(
-        address rewardModule,
-        string calldata name,
-        uint256 startTime,
-        uint256 endTime
-    ) external override returns (uint256) {
+        address,
+        string calldata,
+        uint256,
+        uint256
+    ) external pure override returns (uint256) {
         return 0;
     }
     
@@ -48,41 +48,41 @@ contract MockRewardsManager is IRewardsManager {
     function emergencyPauseProgram(uint256 programId) external override {}
     function emergencyUnpauseProgram(uint256 programId) external override {}
     
-    function claimRewards(uint256 stakeId) external override returns (ClaimInfo[] memory) {
+    function claimRewards(uint256) external pure override returns (ClaimInfo[] memory) {
         return new ClaimInfo[](0);
     }
     
-    function claimRewardsFor(address user, uint256 stakeId) external override returns (ClaimInfo[] memory) {
+    function claimRewardsFor(address, uint256) external pure override returns (ClaimInfo[] memory) {
         return new ClaimInfo[](0);
     }
     
-    function claimAllRewards() external override returns (ClaimInfo[] memory) {
+    function claimAllRewards() external pure override returns (ClaimInfo[] memory) {
         return new ClaimInfo[](0);
     }
     
-    function calculateRewards(address user, uint256 stakeId) external view override returns (uint256[] memory amounts, address[] memory tokens) {
+    function calculateRewards(address, uint256) external pure override returns (uint256[] memory amounts, address[] memory tokens) {
         amounts = new uint256[](0);
         tokens = new address[](0);
     }
     
-    function calculateAllRewards(address user) external view override returns (uint256[] memory amounts, address[] memory tokens) {
+    function calculateAllRewards(address) external pure override returns (uint256[] memory amounts, address[] memory tokens) {
         amounts = new uint256[](0);
         tokens = new address[](0);
     }
     
-    function getProgram(uint256 programId) external view override returns (RewardProgram memory) {
+    function getProgram(uint256) external pure override returns (RewardProgram memory) {
         return RewardProgram(address(0), address(0), "", 0, 0, false, false);
     }
     
-    function getProgramCount() external view override returns (uint256) {
+    function getProgramCount() external pure override returns (uint256) {
         return 0;
     }
     
-    function getActivePrograms() external view override returns (uint256[] memory) {
+    function getActivePrograms() external pure override returns (uint256[] memory) {
         return new uint256[](0);
     }
     
-    function getUserClaimablePrograms(address user, uint256 stakeId) external view override returns (uint256[] memory) {
+    function getUserClaimablePrograms(address, uint256) external pure override returns (uint256[] memory) {
         return new uint256[](0);
     }
     

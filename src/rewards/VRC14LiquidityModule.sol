@@ -240,11 +240,10 @@ contract VRC14LiquidityModule is IRewardModule, AccessControl, ReentrancyGuard {
     /**
      * @notice Claims LP shares for a user based on their stake
      * @param user Address of the user
-     * @param stakeId Stake ID (not used in this implementation)
      */
     function claimRewards(
         address user,
-        uint256 stakeId
+        uint256
     ) external override onlyRole(REWARDS_MANAGER_ROLE) nonReentrant returns (uint256) {
         uint256 totalShares = 0;
         
@@ -342,7 +341,7 @@ contract VRC14LiquidityModule is IRewardModule, AccessControl, ReentrancyGuard {
     /**
      * @dev Calculates minimum output amount with slippage protection
      */
-    function _calculateMinimumOutput(uint256 inputAmount) private view returns (uint256) {
+    function _calculateMinimumOutput(uint256 inputAmount) private pure returns (uint256) {
         // In production, this would use TWAP or oracle prices
         // For now, use a simple calculation
         // Assume 1:1 ratio with 2% slippage allowed

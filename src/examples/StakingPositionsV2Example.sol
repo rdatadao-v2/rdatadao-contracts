@@ -132,7 +132,7 @@ contract StakingPositionsV2Example is StakingPositions {
     /**
      * @dev Calculate position boost based on loyalty
      */
-    function calculatePositionBoost(address user, uint256 amount, uint256 lockPeriod) 
+    function calculatePositionBoost(address user, uint256, uint256) 
         public 
         view 
         returns (uint256) 

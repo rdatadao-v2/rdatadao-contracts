@@ -237,7 +237,7 @@ contract CrossContractUpgradeTest is Test {
         
         // Record initial state
         uint256 initialStakingBalance = rdat.balanceOf(address(staking));
-        uint256 initialAliceBalance = rdat.balanceOf(alice);
+        // uint256 initialAliceBalance = rdat.balanceOf(alice); // Unused - kept for reference
         IStakingPositions.Position memory pos1Initial = staking.getPosition(alicePosition1);
         IStakingPositions.Position memory pos2Initial = staking.getPosition(alicePosition2);
         
@@ -411,7 +411,7 @@ contract RDATUpgradeableV2 is RDATUpgradeable {
  */
 contract BadRDATImplementation {
     // Missing required functions - this will cause upgrade to fail
-    function initialize() external {
+    function initialize() external pure {
         revert("Bad implementation");
     }
 }

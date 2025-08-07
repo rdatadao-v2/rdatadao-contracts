@@ -71,9 +71,6 @@ contract DeployStakingPositions is Script {
         );
         console2.log("StakingPositions proxy deployed at:", address(proxy));
         
-        // Cast proxy to interface
-        StakingPositions staking = StakingPositions(address(proxy));
-        
         // Grant required roles on vRDAT if we're the admin
         if (msg.sender == adminAddress) {
             vRDAT vrdat = vRDAT(vrdatAddress);

@@ -94,7 +94,7 @@ contract RevenueCollectorTest is Test {
     
     // ============ Initialization Tests ============
     
-    function test_InitializationValues() public {
+    function test_InitializationValues() public view {
         assertEq(address(revenueCollector.stakingPositions()), address(stakingPositions));
         assertEq(revenueCollector.treasury(), treasury);
         assertEq(revenueCollector.contributorPool(), contributorPool);

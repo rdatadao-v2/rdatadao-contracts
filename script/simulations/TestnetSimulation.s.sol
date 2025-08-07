@@ -68,7 +68,7 @@ contract TestnetSimulation is DeployWithCREATE2 {
         return addresses;
     }
     
-    function validateTestnetReadiness() external view returns (bool ready) {
+    function validateTestnetReadiness() external pure returns (bool ready) {
         console2.log("=== TESTNET READINESS CHECK ===");
         
         // Check environment variables would be available
