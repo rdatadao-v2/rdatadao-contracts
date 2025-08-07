@@ -105,7 +105,7 @@ contract DeployMigrationWithVesting is Script {
     /**
      * @notice Dry run to preview the deployment
      */
-    function dryRun() external view {
+    function dryRun() external pure {
         console2.log("=== Migration Deployment Plan ===");
         console2.log("\n1. Deploy VanaMigrationBridge");
         console2.log("   - 30M RDAT allocation for 1:1 exchange");

@@ -13,7 +13,7 @@ contract SetupTest is TestHelpers {
         labelAddresses();
     }
     
-    function test_SetupWorks() public {
+    function test_SetupWorks() public view {
         assertEq(block.chainid, 31337, "Should be on Anvil");
         assertTrue(treasury != address(0), "Treasury should be set");
         assertTrue(alice != address(0), "Alice should be set");

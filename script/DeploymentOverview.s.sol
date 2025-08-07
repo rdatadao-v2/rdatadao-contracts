@@ -8,7 +8,7 @@ import {Script, console2} from "forge-std/Script.sol";
  * @notice Shows what contracts get deployed to which networks
  */
 contract DeploymentOverview is Script {
-    function run() external view {
+    function run() external pure {
         console2.log("=== RDAT V2 Multi-Chain Deployment Strategy ===\n");
         
         console2.log("PROJECT TYPE: Vana-native token project");

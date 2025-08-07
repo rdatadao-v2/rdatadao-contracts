@@ -250,8 +250,6 @@ contract OffChainSimulator is Test {
         require(block.timestamp > proposal.endTime, "Voting still active");
         require(!proposal.isFinalized, "Already finalized");
         
-        uint256 totalVotes = proposal.forVotes + proposal.againstVotes + proposal.abstainVotes;
-        
         // Simple majority wins (ignoring abstains)
         proposal.passed = proposal.forVotes > proposal.againstVotes;
         proposal.isFinalized = true;

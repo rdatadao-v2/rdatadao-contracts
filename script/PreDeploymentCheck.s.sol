@@ -35,7 +35,7 @@ contract PreDeploymentCheck is Script {
         string message;
     }
     
-    function run() external {
+    function run() external view {
         console2.log("\n========================================");
         console2.log("     RDAT Pre-Deployment Check   ");
         console2.log("========================================\n");

@@ -97,7 +97,7 @@ contract TreasuryWalletTest is Test {
         assertEq(released, 0);
     }
     
-    function test_TGEUnlocks() public {
+    function test_TGEUnlocks() public view {
         // Check available amounts at TGE
         (,, uint256 available, bool isActive) = treasury.getVestingInfo(treasury.FUTURE_REWARDS());
         assertEq(available, 0); // Phase 3 gated
@@ -324,7 +324,7 @@ contract TreasuryWalletTest is Test {
         // Fast forward to middle of vesting (6 months cliff + 9 months vesting)
         skip(180 days + 270 days);
         
-        (uint256 total,, uint256 available,) = treasury.getVestingInfo(treasury.TREASURY_ECOSYSTEM());
+        (,, uint256 available,) = treasury.getVestingInfo(treasury.TREASURY_ECOSYSTEM());
         
         // Should have ~50% of remaining available
         // After TGE claimed, only the additional vested amount is available

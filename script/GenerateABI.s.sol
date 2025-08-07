@@ -10,7 +10,7 @@ import {console2} from "forge-std/console2.sol";
  * @dev Run with: forge script script/GenerateABI.s.sol
  */
 contract GenerateABI is Script {
-    function run() public view {
+    function run() public pure {
         console2.log("=== ABI Generation Guide ===");
         console2.log("");
         console2.log("Foundry automatically generates ABI files when you compile contracts.");

@@ -119,7 +119,7 @@ contract ModularGovernanceIntegrationTest is Test {
     }
     
     function test_QuadraticVotingCost() public {
-        uint256 proposalId = _createTestProposal();
+        _createTestProposal();
         vm.roll(block.number + 14400 + 1);
         
         // Test different vote amounts and their quadratic costs
@@ -213,11 +213,10 @@ contract ModularGovernanceIntegrationTest is Test {
         assertGt(eta, 0);
     }
     
-    function test_ModuleRoleConfiguration() public {
+    function test_ModuleRoleConfiguration() public view {
         // Verify role configuration is correct
         bytes32 governanceRole = keccak256("GOVERNANCE_ROLE");
         bytes32 adminRole = keccak256("ADMIN_ROLE");
-        bytes32 executorRole = keccak256("EXECUTOR_ROLE");
         
         // GovernanceVoting should have governance role on vRDAT
         assertTrue(vrdatToken.hasRole(governanceRole, address(governanceVoting)));
@@ -260,13 +259,6 @@ contract ModularGovernanceIntegrationTest is Test {
         
         // Cannot vote on cancelled proposal
         vm.roll(block.number + 14400 + 1);
-        
-        IGovernance.VoteParams memory voteParams = IGovernance.VoteParams({
-            proposalId: proposalId,
-            voteType: IGovernance.VoteType.For,
-            voteWeight: 1,
-            reason: "Should fail"
-        });
         
         // Voting should work but state check might prevent it in full implementation
         // For now, just verify the proposal is cancelled

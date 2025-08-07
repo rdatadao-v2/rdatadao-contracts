@@ -584,7 +584,7 @@ contract TokenVestingTest is Test {
         // Deploy a different token (simulate ERC20)
         // For this test, we'll skip the actual token transfer since RDATUpgradeable doesn't have mint function
         // The key test is that RDAT cannot be recovered
-        RDATUpgradeable otherToken = new RDATUpgradeable();
+        new RDATUpgradeable();
         
         // Should not be able to recover RDAT tokens
         vm.prank(admin);

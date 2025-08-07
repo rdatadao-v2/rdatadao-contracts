@@ -753,7 +753,7 @@ contract RDATUpgradeable is
      * @return compliant True if minimal requirements are met for audit
      * @dev This checks minimal compliance only. Full compliance requires DLP integration post-audit
      */
-    function isVRC20Compliant() external view returns (bool) {
+    function isVRC20Compliant() external pure returns (bool) {
         return isVRC20MinimallyCompliant();
     }
     
@@ -761,7 +761,7 @@ contract RDATUpgradeable is
      * @notice Check minimal VRC-20 compliance (Option B)
      * @return compliant True if blacklisting, timelocks, and DLP registry are implemented
      */
-    function isVRC20MinimallyCompliant() public view returns (bool) {
+    function isVRC20MinimallyCompliant() public pure returns (bool) {
         return isVRC20 && // Basic VRC-20 flag
                TIMELOCK_DURATION == 48 hours; // Timelock system implemented
     }

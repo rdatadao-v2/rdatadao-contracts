@@ -1,41 +1,93 @@
 #!/bin/bash
 
-echo "========================================"
-echo "     Counter Deployment Summary"
-echo "========================================"
+# Deployment Summary Script for r/datadao contracts
+
+echo "=========================================="
+echo "       r/datadao Deployment Summary       "
+echo "=========================================="
 echo ""
-echo "✅ LOCAL DEPLOYMENTS:"
-echo "  - Anvil (31337): 0x5FbDB2315678afecb367f032d93F642f64180aa3"
+
+# Colors for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Function to check contract deployment
+check_contract() {
+    local chain_name=$1
+    local rpc_url=$2
+    local contract_name=$3
+    local address=$4
+    
+    code=$(cast code $address --rpc-url $rpc_url 2>/dev/null || echo "0x")
+    
+    if [ "$code" != "0x" ] && [ -n "$code" ]; then
+        echo -e "  ${GREEN}✓${NC} $contract_name: $address"
+        return 0
+    else
+        echo -e "  ${RED}✗${NC} $contract_name: Not deployed"
+        return 1
+    fi
+}
+
+# Vana Moksha Testnet
+echo "📍 Vana Moksha Testnet (Chain ID: 14800)"
+echo "==========================================="
+check_contract "Moksha" "https://rpc.moksha.vana.org" "RDAT Token" "0xEb0c43d5987de0672A22e350930F615Af646e28c"
+check_contract "Moksha" "https://rpc.moksha.vana.org" "TreasuryWallet" "0x0000000000000000000000000000000000000000"
+check_contract "Moksha" "https://rpc.moksha.vana.org" "StakingPositions" "0x0000000000000000000000000000000000000000"
+check_contract "Moksha" "https://rpc.moksha.vana.org" "vRDAT" "0x0000000000000000000000000000000000000000"
 echo ""
-echo "✅ TESTNET DEPLOYMENTS:"
-echo "  - Vana Moksha (14800): 0x2c1CB448cAf3579B2374EFe20068Ea97F72A996E"
-echo "  - Base Sepolia (84532): 0x77D2713972af12F1E3EF39b5395bfD65C862367C"
+
+# Base Sepolia Testnet
+echo "📍 Base Sepolia Testnet (Chain ID: 84532)"
+echo "==========================================="
+check_contract "Sepolia" "https://sepolia.base.org" "MigrationBridge" "0x0000000000000000000000000000000000000000"
+check_contract "Sepolia" "https://sepolia.base.org" "V1 RDAT Mock" "0x0000000000000000000000000000000000000000"
 echo ""
-echo "🔄 MAINNET SIMULATIONS (Not deployed):"
-echo "  - Vana Mainnet (1480): 0xa4435b45035a483d364de83B9494BDEFA8322626"
-echo "  - Base Mainnet (8453): 0xa4435b45035a483d364de83B9494BDEFA8322626"
+
+# Vana Mainnet
+echo "📍 Vana Mainnet (Chain ID: 1480)"
+echo "==========================================="
+check_contract "Vana" "https://rpc.vana.org" "RDAT Token" "0x0000000000000000000000000000000000000000"
+check_contract "Vana" "https://rpc.vana.org" "TreasuryWallet" "0x0000000000000000000000000000000000000000"
+check_contract "Vana" "https://rpc.vana.org" "StakingPositions" "0x0000000000000000000000000000000000000000"
+check_contract "Vana" "https://rpc.vana.org" "vRDAT" "0x0000000000000000000000000000000000000000"
 echo ""
-echo "========================================"
-echo "     Deployment Cost Summary"
-echo "========================================"
+
+# Base Mainnet
+echo "📍 Base Mainnet (Chain ID: 8453)"
+echo "==========================================="
+check_contract "Base" "https://mainnet.base.org" "MigrationBridge" "0x0000000000000000000000000000000000000000"
+check_contract "Base" "https://mainnet.base.org" "V1 RDAT" "0x0000000000000000000000000000000000000000"
 echo ""
-echo "TESTNET COSTS:"
-echo "  - Vana Moksha: 0.00471 ETH (at 20 gwei)"
-echo "  - Base Sepolia: 0.00000023 ETH (at 0.00097 gwei)"
+
+# Deployment Status
+echo "=========================================="
+echo "             Status Summary                "
+echo "=========================================="
 echo ""
-echo "MAINNET ESTIMATES:"
-echo "  - Vana Mainnet: 0.00000068 VANA (at 0.0029 gwei)"
-echo "  - Base Mainnet: 0.00000042 ETH (at 0.0018 gwei)"
+echo "🔹 Testnets:"
+echo "  - Vana Moksha: Ready for deployment"
+echo "  - Base Sepolia: Ready for deployment"
 echo ""
-echo "========================================"
-echo "     Key Learnings"
-echo "========================================"
+echo "🔹 Mainnets:"
+echo "  - Vana: Not deployed (post-audit)"
+echo "  - Base: Not deployed (post-audit)"
 echo ""
-echo "✅ All chain configurations work correctly"
-echo "✅ Deployment scripts execute successfully"
-echo "✅ Gas costs are very low on all chains"
-echo "✅ Simulations prevent accidental mainnet deployments"
+echo "🔹 DLP Registration:"
+echo "  - Status: Implementation ready"
+echo "  - Registry: 0x4D59880a924526d1dD33260552Ff4328b1E18a43"
+echo "  - Fee: 1 VANA required"
 echo ""
-echo "⚠️  Note: Vana mainnet shows EIP-3855 warning"
-echo "   This is normal and doesn't affect deployment"
+echo "=========================================="
+echo "            Next Steps                    "
+echo "=========================================="
+echo ""
+echo "1. Deploy to Vana Moksha testnet"
+echo "2. Deploy to Base Sepolia testnet"
+echo "3. Test cross-chain migration flow"
+echo "4. Register DLP on testnets"
+echo "5. Complete audit documentation"
 echo ""

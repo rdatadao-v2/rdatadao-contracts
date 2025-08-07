@@ -56,7 +56,7 @@ contract DeployRDATUpgradeableSimple is Script {
     }
     
     // Dry run function to simulate deployment without sending transactions
-    function dryRun() external {
+    function dryRun() external view {
         // Load deployment parameters
         address treasury = vm.envOr("TREASURY_ADDRESS", address(0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319));
         address admin = vm.envOr("ADMIN_ADDRESS", address(0xaA10a84CE7d9AE517a52c6d5cA153b369Af99ecF));

@@ -28,7 +28,7 @@ contract MockRDATTest is Test {
         mockRDAT = new MockRDAT(owner);
     }
     
-    function test_InitialState() public {
+    function test_InitialState() public view {
         // Verify it matches Base mainnet RDAT properties
         assertEq(mockRDAT.name(), "RData");
         assertEq(mockRDAT.symbol(), "RDAT");

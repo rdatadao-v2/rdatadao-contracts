@@ -120,8 +120,8 @@ contract DataContributionJourney is Test {
         ERC1967Proxy proxy = new ERC1967Proxy(address(rdatImpl), initData);
         rdatToken = RDATUpgradeable(address(proxy));
         
-        // Deploy vRDAT
-        vrdatToken = new vRDAT(admin);
+        // Deploy vRDAT with the test contract as admin initially
+        vrdatToken = new vRDAT(address(this));
         
         // Deploy staking with proxy pattern
         StakingPositions stakingImpl = new StakingPositions();
@@ -132,26 +132,37 @@ contract DataContributionJourney is Test {
         ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), stakingInitData);
         staking = StakingPositions(address(stakingProxy));
         
-        // Grant vRDAT minting to staking
-        vm.prank(admin);
-        vrdatToken.grantRole(keccak256("MINTER_ROLE"), address(staking));
+        // Grant vRDAT minting to staking from test contract (which is admin)
+        vrdatToken.grantRole(vrdatToken.MINTER_ROLE(), address(staking));
+        
+        // Transfer admin role to the actual admin
+        vrdatToken.grantRole(vrdatToken.DEFAULT_ADMIN_ROLE(), admin);
+        vrdatToken.grantRole(vrdatToken.MINTER_ROLE(), admin);
+        // Keep the test contract as admin too, we'll need it later
+        // vrdatToken.renounceRole(vrdatToken.DEFAULT_ADMIN_ROLE(), address(this));
         
         console2.log("[SETUP] Core contracts deployed");
     }
     
     function _setupProofOfContribution() private {
-        // Deploy PoC stub
-        pocContract = new ProofOfContributionStub(admin, address(rdatToken));
+        // Deploy PoC stub with test contract as initial admin
+        pocContract = new ProofOfContributionStub(address(this), address(rdatToken));
         
-        // Configure PoC integration with RDAT
-        vm.startPrank(admin);
-        rdatToken.setPoCContract(address(pocContract));
+        // Grant integration role to RDAT
         pocContract.grantIntegrationRole(address(rdatToken));
         
         // Add validators
         pocContract.addValidator(validator1);
         pocContract.addValidator(validator2);
-        vm.stopPrank();
+        
+        // Transfer admin role to the actual admin and grant integration role for testing
+        pocContract.grantRole(pocContract.ADMIN_ROLE(), admin);
+        pocContract.grantRole(pocContract.INTEGRATION_ROLE(), admin); // Admin needs this for test setup
+        pocContract.renounceRole(pocContract.ADMIN_ROLE(), address(this));
+        
+        // Configure PoC integration with RDAT from admin
+        vm.prank(admin);
+        rdatToken.setPoCContract(address(pocContract));
         
         console2.log("[SETUP] ProofOfContribution configured");
     }
@@ -181,8 +192,9 @@ contract DataContributionJourney is Test {
         console2.log("[DEBUG] vRDAT:", address(vrdatToken));
         console2.log("[DEBUG] RewardModule:", address(rewardModule));
         
+        // Admin should have the role from _setupCore
         vm.prank(admin);
-        vrdatToken.grantRole(keccak256("MINTER_ROLE"), address(rewardModule));
+        vrdatToken.grantRole(vrdatToken.MINTER_ROLE(), address(rewardModule));
         
         console2.log("[DEBUG] MINTER_ROLE granted successfully");
         
@@ -704,11 +716,9 @@ contract DataContributionJourney is Test {
         uint256 totalClaimed = 0;
         
         for (uint256 i = 0; i < contributors.length; i++) {
-            uint256 balanceBefore = rdatToken.balanceOf(contributors[i]);
             
             vm.prank(contributors[i]);
             try rdatToken.claimEpochRewards(1) returns (uint256 claimed) {
-                uint256 balanceAfter = rdatToken.balanceOf(contributors[i]);
                 totalClaimed += claimed;
                 
                 console2.log(
@@ -794,7 +804,7 @@ contract DataContributionJourney is Test {
         uint256 pool,
         uint256 quality,
         uint256[4] memory multipliers
-    ) internal view {
+    ) internal pure {
         uint256 totalWeighted = 0;
         uint256[4] memory weighted;
         

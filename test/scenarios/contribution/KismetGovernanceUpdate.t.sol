@@ -328,7 +328,7 @@ contract KismetGovernanceUpdate is Test {
     
     // ============ Helper Functions ============
     
-    function _displayFormula(KismetTier[] memory formula) internal view {
+    function _displayFormula(KismetTier[] memory formula) internal pure {
         for (uint256 i = 0; i < formula.length; i++) {
             console2.log(
                 string.concat(

@@ -25,7 +25,7 @@ contract DeployRDATWithVesting is BaseDeployScript {
     // Treasury is set in parent BaseDeployScript
     address public liquidityPool = address(0x4);    // TODO: Set actual address
     
-    function deploy() internal override {
+    function deploy() internal view override {
         console2.log("=== Deploying RDAT with DAO-approved tokenomics ===");
         console2.log("Total Supply: 100,000,000 RDAT");
         

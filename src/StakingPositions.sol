@@ -449,6 +449,7 @@ contract StakingPositions is
      * @param _rewardsManager New rewards manager address
      */
     function setRewardsManager(address _rewardsManager) external onlyRole(ADMIN_ROLE) {
+        require(_rewardsManager != address(0), "Invalid rewards manager");
         rewardsManager = _rewardsManager;
         emit RewardsManagerUpdated(_rewardsManager);
     }

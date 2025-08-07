@@ -43,7 +43,7 @@ contract EmergencyPauseTest is Test {
         vm.stopPrank();
     }
     
-    function test_InitialState() public {
+    function test_InitialState() public view {
         assertFalse(emergencyPause.emergencyPaused());
         assertEq(emergencyPause.pausedAt(), 0);
         assertEq(emergencyPause.PAUSE_DURATION(), 72 hours);
@@ -301,7 +301,7 @@ contract EmergencyPauseTest is Test {
         assertTrue(mock.emergencyOperation());
     }
     
-    function test_ReentrancyProtection() public {
+    function test_ReentrancyProtection() public view {
         // This test verifies reentrancy protection is in place
         // The actual reentrancy attack simulation would require more complex setup
         // For now, we verify the contract compiles with ReentrancyGuard

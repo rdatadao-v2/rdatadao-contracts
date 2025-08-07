@@ -42,7 +42,7 @@ contract vRDATTest is Test {
         vm.stopPrank();
     }
     
-    function test_InitialState() public {
+    function test_InitialState() public view {
         assertEq(vrdat.name(), "r/datadao Voting");
         assertEq(vrdat.symbol(), "vRDAT");
         assertEq(vrdat.decimals(), 18);
@@ -208,7 +208,7 @@ contract vRDATTest is Test {
         assertEq(vrdat.getVotes(user2), amount * 2);
     }
     
-    function test_QuadraticVotingMath() public {
+    function test_QuadraticVotingMath() public view {
         // Test quadratic cost calculation
         assertEq(vrdat.calculateQuadraticCost(0), 0);
         assertEq(vrdat.calculateQuadraticCost(1), 1);
@@ -339,7 +339,7 @@ contract vRDATTest is Test {
         }
     }
     
-    function testFuzz_QuadraticMath(uint256 votes) public {
+    function testFuzz_QuadraticMath(uint256 votes) public view {
         votes = bound(votes, 0, 1000000); // Reasonable bounds
         
         uint256 cost = vrdat.calculateQuadraticCost(votes);

@@ -67,7 +67,7 @@ contract RDATUpgradeableTest is Test {
         vm.stopPrank();
     }
     
-    function test_Initialization() public {
+    function test_Initialization() public view {
         assertEq(rdat.name(), "r/datadao");
         assertEq(rdat.symbol(), "RDAT");
         assertEq(rdat.decimals(), 18);

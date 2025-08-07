@@ -12,7 +12,7 @@ contract ShowDeploymentAddresses is Script {
         uint256 deployerNonce;
     }
     
-    function run() external view {
+    function run() external pure {
         address deployer = 0x58eCB94e6F5e6521228316b55c465ad2A2938FbB;
         
         console2.log("=== RDAT V2 Deployment Address Predictions ===");

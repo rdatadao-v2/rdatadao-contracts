@@ -271,7 +271,7 @@ contract ScenarioHelpers is Test {
     /**
      * @notice Expects a staking event to be emitted
      */
-    function expectStakingEvent(address user, uint256 positionId) external {
+    function expectStakingEvent(address, uint256 positionId) external pure {
         // Note: Would need to check actual StakingPositions events
         console2.log(string.concat("[SEARCH] Expecting staking event for position ", vm.toString(positionId)));
     }
@@ -279,7 +279,7 @@ contract ScenarioHelpers is Test {
     /**
      * @notice Expects a governance event to be emitted
      */
-    function expectGovernanceEvent(uint256 proposalId, uint8 outcome) external {
+    function expectGovernanceEvent(uint256 proposalId, uint8 outcome) external pure {
         // Note: Would need to check actual governance contract events
         console2.log(string.concat("[SEARCH] Expecting governance event for proposal ", vm.toString(proposalId), " outcome ", vm.toString(outcome)));
     }

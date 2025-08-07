@@ -297,7 +297,7 @@ contract VRC20ComplianceTest is Test {
     
     // ============ VRC-20 Compliance Check ============
     
-    function test_VRC20_ComplianceStatus() public {
+    function test_VRC20_ComplianceStatus() public view {
         // Check VRC-20 compliance
         assertTrue(rdat.isVRC20Compliant());
         
