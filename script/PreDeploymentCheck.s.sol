@@ -109,9 +109,9 @@ contract PreDeploymentCheck is Script {
         console2.log("Failed: %s", checkCount - passedCount);
         
         if (allChecksPassed) {
-            console2.log("\n%s ALL CHECKS PASSED - Ready for deployment! %s", unicode"✅", unicode"🚀");
+            console2.log("\n%s ALL CHECKS PASSED - Ready for deployment! %s", unicode"[OK]", unicode"🚀");
         } else {
-            console2.log("\n%s SOME CHECKS FAILED - Please address issues before deployment", unicode"❌");
+            console2.log("\n%s SOME CHECKS FAILED - Please address issues before deployment", unicode"[ERROR]");
             revert("Pre-deployment checks failed");
         }
         
@@ -131,7 +131,7 @@ contract PreDeploymentCheck is Script {
             return CheckResult(
                 true, 
                 string.concat(
-                    unicode"✓ Deployer address matches expected: ",
+                    unicode"[OK] Deployer address matches expected: ",
                     vm.toString(deployer)
                 )
             );
@@ -155,7 +155,7 @@ contract PreDeploymentCheck is Script {
             return CheckResult(
                 true,
                 string.concat(
-                    unicode"✓ Sufficient balance: ",
+                    unicode"[OK] Sufficient balance: ",
                     formatEther(balance),
                     " ETH"
                 )
@@ -186,7 +186,7 @@ contract PreDeploymentCheck is Script {
             return CheckResult(
                 true,
                 string.concat(
-                    unicode"✓ Multisig ready at: ",
+                    unicode"[OK] Multisig ready at: ",
                     vm.toString(expectedMultisig),
                     " (Balance: ",
                     formatEther(multisigBalance),
@@ -210,7 +210,7 @@ contract PreDeploymentCheck is Script {
             return CheckResult(
                 true,
                 string.concat(
-                    unicode"✓ Connected to network, block height: ",
+                    unicode"[OK] Connected to network, block height: ",
                     vm.toString(blockNum)
                 )
             );
@@ -230,7 +230,7 @@ contract PreDeploymentCheck is Script {
             return CheckResult(
                 true,
                 string.concat(
-                    unicode"✓ Gas price acceptable: ",
+                    unicode"[OK] Gas price acceptable: ",
                     vm.toString(gasPrice / 1 gwei),
                     " gwei"
                 )
@@ -263,7 +263,7 @@ contract PreDeploymentCheck is Script {
         if (allWithinLimit) {
             return CheckResult(
                 true,
-                unicode"✓ All contracts within size limits"
+                unicode"[OK] All contracts within size limits"
             );
         } else {
             return CheckResult(
