@@ -36,11 +36,8 @@ contract DeployRDATUpgradeableProduction is Script {
 
     function run() external returns (DeploymentResult memory result) {
         // Load configuration
-        DeploymentConfig memory config = DeploymentConfig({
-            multisig: vm.envAddress("ADMIN_ADDRESS"),
-            deployer: msg.sender,
-            chainId: block.chainid
-        });
+        DeploymentConfig memory config =
+            DeploymentConfig({multisig: vm.envAddress("ADMIN_ADDRESS"), deployer: msg.sender, chainId: block.chainid});
 
         require(config.multisig != address(0), "ADMIN_ADDRESS not set");
 
@@ -75,7 +72,7 @@ contract DeployRDATUpgradeableProduction is Script {
         result.treasuryProxy = _deployTreasury(config);
         console2.log("[2/4] TreasuryWallet deployed:", result.treasuryProxy);
 
-        // Step 3: Deploy Migration Bridge  
+        // Step 3: Deploy Migration Bridge
         result.migrationBridge = _deployMigrationBridge(config);
         console2.log("[3/4] VanaMigrationBridge deployed:", result.migrationBridge);
 
@@ -88,46 +85,41 @@ contract DeployRDATUpgradeableProduction is Script {
 
     function _deployTreasury(DeploymentConfig memory config) internal returns (address) {
         TreasuryWallet treasuryImpl = new TreasuryWallet();
-        
+
         // Deploy proxy (uninitialized initially)
         ERC1967Proxy treasuryProxy = new ERC1967Proxy(address(treasuryImpl), "");
-        
+
         return address(treasuryProxy);
     }
 
     function _deployMigrationBridge(DeploymentConfig memory config) internal returns (address) {
         address[] memory validators = new address[](1);
         validators[0] = config.multisig;
-        
+
         // Deploy with placeholder address, will be updated later
         VanaMigrationBridge bridge = new VanaMigrationBridge(
             address(1), // Placeholder - will be updated
             config.multisig,
             validators
         );
-        
+
         return address(bridge);
     }
 
-    function _deployRDAT(
-        DeploymentConfig memory config, 
-        address treasury, 
-        address migration
-    ) internal returns (address) {
+    function _deployRDAT(DeploymentConfig memory config, address treasury, address migration)
+        internal
+        returns (address)
+    {
         RDATUpgradeable rdatImpl = new RDATUpgradeable();
-        
-        bytes memory initData = abi.encodeWithSelector(
-            RDATUpgradeable.initialize.selector,
-            treasury,
-            config.multisig,
-            migration
-        );
-        
+
+        bytes memory initData =
+            abi.encodeWithSelector(RDATUpgradeable.initialize.selector, treasury, config.multisig, migration);
+
         ERC1967Proxy rdatProxy = new ERC1967Proxy(address(rdatImpl), initData);
-        
+
         // Now initialize treasury with RDAT address
         TreasuryWallet(payable(treasury)).initialize(config.multisig, address(rdatProxy));
-        
+
         return address(rdatProxy);
     }
 

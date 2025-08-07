@@ -96,7 +96,9 @@ contract DeployFullSystem is Script {
             vrdat.renounceRole(vrdat.DEFAULT_ADMIN_ROLE(), msg.sender);
             staking.renounceRole(staking.DEFAULT_ADMIN_ROLE(), msg.sender);
             treasuryWallet.renounceRole(treasuryWallet.DEFAULT_ADMIN_ROLE(), msg.sender);
-            RevenueCollector(revenueCollector).renounceRole(RevenueCollector(revenueCollector).DEFAULT_ADMIN_ROLE(), msg.sender);
+            RevenueCollector(revenueCollector).renounceRole(
+                RevenueCollector(revenueCollector).DEFAULT_ADMIN_ROLE(), msg.sender
+            );
             console2.log("  Deployer roles renounced");
         }
 
@@ -125,9 +127,9 @@ contract DeployFullSystem is Script {
     /**
      * @notice Helper function to deploy RevenueCollector and avoid stack too deep
      */
-    function _deployRevenueCollector(address staking, address treasury, address treasuryWallet, address admin) 
-        internal 
-        returns (address) 
+    function _deployRevenueCollector(address staking, address treasury, address treasuryWallet, address admin)
+        internal
+        returns (address)
     {
         RevenueCollector revenueImpl = new RevenueCollector();
         ERC1967Proxy revenueProxy = new ERC1967Proxy(address(revenueImpl), "");
