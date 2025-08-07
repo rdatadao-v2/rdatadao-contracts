@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Nonces.sol";
 import "./interfaces/IvRDAT.sol";
+import "./interfaces/IvRDATGovernance.sol";
 
 /**
  * @title vRDAT - Soul-bound Governance Token
@@ -28,11 +29,13 @@ contract vRDAT is
     ERC20Permit,
     AccessControl,
     ReentrancyGuard,
-    IvRDAT
+    IvRDAT,
+    IvRDATGovernance
 {
     // Roles
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
+    bytes32 public constant GOVERNANCE_ROLE = keccak256("GOVERNANCE_ROLE");
     
     // Constants
     uint256 public constant override MAX_PER_ADDRESS = 10_000_000 * 10**18; // 10M vRDAT max per address
@@ -86,6 +89,21 @@ contract vRDAT is
      * @param amount Amount to burn
      */
     function burn(address from, uint256 amount) external override onlyRole(BURNER_ROLE) nonReentrant {
+        require(from != address(0), "Invalid address");
+        require(amount > 0, "Invalid amount");
+        require(balanceOf(from) >= amount, "Insufficient balance");
+        
+        totalBurned[from] += amount;
+        _burn(from, amount);
+        emit Burn(from, amount);
+    }
+    
+    /**
+     * @dev Burn vRDAT tokens for governance voting
+     * @param from Address to burn from
+     * @param amount Amount to burn
+     */
+    function burnForGovernance(address from, uint256 amount) external override onlyRole(GOVERNANCE_ROLE) nonReentrant {
         require(from != address(0), "Invalid address");
         require(amount > 0, "Invalid amount");
         require(balanceOf(from) >= amount, "Insufficient balance");
@@ -226,9 +244,9 @@ contract vRDAT is
     }
     
     /**
-     * @dev Override balanceOf to satisfy both ERC20 and IvRDAT
+     * @dev Override balanceOf to satisfy ERC20, IvRDAT, and IvRDATGovernance
      */
-    function balanceOf(address account) public view override(ERC20, IvRDAT) returns (uint256) {
+    function balanceOf(address account) public view override(ERC20, IvRDAT, IvRDATGovernance) returns (uint256) {
         return super.balanceOf(account);
     }
     

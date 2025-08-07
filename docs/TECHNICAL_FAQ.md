@@ -1953,6 +1953,189 @@ contract FullSystemTest is Test {
 
 This modular testing approach ensures each component works correctly both in isolation and when integrated.
 
+---
+
+## Solidity Development Patterns and Pitfalls
+
+### Q: How do we avoid "stack too deep" compilation errors in complex contracts?
+
+**A:** The "stack too deep" error occurs when functions use more than 16 local variables. Our recovery from this issue established key patterns:
+
+#### **Root Cause Analysis**
+The compilation errors emerged from complex contracts with many parameters:
+
+```solidity
+// PROBLEMATIC: Too many individual parameters
+function complexDeployment(
+    address admin,
+    address treasury, 
+    address migration,
+    address governance,
+    uint256 param1,
+    uint256 param2,
+    uint256 param3,
+    uint256 param4,
+    uint256 param5,
+    bool flag1,
+    bool flag2,
+    bool flag3,
+    bytes32 salt,
+    string memory name
+    // ... even more parameters
+) external {
+    // Function body creates additional local variables
+    // Total variables > 16 = "stack too deep"
+}
+```
+
+#### **Structural Solutions**
+
+**1. Use Structs for Parameters**
+```solidity
+// GOOD: Group related parameters into structs
+struct DeploymentConfig {
+    address admin;
+    address treasury;
+    address migration;
+    uint256[] params;
+    bool[] flags;
+    bytes32 salt;
+    string name;
+}
+
+function deployWithConfig(DeploymentConfig calldata config) external {
+    // Much cleaner, no stack depth issues
+    // Struct fields accessed as config.admin, etc.
+}
+```
+
+**2. Break Down Complex Functions**
+```solidity
+// Instead of one massive function:
+function deployEverything() external {
+    _deployCore();
+    _deployGovernance(); 
+    _configureIntegrations();
+    _finalizeSetup();
+}
+
+function _deployCore() internal {
+    // Handle core contracts only
+    // Fewer variables in scope
+}
+```
+
+**3. Use Memory Management Patterns**
+```solidity
+// Scope variables carefully
+function processData(bytes calldata data) external {
+    {
+        // Variables in this block are freed after the block
+        uint256 temp1 = extractValue1(data);
+        uint256 temp2 = extractValue2(data);
+        processValues(temp1, temp2);
+    }
+    
+    // Now we have room for more variables
+    address target = extractTarget(data);
+    bytes memory callData = extractCallData(data);
+}
+```
+
+#### **Compiler Solutions (Last Resort)**
+
+**via-ir Optimization**
+```toml
+# foundry.toml
+[profile.default]
+via_ir = true  # Uses Yul IR pipeline, can help stack issues
+optimizer = true
+optimizer_runs = 200
+
+# WARNING: Can cause other compilation issues
+# Use only when structural solutions aren't possible
+```
+
+**Our Experience**: via-ir caused different compilation failures and should be avoided.
+
+#### **Recovery Strategy Applied**
+
+When we hit stack depth issues, we:
+
+1. **Identified the Breaking Point**: Found commit where tests stopped passing
+2. **Rolled Back Cleanly**: Used git to return to known good state
+3. **Implemented Struct-Based Design**: Rebuilt problematic contracts using structs
+4. **Tested Incrementally**: Added each new contract with compilation checks
+5. **Maintained Compatibility**: Kept interfaces simple for external integration
+
+#### **Code Quality Standards**
+
+**Function Parameter Limits**
+- **Simple Functions**: Maximum 8 parameters
+- **Complex Functions**: Use structs after 4 parameters  
+- **Constructor Functions**: Always use config structs for 3+ parameters
+
+**Testing Compilation Early**
+```bash
+# After each contract addition:
+forge build
+# If compilation fails, fix immediately before continuing
+```
+
+**Modular Architecture**
+- Split complex contracts into focused modules
+- Each module handles single responsibility
+- Compose modules rather than creating monoliths
+
+#### **Anti-Patterns to Avoid**
+
+```solidity
+// BAD: Deep nested function calls in complex functions
+function badPattern() external {
+    ComplexStruct memory data = processInput(
+        calculateValue(
+            transformData(
+                validateInput(param1, param2, param3)
+            ),
+            param4,
+            param5
+        ),
+        param6,
+        param7
+    );
+    // Stack explodes here
+}
+
+// GOOD: Step-by-step processing
+function goodPattern() external {
+    ValidationResult memory validation = _validateInput();
+    TransformResult memory transformation = _transformData(validation);
+    uint256 calculatedValue = _calculateValue(transformation);
+    ComplexStruct memory result = _processInput(calculatedValue);
+}
+```
+
+#### **Prevention Checklist**
+
+Before writing complex functions:
+- [ ] Can this be split into smaller functions?
+- [ ] Are there more than 8 parameters? Use a struct.
+- [ ] Am I creating many temporary variables? Use scoped blocks.
+- [ ] Does this function have multiple responsibilities? Split it.
+- [ ] Can I test compilation after each addition? Do it.
+
+#### **Recovery Lessons**
+
+1. **Git is Your Safety Net**: Always have a clean rollback point
+2. **Test Compilation Frequently**: Don't accumulate technical debt
+3. **Struct-First Design**: Start with structs for any complex interface
+4. **Modular Architecture**: Single-responsibility contracts avoid complexity
+5. **Document Breaking Points**: Note what combination of features caused issues
+
+This experience reinforced that good architecture prevents rather than fixes stack depth issues.
+
+---
+
 ## Contributing to this FAQ
 
 When adding new entries:
