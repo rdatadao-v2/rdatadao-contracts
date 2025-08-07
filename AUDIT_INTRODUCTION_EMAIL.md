@@ -14,10 +14,10 @@ r/datadao V2 represents a significant evolution of our protocol, implementing a 
 
 ## Repository Access
 
-**GitHub Repository**: [https://github.com/rdatadao/contracts-v2](https://github.com/rdatadao/contracts-v2)  
-**Commit Hash for Audit**: `b753075` (or latest master)  
+**GitHub Repository**: [https://github.com/nissan/rdatadao-contracts](https://github.com/nissan/rdatadao-contracts)  
+**Commit Hash for Audit**: `7dcd7c1` (or latest master)  
 **Total Lines of Code**: ~5,000 (excluding tests)  
-**Test Coverage**: 99.2% (370/373 tests passing)
+**Test Coverage**: 100% (373/373 tests passing)
 
 ## Documentation Navigation Guide
 
@@ -64,9 +64,10 @@ Our defensive testing includes:
 ### Testing Results
 ```
 Total Tests: 373
-Passing: 370 (99.2%)
-Failing: 3 (test setup issues, not contract bugs)
+Passing: 373 (100%)
+Failing: 0
 Security Tests: 100% passing
+Coverage: 100%
 ```
 
 ## Priority Contracts for Review
@@ -151,8 +152,8 @@ We have live deployments for testing:
 
 ```bash
 # Quick start
-git clone https://github.com/rdatadao/contracts-v2
-cd contracts-v2
+git clone https://github.com/nissan/rdatadao-contracts
+cd rdatadao-contracts
 forge install
 forge test
 
