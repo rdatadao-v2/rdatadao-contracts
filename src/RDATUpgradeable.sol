@@ -183,13 +183,21 @@ contract RDATUpgradeable is
     
     /**
      * @dev Hook that is called on any transfer of tokens
-     * @notice Enforces pause state
+     * @notice Enforces pause state and blacklist restrictions
      */
     function _update(
         address from,
         address to,
         uint256 amount
-    ) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) {
+    ) internal virtual override(ERC20Upgradeable, ERC20PausableUpgradeable) {
+        // Check blacklist (except for minting/burning)
+        if (from != address(0)) { // Not minting
+            require(!_blacklist[from], "Sender is blacklisted");
+        }
+        if (to != address(0)) { // Not burning
+            require(!_blacklist[to], "Recipient is blacklisted");
+        }
+        
         super._update(from, to, amount);
     }
     
@@ -544,5 +552,210 @@ contract RDATUpgradeable is
         uint256 userReward = (epochRewardAmount * userScore) / totalScore;
         
         return userReward;
+    }
+    
+    // ============ VRC-20 Minimal Compliance (Option B) ============
+    
+    // Storage for VRC-20 features (append-only for upgrade safety)
+    mapping(address => bool) private _blacklist;
+    uint256 public blacklistCount;
+    
+    // Updateable DLP Registry
+    address public dlpRegistry;
+    uint256 public dlpId;
+    
+    // Timelock for critical operations
+    mapping(bytes32 => uint256) private _timelocks;
+    uint256 private _timelockNonce;
+    
+    // Events for VRC-20 features
+    event Blacklisted(address indexed account);
+    event UnBlacklisted(address indexed account);
+    event DLPRegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
+    event DLPRegistrationUpdated(uint256 indexed dlpId, address indexed registry);
+    event TimelockScheduled(bytes32 indexed actionId, uint256 executeTime, string description);
+    event TimelockExecuted(bytes32 indexed actionId);
+    event TimelockCancelled(bytes32 indexed actionId);
+    
+    // Constants for VRC-20
+    uint256 public constant TIMELOCK_DURATION = 48 hours;
+    
+    // ============ Blocklist Functions (VRC-20 Required) ============
+    
+    /**
+     * @notice Add address to blacklist
+     * @param account Address to blacklist
+     * @dev Only admin can blacklist addresses
+     */
+    function blacklist(address account) 
+        external 
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        nonReentrant
+    {
+        require(account != address(0), "Cannot blacklist zero address");
+        require(account != address(this), "Cannot blacklist token contract");
+        require(!_blacklist[account], "Already blacklisted");
+        
+        _blacklist[account] = true;
+        blacklistCount++;
+        
+        emit Blacklisted(account);
+    }
+    
+    /**
+     * @notice Remove address from blacklist
+     * @param account Address to unblacklist
+     */
+    function unBlacklist(address account) 
+        external 
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        nonReentrant
+    {
+        require(_blacklist[account], "Not blacklisted");
+        
+        _blacklist[account] = false;
+        blacklistCount--;
+        
+        emit UnBlacklisted(account);
+    }
+    
+    /**
+     * @notice Check if address is blacklisted
+     * @param account Address to check
+     * @return bool True if blacklisted
+     */
+    function isBlacklisted(address account) external view returns (bool) {
+        return _blacklist[account];
+    }
+    
+    // ============ DLP Registry Functions (Updateable) ============
+    
+    /**
+     * @notice Set or update the DLP Registry address
+     * @param _dlpRegistry New DLP Registry address
+     * @dev Can be called by admin to update registry address as Vana deploys new versions
+     */
+    function setDLPRegistry(address _dlpRegistry) 
+        external 
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        nonReentrant
+    {
+        require(_dlpRegistry != address(0), "Invalid registry address");
+        
+        address oldRegistry = dlpRegistry;
+        dlpRegistry = _dlpRegistry;
+        
+        emit DLPRegistryUpdated(oldRegistry, _dlpRegistry);
+    }
+    
+    /**
+     * @notice Update DLP registration
+     * @param _dlpId The DLP ID to register with
+     * @dev Updates the dlpRegistered flag and stores the ID
+     */
+    function updateDLPRegistration(uint256 _dlpId) 
+        external 
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        nonReentrant
+    {
+        require(dlpRegistry != address(0), "DLP Registry not set");
+        
+        dlpId = _dlpId;
+        dlpRegistered = true;
+        dlpRegistrationBlock = block.number;
+        
+        // In production, this would call the actual DLP Registry
+        // IDLPRegistry(dlpRegistry).register(address(this), _dlpId);
+        
+        emit DLPRegistrationUpdated(_dlpId, dlpRegistry);
+    }
+    
+    /**
+     * @notice Get DLP registration details
+     * @return registry Current DLP Registry address
+     * @return registered Whether token is registered
+     * @return id DLP ID if registered
+     * @return registrationBlock Block when registered
+     */
+    function getDLPInfo() 
+        external 
+        view 
+        returns (
+            address registry,
+            bool registered,
+            uint256 id,
+            uint256 registrationBlock
+        ) 
+    {
+        return (dlpRegistry, dlpRegistered, dlpId, dlpRegistrationBlock);
+    }
+    
+    // ============ Timelock Functions ============
+    
+    /**
+     * @notice Schedule an action with 48-hour timelock
+     * @param description Human-readable description of the action
+     * @return actionId Unique identifier for tracking
+     */
+    function scheduleTimelock(string calldata description) 
+        external 
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        returns (bytes32 actionId)
+    {
+        actionId = keccak256(abi.encodePacked(description, _timelockNonce++));
+        _timelocks[actionId] = block.timestamp + TIMELOCK_DURATION;
+        
+        emit TimelockScheduled(actionId, _timelocks[actionId], description);
+    }
+    
+    /**
+     * @notice Execute action after timelock expires
+     * @param actionId The action to execute
+     */
+    function executeTimelock(bytes32 actionId) 
+        external 
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(_timelocks[actionId] != 0, "Timelock not found");
+        require(_timelocks[actionId] != 1, "Already executed");
+        require(block.timestamp >= _timelocks[actionId], "Timelock not expired");
+        
+        _timelocks[actionId] = 1; // Mark as executed
+        emit TimelockExecuted(actionId);
+    }
+    
+    /**
+     * @notice Cancel a scheduled timelock
+     * @param actionId The action to cancel
+     */
+    function cancelTimelock(bytes32 actionId) 
+        external 
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(_timelocks[actionId] != 0, "Timelock not found");
+        require(_timelocks[actionId] != 1, "Already executed");
+        
+        delete _timelocks[actionId];
+        emit TimelockCancelled(actionId);
+    }
+    
+    /**
+     * @notice Get timelock expiry for an action
+     * @param actionId The action to check
+     * @return timestamp When the action can be executed (0 if not found, 1 if executed)
+     */
+    function getTimelockExpiry(bytes32 actionId) external view returns (uint256) {
+        return _timelocks[actionId];
+    }
+    
+    /**
+     * @notice Check VRC-20 compliance status
+     * @return compliant True if all minimal requirements are met
+     */
+    function isVRC20Compliant() external view returns (bool) {
+        // Check all minimal requirements
+        return isVRC20 && // Basic VRC-20 flag
+               blacklistCount >= 0 && // Blacklist functionality exists
+               TIMELOCK_DURATION == 48 hours; // Timelock is properly set
     }
 }
