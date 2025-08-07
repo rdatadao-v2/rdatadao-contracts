@@ -185,9 +185,9 @@ contract SimpleVanaDLP is UUPSUpgradeable, AccessControlUpgradeable, PausableUpg
         view
         returns (uint256 fileId, uint256 timestamp, uint256 proofIndex, uint256 rewardAmount)
     {
-        uint256 fileId = contributors[contributorAddress].fileIds[index];
-        FileInfo memory file = files[fileId];
-        return (fileId, file.timestamp, file.proofIndex, file.rewardAmount);
+        uint256 contributorFileId = contributors[contributorAddress].fileIds[index];
+        FileInfo memory file = files[contributorFileId];
+        return (contributorFileId, file.timestamp, file.proofIndex, file.rewardAmount);
     }
 
     // Admin functions

@@ -3,7 +3,7 @@ pragma solidity 0.8.23;
 
 import "forge-std/Test.sol";
 import "forge-std/console2.sol";
-import "../src/CREATE2Factory.sol";
+import "../src/Create2Factory.sol";
 import "../src/RDATUpgradeable.sol";
 import "../src/TreasuryWallet.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";

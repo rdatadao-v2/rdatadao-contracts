@@ -74,19 +74,10 @@ contract DeployFullSystem is Script {
         console2.log("  TreasuryWallet deployed at:", address(treasuryWallet));
         console2.log("  Implementation at:", address(treasuryImpl));
 
-        // 6. Deploy RevenueCollector (upgradeable)
+        // 6. Deploy RevenueCollector (upgradeable) - using helper to avoid stack too deep
         console2.log("\n6. Deploying RevenueCollector...");
-        RevenueCollector revenueImpl = new RevenueCollector();
-
-        // Deploy proxy and initialize separately to avoid stack too deep
-        ERC1967Proxy revenueProxy = new ERC1967Proxy(address(revenueImpl), "");
-        RevenueCollector revenueCollector = RevenueCollector(address(revenueProxy));
-
-        // Initialize after deployment
-        revenueCollector.initialize(address(staking), treasury, address(treasuryWallet), admin);
-
-        console2.log("  RevenueCollector deployed at:", address(revenueCollector));
-        console2.log("  Implementation at:", address(revenueImpl));
+        address revenueCollector = _deployRevenueCollector(address(staking), treasury, address(treasuryWallet), admin);
+        console2.log("  RevenueCollector deployed at:", revenueCollector);
 
         // 7. Deploy ProofOfContributionStub
         console2.log("\n7. Deploying ProofOfContributionStub...");
@@ -105,7 +96,7 @@ contract DeployFullSystem is Script {
             vrdat.renounceRole(vrdat.DEFAULT_ADMIN_ROLE(), msg.sender);
             staking.renounceRole(staking.DEFAULT_ADMIN_ROLE(), msg.sender);
             treasuryWallet.renounceRole(treasuryWallet.DEFAULT_ADMIN_ROLE(), msg.sender);
-            revenueCollector.renounceRole(revenueCollector.DEFAULT_ADMIN_ROLE(), msg.sender);
+            RevenueCollector(revenueCollector).renounceRole(RevenueCollector(revenueCollector).DEFAULT_ADMIN_ROLE(), msg.sender);
             console2.log("  Deployer roles renounced");
         }
 
@@ -119,7 +110,7 @@ contract DeployFullSystem is Script {
         console2.log("vRDAT:", address(vrdat));
         console2.log("StakingPositions:", address(staking));
         console2.log("TreasuryWallet:", address(treasuryWallet));
-        console2.log("RevenueCollector:", address(revenueCollector));
+        console2.log("RevenueCollector:", revenueCollector);
         console2.log("ProofOfContribution:", address(poc));
         console2.log("");
         console2.log("All contracts configured and ready!");
@@ -129,5 +120,19 @@ contract DeployFullSystem is Script {
         console2.log("2. Configure RewardsManager if needed");
         console2.log("3. Set up staking parameters");
         console2.log("4. Register DLP on Vana");
+    }
+
+    /**
+     * @notice Helper function to deploy RevenueCollector and avoid stack too deep
+     */
+    function _deployRevenueCollector(address staking, address treasury, address treasuryWallet, address admin) 
+        internal 
+        returns (address) 
+    {
+        RevenueCollector revenueImpl = new RevenueCollector();
+        ERC1967Proxy revenueProxy = new ERC1967Proxy(address(revenueImpl), "");
+        RevenueCollector revenueCollector = RevenueCollector(address(revenueProxy));
+        revenueCollector.initialize(staking, treasury, treasuryWallet, admin);
+        return address(revenueCollector);
     }
 }

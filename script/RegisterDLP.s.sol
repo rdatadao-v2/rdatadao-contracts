@@ -148,13 +148,13 @@ contract RegisterDLP is Script {
 
         // Step 4: Update our RDAT contract with DLP info
         console2.log("\n[UPDATE] Updating RDAT contract with DLP registration...");
-        RDATUpgradeable rdat = RDATUpgradeable(rdatToken);
+        RDATUpgradeable rdatContract = RDATUpgradeable(rdatToken);
 
         // Set the DLP Registry address
-        rdat.setDLPRegistry(dlpRegistry);
+        rdatContract.setDLPRegistry(dlpRegistry);
 
         // Update the DLP registration with the assigned ID
-        rdat.updateDLPRegistration(dlpId);
+        rdatContract.updateDLPRegistration(dlpId);
 
         console2.log("[OK] RDAT contract updated with DLP ID:", dlpId);
 

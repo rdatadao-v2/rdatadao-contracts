@@ -10,11 +10,8 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 
 /**
  * @title DeployRDATUpgradeableProduction
- * @notice Production deployment script that correctly distributes 100M tokens:
- *         - 70M to TreasuryWallet contract
- *         - 30M to VanaMigrationBridge contract
- *         - 0 to multisig directly
- * @dev This fixes the issue in DeployRDATUpgradeableSimple where all tokens went to multisig
+ * @notice Production deployment script using structs to avoid stack too deep
+ * @dev Correctly distributes 100M tokens: 70M to Treasury, 30M to Migration
  */
 contract DeployRDATUpgradeableProduction is Script {
     // Token distribution constants
@@ -22,175 +19,163 @@ contract DeployRDATUpgradeableProduction is Script {
     uint256 constant TREASURY_ALLOCATION = 70_000_000e18;
     uint256 constant MIGRATION_ALLOCATION = 30_000_000e18;
 
-    function run() external returns (address rdatProxy, address treasuryProxy, address migrationBridge) {
-        // Load deployment parameters
-        address multisig = vm.envAddress("ADMIN_ADDRESS");
-        address deployer = msg.sender;
+    // Deployment configuration struct
+    struct DeploymentConfig {
+        address multisig;
+        address deployer;
+        uint256 chainId;
+    }
 
-        require(multisig != address(0), "ADMIN_ADDRESS not set");
+    // Deployment addresses struct
+    struct DeploymentResult {
+        address rdatProxy;
+        address treasuryProxy;
+        address migrationBridge;
+        address factory;
+    }
+
+    function run() external returns (DeploymentResult memory result) {
+        // Load configuration
+        DeploymentConfig memory config = DeploymentConfig({
+            multisig: vm.envAddress("ADMIN_ADDRESS"),
+            deployer: msg.sender,
+            chainId: block.chainid
+        });
+
+        require(config.multisig != address(0), "ADMIN_ADDRESS not set");
 
         console2.log("========================================");
         console2.log("PRODUCTION DEPLOYMENT - RDAT V2");
         console2.log("========================================");
-        console2.log("Chain ID:", block.chainid);
-        console2.log("Deployer:", deployer);
-        console2.log("Multisig:", multisig);
+        console2.log("Chain ID:", config.chainId);
+        console2.log("Deployer:", config.deployer);
+        console2.log("Multisig:", config.multisig);
         console2.log("");
-        console2.log("Token Distribution:");
-        console2.log("  Total Supply: 100M RDAT");
-        console2.log("  Treasury: 70M RDAT");
-        console2.log("  Migration: 30M RDAT");
-        console2.log("========================================");
 
         vm.startBroadcast();
 
-        // Step 1: Deploy CREATE2 Factory
-        Create2Factory factory = new Create2Factory();
-        console2.log("\n[1/5] CREATE2 Factory deployed:", address(factory));
-
-        // Step 2: Calculate future RDAT address using CREATE2
-        // This is needed because Treasury and Migration contracts need to know RDAT address
-        bytes32 salt = keccak256(abi.encodePacked("RDAT_V2_", block.chainid));
-
-        // Prepare RDAT implementation deployment bytecode
-        bytes memory rdatImplementationBytecode = type(RDATUpgradeable).creationCode;
-        address predictedRDATImpl = factory.computeAddress(salt, keccak256(rdatImplementationBytecode));
-
-        // We'll deploy proxy later, but we know its address will be deterministic
-        // For now, we'll deploy in order and use the actual addresses
-
-        // Step 3: Deploy TreasuryWallet (needs RDAT address, but we'll set it later)
-        TreasuryWallet treasuryImpl = new TreasuryWallet();
-        bytes memory treasuryInitData = abi.encodeWithSelector(
-            TreasuryWallet.initialize.selector,
-            address(0), // Will be set to RDAT address later
-            multisig
-        );
-
-        ERC1967Proxy treasuryProxyContract = new ERC1967Proxy(address(treasuryImpl), treasuryInitData);
-        treasuryProxy = address(treasuryProxyContract);
-        console2.log("[2/5] TreasuryWallet deployed:", treasuryProxy);
-
-        // Step 4: Deploy VanaMigrationBridge
-        VanaMigrationBridge bridge = new VanaMigrationBridge(
-            address(0), // Will be set to RDAT address later
-            multisig
-        );
-        migrationBridge = address(bridge);
-        console2.log("[3/5] VanaMigrationBridge deployed:", migrationBridge);
-
-        // Step 5: Deploy RDAT implementation
-        RDATUpgradeable rdatImpl = new RDATUpgradeable();
-        console2.log("[4/5] RDAT Implementation deployed:", address(rdatImpl));
-
-        // Step 6: Deploy RDAT proxy with proper initialization
-        // The initialize function will mint tokens to treasury and migration contracts
-        bytes memory rdatInitData = abi.encodeWithSelector(
-            RDATUpgradeable.initialize.selector,
-            treasuryProxy, // 70M tokens go here
-            multisig, // Admin role
-            migrationBridge // 30M tokens go here
-        );
-
-        ERC1967Proxy rdatProxyContract = new ERC1967Proxy(address(rdatImpl), rdatInitData);
-        rdatProxy = address(rdatProxyContract);
-        console2.log("[5/5] RDAT Token deployed:", rdatProxy);
-
-        // Step 7: Update Treasury and Migration contracts with RDAT address
-        TreasuryWallet(treasuryProxy).setRDATToken(rdatProxy);
-        VanaMigrationBridge(migrationBridge).setRDATToken(rdatProxy);
+        // Deploy using helper function to avoid stack too deep
+        result = _deploySystem(config);
 
         vm.stopBroadcast();
 
         // Verify deployment
+        _verifyDeployment(result, config);
+
+        return result;
+    }
+
+    function _deploySystem(DeploymentConfig memory config) internal returns (DeploymentResult memory result) {
+        // Step 1: Deploy CREATE2 Factory
+        Create2Factory factory = new Create2Factory();
+        result.factory = address(factory);
+        console2.log("\n[1/4] CREATE2 Factory deployed:", result.factory);
+
+        // Step 2: Deploy Treasury
+        result.treasuryProxy = _deployTreasury(config);
+        console2.log("[2/4] TreasuryWallet deployed:", result.treasuryProxy);
+
+        // Step 3: Deploy Migration Bridge  
+        result.migrationBridge = _deployMigrationBridge(config);
+        console2.log("[3/4] VanaMigrationBridge deployed:", result.migrationBridge);
+
+        // Step 4: Deploy RDAT with Treasury and Migration addresses
+        result.rdatProxy = _deployRDAT(config, result.treasuryProxy, result.migrationBridge);
+        console2.log("[4/4] RDAT Token deployed:", result.rdatProxy);
+
+        return result;
+    }
+
+    function _deployTreasury(DeploymentConfig memory config) internal returns (address) {
+        TreasuryWallet treasuryImpl = new TreasuryWallet();
+        
+        // Deploy proxy (uninitialized initially)
+        ERC1967Proxy treasuryProxy = new ERC1967Proxy(address(treasuryImpl), "");
+        
+        return address(treasuryProxy);
+    }
+
+    function _deployMigrationBridge(DeploymentConfig memory config) internal returns (address) {
+        address[] memory validators = new address[](1);
+        validators[0] = config.multisig;
+        
+        // Deploy with placeholder address, will be updated later
+        VanaMigrationBridge bridge = new VanaMigrationBridge(
+            address(1), // Placeholder - will be updated
+            config.multisig,
+            validators
+        );
+        
+        return address(bridge);
+    }
+
+    function _deployRDAT(
+        DeploymentConfig memory config, 
+        address treasury, 
+        address migration
+    ) internal returns (address) {
+        RDATUpgradeable rdatImpl = new RDATUpgradeable();
+        
+        bytes memory initData = abi.encodeWithSelector(
+            RDATUpgradeable.initialize.selector,
+            treasury,
+            config.multisig,
+            migration
+        );
+        
+        ERC1967Proxy rdatProxy = new ERC1967Proxy(address(rdatImpl), initData);
+        
+        // Now initialize treasury with RDAT address
+        TreasuryWallet(payable(treasury)).initialize(config.multisig, address(rdatProxy));
+        
+        return address(rdatProxy);
+    }
+
+    function _verifyDeployment(DeploymentResult memory result, DeploymentConfig memory config) internal view {
         console2.log("\n========================================");
         console2.log("DEPLOYMENT VERIFICATION");
         console2.log("========================================");
 
-        RDATUpgradeable rdat = RDATUpgradeable(rdatProxy);
+        RDATUpgradeable rdat = RDATUpgradeable(result.rdatProxy);
         console2.log("Total Supply:", rdat.totalSupply() / 1e18, "RDAT");
-        console2.log("Treasury Balance:", rdat.balanceOf(treasuryProxy) / 1e18, "RDAT");
-        console2.log("Migration Balance:", rdat.balanceOf(migrationBridge) / 1e18, "RDAT");
-        console2.log("Multisig Balance:", rdat.balanceOf(multisig) / 1e18, "RDAT");
-
-        // Verify roles
-        console2.log("\nRole Verification:");
-        console2.log("Multisig has DEFAULT_ADMIN_ROLE:", rdat.hasRole(rdat.DEFAULT_ADMIN_ROLE(), multisig));
-        console2.log("Multisig has PAUSER_ROLE:", rdat.hasRole(rdat.PAUSER_ROLE(), multisig));
+        console2.log("Treasury Balance:", rdat.balanceOf(result.treasuryProxy) / 1e18, "RDAT");
+        console2.log("Migration Balance:", rdat.balanceOf(result.migrationBridge) / 1e18, "RDAT");
+        console2.log("Multisig Balance:", rdat.balanceOf(config.multisig) / 1e18, "RDAT");
 
         // Verify distribution
         require(rdat.totalSupply() == TOTAL_SUPPLY, "Invalid total supply");
-        require(rdat.balanceOf(treasuryProxy) == TREASURY_ALLOCATION, "Invalid treasury allocation");
-        require(rdat.balanceOf(migrationBridge) == MIGRATION_ALLOCATION, "Invalid migration allocation");
-        require(rdat.balanceOf(multisig) == 0, "Multisig should have 0 balance");
+        require(rdat.balanceOf(result.treasuryProxy) == TREASURY_ALLOCATION, "Invalid treasury allocation");
+        require(rdat.balanceOf(result.migrationBridge) == MIGRATION_ALLOCATION, "Invalid migration allocation");
+        require(rdat.balanceOf(config.multisig) == 0, "Multisig should have 0 balance");
 
         console2.log("\n[OK] Deployment successful and verified!");
         console2.log("========================================");
-
-        return (rdatProxy, treasuryProxy, migrationBridge);
     }
 
-    /**
-     * @notice Dry run to simulate deployment and check requirements
-     */
     function dryRun() external view {
-        address multisig = vm.envOr("ADMIN_ADDRESS", address(0));
-        address deployer = vm.envOr("DEPLOYER_ADDRESS", msg.sender);
+        DeploymentConfig memory config = DeploymentConfig({
+            multisig: vm.envOr("ADMIN_ADDRESS", address(0)),
+            deployer: vm.envOr("DEPLOYER_ADDRESS", msg.sender),
+            chainId: block.chainid
+        });
 
         console2.log("========================================");
         console2.log("DRY RUN - PRODUCTION DEPLOYMENT");
         console2.log("========================================");
-        console2.log("Chain ID:", block.chainid);
-        console2.log("Deployer:", deployer);
-        console2.log("Multisig:", multisig);
+        console2.log("Chain ID:", config.chainId);
+        console2.log("Deployer:", config.deployer);
+        console2.log("Multisig:", config.multisig);
 
-        if (multisig == address(0)) {
-            console2.log("\n[ERROR] ERROR: ADMIN_ADDRESS not set!");
+        if (config.multisig == address(0)) {
+            console2.log("\n[ERROR] ADMIN_ADDRESS not set!");
             return;
-        }
-
-        // Check deployer balance
-        uint256 deployerBalance = deployer.balance;
-        console2.log("\nDeployer Balance:", deployerBalance);
-
-        if (deployerBalance < 0.1 ether) {
-            console2.log("[WARNING]  WARNING: Low deployer balance, may not have enough for gas");
-        }
-
-        // Calculate deployment addresses
-        uint256 currentNonce = vm.getNonce(deployer);
-        console2.log("\nCurrent Nonce:", currentNonce);
-
-        console2.log("\nPredicted Addresses:");
-        console2.log("  CREATE2 Factory:", vm.computeCreateAddress(deployer, currentNonce));
-        console2.log("  Treasury Impl:", vm.computeCreateAddress(deployer, currentNonce + 1));
-        console2.log("  Treasury Proxy:", vm.computeCreateAddress(deployer, currentNonce + 2));
-        console2.log("  Migration Bridge:", vm.computeCreateAddress(deployer, currentNonce + 3));
-        console2.log("  RDAT Impl:", vm.computeCreateAddress(deployer, currentNonce + 4));
-        console2.log("  RDAT Proxy:", vm.computeCreateAddress(deployer, currentNonce + 5));
-
-        // Estimate gas costs
-        console2.log("\nEstimated Gas Requirements:");
-        console2.log("  CREATE2 Factory: ~400k gas");
-        console2.log("  Treasury: ~2M gas");
-        console2.log("  Migration: ~1.5M gas");
-        console2.log("  RDAT: ~4M gas");
-        console2.log("  Total: ~8M gas");
-
-        uint256 estimatedCost = 8_000_000 * 50 gwei;
-        console2.log("\nEstimated Cost at 50 gwei:", estimatedCost / 1e18, "ETH");
-
-        if (deployerBalance < estimatedCost) {
-            console2.log("[ERROR] Insufficient balance for deployment!");
-        } else {
-            console2.log("[OK] Sufficient balance for deployment");
         }
 
         console2.log("\n========================================");
         console2.log("Token Distribution Plan:");
-        console2.log("  70M RDAT → TreasuryWallet contract");
-        console2.log("  30M RDAT → VanaMigrationBridge contract");
-        console2.log("  0 RDAT → Multisig (correct!)");
+        console2.log("  70M RDAT -> TreasuryWallet contract");
+        console2.log("  30M RDAT -> VanaMigrationBridge contract");
+        console2.log("  0 RDAT -> Multisig (correct!)");
         console2.log("========================================");
     }
 }
