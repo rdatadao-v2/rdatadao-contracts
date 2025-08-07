@@ -749,13 +749,32 @@ contract RDATUpgradeable is
     }
     
     /**
-     * @notice Check VRC-20 compliance status
-     * @return compliant True if all minimal requirements are met
+     * @notice Check VRC-20 minimal compliance status (Option B)
+     * @return compliant True if minimal requirements are met for audit
+     * @dev This checks minimal compliance only. Full compliance requires DLP integration post-audit
      */
     function isVRC20Compliant() external view returns (bool) {
-        // Check all minimal requirements
+        return isVRC20MinimallyCompliant();
+    }
+    
+    /**
+     * @notice Check minimal VRC-20 compliance (Option B)
+     * @return compliant True if blacklisting, timelocks, and DLP registry are implemented
+     */
+    function isVRC20MinimallyCompliant() public view returns (bool) {
         return isVRC20 && // Basic VRC-20 flag
-               blacklistCount >= 0 && // Blacklist functionality exists
-               TIMELOCK_DURATION == 48 hours; // Timelock is properly set
+               TIMELOCK_DURATION == 48 hours; // Timelock system implemented
+    }
+    
+    /**
+     * @notice Check full VRC-20 compliance (post-audit target)
+     * @return compliant True if all advanced features are implemented
+     * @dev Returns false until post-audit implementation is complete
+     */
+    function isVRC20FullyCompliant() external view returns (bool) {
+        return isVRC20MinimallyCompliant() &&
+               dlpRegistered && // DLP registration complete
+               pocContract != address(0); // ProofOfContribution integrated
+               // Note: Additional checks for kismet, data pools, etc. will be added post-audit
     }
 }

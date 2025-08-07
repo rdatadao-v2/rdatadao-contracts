@@ -1,9 +1,19 @@
 # 🔧 Technical FAQ and Architectural Decisions
 
-**Last Updated**: August 6, 2025  
-**Version**: 2.0 - Post-Implementation Update
+**Last Updated**: August 7, 2025  
+**Version**: 2.1 - Pre-Audit Documentation Update
 
 This document captures important technical decisions, architectural patterns, and frequently asked questions about the r/datadao V2 smart contract implementation.
+
+## ⚠️ Important Clarifications
+
+### Token Minting Differences
+- **RDAT**: Fixed 100M supply, ALL minted at deployment, `mint()` always reverts
+- **vRDAT**: Unlimited supply, minted when users stake, proportional to stake amount/duration
+
+### VRC-20 Compliance Level
+- **Current**: Minimal compliance (Option B) - blocklisting, timelocks, DLP registry
+- **Future**: Full compliance planned post-audit (10-12 weeks)
 
 ## 📋 Table of Contents
 1. [RDAT Tokenomics](#rdat-tokenomics)
@@ -129,7 +139,7 @@ lockMultipliers[365 days] = 40000;  // 4x = 400%
 
 ### Q: What level of VRC-20 compliance does RDAT implement?
 
-**A:** RDAT implements **full VRC-20 compliance** for complete integration with Vana's data licensing protocol:
+**A:** RDAT implements **minimal VRC-20 compliance (Option B)** suitable for audit, with full compliance planned post-audit:
 
 #### **Core VRC-20 Interface Implementation**
 ```solidity

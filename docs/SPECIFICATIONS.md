@@ -1,19 +1,19 @@
 # 📋 RDAT V2 Beta Smart Contract Specifications
 
-**Version**: 3.0 Beta (Full VRC Compliance)  
+**Version**: 3.0 Beta (Minimal VRC-20 Compliance)  
 **Sprint Duration**: August 5-18, 2025 (13 days)  
 **Context**: Upgrade from V1 (30M RDAT on Base) to V2 (100M RDAT on Vana)  
 **Approach**: Modular rewards system with minimal VRC-20 compliance (Option B) and updateable DLP Registry  
 **Risk Reduction**: $85M+ → ~$10M through major design flaw resolution  
-**Contracts**: 11 core contracts (plus deployment helpers)
+**Contracts**: 11 core contracts
 
 ### 📊 Progress Update (August 7, 2025)
-**Status**: ✅ Core Complete - 333/333 tests passing  
-**VRC-20 Strategy**: Option B - Minimal compliance with updateable DLP Registry  
+**Status**: ✅ Core Complete - 356/356 tests passing  
+**VRC-20 Status**: ✅ Minimal compliance achieved (Option B)  
 **Architecture**: Hybrid approach - UUPS upgradeable RDAT token + non-upgradeable staking  
-**Key Decision**: Implementing updateable DLP Registry for post-deployment configuration  
-**Sprint Focus**: Adding VRC-20 compliance features before audit (11 days remaining)  
-**Audit Date**: August 19, 2025
+**Key Features**: Blacklisting ✅ | 48hr Timelocks ✅ | DLP Registry (updateable) ✅  
+**Sprint Focus**: Documentation alignment and audit preparation  
+**Audit Date**: August 11, 2025
 
 ## 🎯 Overview
 
@@ -34,14 +34,24 @@ RDAT V2 Beta represents a major upgrade from the existing V1 deployment, introdu
 
 ## 💰 Tokenomics
 
-### **RDAT Token Supply Model**
+### **Token Supply Models**
+
+#### **RDAT Token (Main Token)**
 - **Total Supply**: 100,000,000 RDAT (fixed, non-inflationary)
 - **Minting Strategy**: ENTIRE supply minted at deployment in `initialize()`
 - **Initial Distribution**: 
   - Treasury: 70M tokens (rewards, liquidity, operations)
   - Migration Contract: 30M tokens (pre-allocated for V1 holders)
-- **No Minting Function**: `mint()` always reverts - prevents any supply inflation
-- **Security**: No MINTER_ROLE exists, eliminating minting vulnerabilities
+- **No Further Minting**: `mint()` function always reverts - prevents any supply inflation
+- **Security**: No MINTER_ROLE exists for RDAT, eliminating minting vulnerabilities
+
+#### **vRDAT Token (Governance Token)**
+- **Supply Model**: Unlimited, minted proportionally to staking positions
+- **Minting Strategy**: Automatically minted when users stake RDAT
+- **Distribution Formula**: Based on stake amount × lock duration multiplier
+- **Soul-bound**: Non-transferable governance rights
+- **Burning**: Only on emergency withdrawal (50% penalty scenario)
+- **MINTER_ROLE**: Granted only to vRDATRewardModule contract
 
 ### **Reward Distribution**
 - **Source**: Pre-allocated pools from treasury, NOT from minting
@@ -229,26 +239,30 @@ The 30M RDAT "Future Rewards" allocation is locked until community governance ap
 - **Ecosystem Grants**: Developer funding program
 - **Data Contributor Bonuses**: Quality-based rewards
 
-## 🆕 VRC-20 Option B: Updateable DLP Registry Approach
+## 🆕 VRC-20 Compliance Status
 
-### **Strategy: Deploy Now, Configure Later**
-We implement minimal VRC-20 compliance with an updateable DLP Registry address, allowing us to:
-1. Deploy and audit the contracts without waiting for Vana's registry address
-2. Set the DLP Registry address when Vana provides it
-3. Update the registry if Vana deploys new versions
-4. Maintain VRC-20 compliance throughout
+### **Current Implementation: Minimal Compliance (Option B)**
+We have implemented minimal VRC-20 compliance suitable for audit, with full compliance planned post-audit:
 
-### **Implementation Timeline (11 Days)**
-```
-Aug 7-8:  Review & test V2 Minimal implementation
-Aug 9-10: Integrate blocklisting system (VRC-20 requirement)
-Aug 11-12: Add 48-hour timelocks (VRC-20 requirement)
-Aug 13:   Integration testing
-Aug 14-15: DLP registry integration (updateable)
-Aug 16:   Deploy to testnets
-Aug 17-18: Final audit preparation
-Aug 19:   Submit to audit
-```
+#### **✅ Implemented (Minimal Compliance)**
+1. **Blocklisting System**: Admin-controlled address restrictions
+2. **48-Hour Timelocks**: Critical operation delays for security
+3. **Updateable DLP Registry**: Post-deployment configuration capability
+4. **Fixed Supply**: 100M tokens, no minting after deployment
+5. **Basic Data Structures**: Pool and epoch reward interfaces
+
+#### **⏳ Post-Audit Implementation (Full Compliance - 10-12 weeks)**
+1. **ProofOfContribution**: Full Reddit verification integration
+2. **Kismet Formula**: Reputation-based reward multipliers (1.0x-1.5x)
+3. **Data Quality Scoring**: Algorithmic validation of contributions
+4. **DLP Integration**: Active connection to Vana's registry
+5. **Cross-DLP Features**: Inter-pool communication and rewards
+
+### **Why Option B?**
+- Allows immediate audit without waiting for Vana infrastructure
+- Provides flexibility to adapt to Vana's evolving standards
+- Reduces risk while maintaining upgrade path to full compliance
+- Satisfies minimum requirements for Vana ecosystem participation
 
 ### **Key Contract: RDATUpgradeableV2Minimal**
 ```solidity
@@ -426,26 +440,36 @@ contract SecureMigrationBridge {
 ## 📦 Smart Contracts Required (11 Core Contracts)
 
 ### Core Contracts (V2 Modular Architecture)
-1. **RDATUpgradeable.sol** - Main token with full VRC-20 compliance (UUPS upgradeable)
-   - Fixed 100M supply (all minted at deployment)
-   - Full VRC-20 data pool management
-   - Epoch rewards from treasury allocation (no minting)
-   - Data license fee routing through RevenueCollector
-   - Kismet-based reward calculations
-2. **vRDAT.sol** - Soul-bound governance token (non-upgradeable)
-3. **StakingPositions.sol** - NFT-based staking with conditional transfers (non-upgradeable)
-4. **RewardsManager.sol** - Orchestrates reward modules (upgradeable for flexibility)
-5. **vRDATRewardModule.sol** - Immediate governance token distribution
-6. **RDATRewardModule.sol** - Time-based staking rewards
-7. **MigrationBridge.sol** - Cross-chain migration contract
-8. **MigrationBonusVesting.sol** - 12-month vesting for migration bonuses
-9. **EmergencyPause.sol** - Emergency response system
-10. **RevenueCollector.sol** - Dynamic fee distribution with RewardsManager integration
-11. **ProofOfContribution.sol** - Full Vana DLP implementation
+### 11 Core Contracts (Audit Scope)
 
-### Deployment Helper Contracts (Not Core Protocol)
-- **TreasuryWallet.sol** - Multi-sig treasury with distribution tracking
-- **TokenVesting.sol** - Team token vesting (6-month cliff + 18-month linear)
+1. **RDATUpgradeable.sol** - Main token with minimal VRC-20 compliance (UUPS upgradeable)
+   - Fixed 100M supply (all minted at deployment)
+   - Blocklisting, timelocks, updateable DLP registry
+   - Basic data pool structures (full implementation post-audit)
+   
+2. **TreasuryWallet.sol** - Manages 70M token allocation with vesting schedules
+
+3. **VanaMigrationBridge.sol** - Vana-side bridge holding 30M for V1 migration
+
+4. **BaseMigrationBridge.sol** - Base-side bridge for burning V1 tokens
+
+5. **StakingPositions.sol** - NFT-based staking with 4 lock periods (non-upgradeable)
+
+6. **vRDAT.sol** - Soul-bound governance token (non-upgradeable)
+
+7. **RewardsManager.sol** - Orchestrates reward modules (UUPS upgradeable)
+
+8. **vRDATRewardModule.sol** - Distributes vRDAT on stake
+
+9. **EmergencyPause.sol** - 72-hour auto-expiry emergency system
+
+10. **RevenueCollector.sol** - 50/30/20 fee distribution
+
+11. **ProofOfContributionStub.sol** - Interface placeholder (full implementation post-audit)
+
+### Additional Contracts (Not Core)
+- **TokenVesting.sol** - Team token vesting (VRC-20 compliant)
+- **CREATE2Factory.sol** - Deployment helper for deterministic addresses
 
 ### 🔄 Architecture Approach
 

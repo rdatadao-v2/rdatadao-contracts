@@ -1,0 +1,669 @@
+Compiling 199 files with Solc 0.8.23
+Solc 0.8.23 finished in 5.69s
+Compiler run successful with warnings:
+Warning (5740): Unreachable code.
+  --> lib/openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol:79:9:
+   |
+79 |         _nonReentrantAfter();
+   |         ^^^^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/TokenVesting.t.sol:587:9:
+    |
+587 |         RDATUpgradeable otherToken = new RDATUpgradeable();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/TreasuryWallet.t.sol:327:10:
+    |
+327 |         (uint256 total,, uint256 available,) = treasury.getVestingInfo(treasury.TREASURY_ECOSYSTEM());
+    |          ^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/integration/ModularGovernanceIntegration.t.sol:122:9:
+    |
+122 |         uint256 proposalId = _createTestProposal();
+    |         ^^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/integration/ModularGovernanceIntegration.t.sol:220:9:
+    |
+220 |         bytes32 executorRole = keccak256("EXECUTOR_ROLE");
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+   --> test/integration/ModularGovernanceIntegration.t.sol:264:9:
+    |
+264 |         IGovernance.VoteParams memory voteParams = IGovernance.VoteParams({
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning (2018): Function state mutability can be restricted to view
+  --> script/PreDeploymentCheck.s.sol:38:5:
+   |
+38 |     function run() external {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+  --> script/DeployAll.s.sol:22:5:
+   |
+22 |     function deploy() internal override {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> script/DeployAll.s.sol:44:5:
+   |
+44 |     function _deployEmergencyPause() internal returns (address) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> script/DeployAll.s.sol:50:5:
+   |
+50 |     function _deployRDAT() internal returns (address) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> script/DeployAll.s.sol:56:5:
+   |
+56 |     function _deployVRDAT() internal returns (address) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> script/DeployAll.s.sol:62:5:
+   |
+62 |     function _deployStaking() internal returns (address) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> script/DeployAll.s.sol:68:5:
+   |
+68 |     function _deployRevenueCollector() internal returns (address) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> script/DeployAll.s.sol:74:5:
+   |
+74 |     function _deployProofOfContribution() internal returns (address) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> script/DeployAll.s.sol:80:5:
+   |
+80 |     function _deployMigrationBridge() internal returns (address) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> script/DeployAll.s.sol:86:5:
+   |
+86 |     function _configureContracts() internal {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> script/DeployAll.s.sol:91:5:
+   |
+91 |     function _transferOwnerships() internal {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> src/RDATUpgradeable.sol:764:5:
+    |
+764 |     function isVRC20MinimallyCompliant() public view returns (bool) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> script/DeployMigrationWithVesting.s.sol:108:5:
+    |
+108 |     function dryRun() external view {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+  --> script/DeployRDATUpgradeableSimple.s.sol:59:5:
+   |
+59 |     function dryRun() external {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> script/DeploymentOverview.s.sol:11:5:
+   |
+11 |     function run() external view {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> script/GenerateABI.s.sol:13:5:
+   |
+13 |     function run() public view {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> script/ShowDeploymentAddresses.s.sol:15:5:
+   |
+15 |     function run() external view {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+  --> script/vana/DeployRDATWithVesting.s.sol:28:5:
+   |
+28 |     function deploy() internal override {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+  --> test/RDATUpgradeable.t.sol:70:5:
+   |
+70 |     function test_Initialization() public {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+   --> test/TreasuryWallet.t.sol:100:5:
+    |
+100 |     function test_TGEUnlocks() public {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+   --> test/VRC20Compliance.t.sol:300:5:
+    |
+300 |     function test_VRC20_ComplianceStatus() public {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+   --> test/integration/ModularGovernanceIntegration.t.sol:216:5:
+    |
+216 |     function test_ModuleRoleConfiguration() public {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+  --> test/mocks/MockRDAT.t.sol:31:5:
+   |
+31 |     function test_InitialState() public {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+  --> test/unit/EmergencyPause.t.sol:46:5:
+   |
+46 |     function test_InitialState() public {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+   --> test/unit/EmergencyPause.t.sol:304:5:
+    |
+304 |     function test_ReentrancyProtection() public {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+  --> test/unit/SetupTest.t.sol:16:5:
+   |
+16 |     function test_SetupWorks() public {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+  --> test/unit/vRDAT.t.sol:45:5:
+   |
+45 |     function test_InitialState() public {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+   --> test/unit/vRDAT.t.sol:211:5:
+    |
+211 |     function test_QuadraticVotingMath() public {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+   --> test/unit/vRDAT.t.sol:342:5:
+    |
+342 |     function testFuzz_QuadraticMath(uint256 votes) public {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Analysing contracts...
+Running tests...
+
+Ran 4 tests for test/ProofOfContributionStub.t.sol:ProofOfContributionStubTest
+[PASS] test_Deployment() (gas: 16830)
+[PASS] test_RecordContribution() (gas: 95977)
+[PASS] test_StubViewFunctions() (gas: 24626)
+[PASS] test_ValidatorManagement() (gas: 33318)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 921.17µs (419.21µs CPU time)
+
+Ran 3 tests for test/unit/SetupTest.t.sol:SetupTest
+[PASS] test_BlockHelpers() (gas: 3693)
+[PASS] test_SetupWorks() (gas: 4898)
+[PASS] test_TimeHelpers() (gas: 4246)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 293.54µs (59.38µs CPU time)
+
+Ran 13 tests for test/BaseMigrationBridge.t.sol:BaseMigrationBridgeTest
+[PASS] test_BurnTxHashUniqueness() (gas: 156358)
+[PASS] test_GetUserMigrationInfo() (gas: 126856)
+[PASS] test_InitialState() (gas: 33694)
+[PASS] test_InitiateMigration() (gas: 128005)
+[PASS] test_InitiateMigrationMultipleTimes() (gas: 139897)
+[PASS] test_InitiateMigrationMultipleUsers() (gas: 181260)
+[PASS] test_MigrationDeadlineHelpers() (gas: 16232)
+[PASS] test_PauseUnpause() (gas: 144576)
+[PASS] test_RescueTokensAfterDeadline() (gas: 3785420)
+[PASS] test_RevertInitiateMigrationAfterDeadline() (gas: 51097)
+[PASS] test_RevertInitiateMigrationInsufficientBalance() (gas: 54116)
+[PASS] test_RevertInitiateMigrationZeroAmount() (gas: 19339)
+[PASS] test_RevertVanaSideFunctions() (gas: 23358)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 2.20ms (1.42ms CPU time)
+
+Ran 15 tests for test/VanaMigrationBridge.t.sol:VanaMigrationBridgeTest
+[PASS] test_CalculateBonus() (gas: 20324)
+[PASS] test_ChallengeMigration() (gas: 286259)
+[PASS] test_DailyLimit() (gas: 760240)
+[PASS] test_ExecuteMigrationManually() (gas: 437739)
+[PASS] test_InitialState() (gas: 39653)
+[PASS] test_PauseUnpause() (gas: 42532)
+[PASS] test_ReturnUnclaimedTokensAfterDeadline() (gas: 60289)
+[PASS] test_RevertBaseSideFunctions() (gas: 9471)
+[PASS] test_RevertDuplicateValidation() (gas: 213449)
+[PASS] test_RevertProcessedBurnHash() (gas: 423555)
+[PASS] test_RevertRemoveBelowMinimum() (gas: 32966)
+[PASS] test_SubmitValidationConsensus() (gas: 465812)
+[PASS] test_SubmitValidationSingle() (gas: 223069)
+[PASS] test_UpdateDailyLimit() (gas: 20999)
+[PASS] test_ValidatorManagement() (gas: 84581)
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 2.38ms (1.57ms CPU time)
+
+Ran 4 tests for test/CrossChainMigration.t.sol:CrossChainMigrationTest
+[PASS] test_ChallengedMigration() (gas: 417834)
+[PASS] test_CompleteUserMigrationFlow() (gas: 574894)
+[PASS] test_MigrationBonusDecay() (gas: 48551)
+[PASS] test_MultipleMigrationsWithDailyLimit() (gas: 1217780)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 2.74ms (1.56ms CPU time)
+
+Ran 5 tests for test/security/UpgradeSafety.t.sol:UpgradeSafetyTest
+[PASS] test_EmergencyPauseDuringUpgrade() (gas: 6731980)
+[PASS] test_MultipleUpgrades() (gas: 12286275)
+[PASS] test_StorageGapProtection() (gas: 5638656)
+[PASS] test_UpgradeDuringActiveStaking() (gas: 6769069)
+[PASS] test_UpgradePreservesPositions() (gas: 6468653)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 3.79ms (1.80ms CPU time)
+
+Ran 3 tests for test/CREATE2Deployment.t.sol:CREATE2DeploymentTest
+[PASS] test_CREATE2_CircularDependency() (gas: 11547357)
+[FAIL: Deployment too expensive: 11536222 >= 10000000] test_DeploymentGasEstimate() (gas: 11543755)
+[PASS] test_PredictableAddressesAcrossChains() (gas: 775680)
+Suite result: FAILED. 2 passed; 1 failed; 0 skipped; finished in 4.05ms (3.49ms CPU time)
+
+Ran 18 tests for test/StakingPositions.t.sol:StakingPositionsTest
+[PASS] testCannotRescueRDAT() (gas: 24247)
+[PASS] testClaimAllRewards() (gas: 911092)
+[PASS] testClaimRewards() (gas: 371814)
+[PASS] testEmergencyWithdraw() (gas: 326953)
+[PASS] testGetUserPositions() (gas: 912826)
+[PASS] testInvalidLockPeriod() (gas: 28072)
+[PASS] testMultipleStakesCreateMultiplePositions() (gas: 945003)
+[PASS] testNonExistentPosition() (gas: 49682)
+[PASS] testNotPositionOwner() (gas: 386639)
+[PASS] testPauseUnpause() (gas: 385526)
+[PASS] testRescueTokens() (gas: 7210301)
+[PASS] testRewardCalculation() (gas: 368140)
+[PASS] testSetMultipliers() (gas: 58028)
+[PASS] testStakeCreatesPosition() (gas: 389360)
+[PASS] testTransferAllowedAfterUnlock() (gas: 318977)
+[PASS] testTransferBlockedDuringLock() (gas: 373395)
+[PASS] testUnstakeAfterLockPeriod() (gas: 342186)
+[PASS] testZeroAmountStake() (gas: 25790)
+Suite result: ok. 18 passed; 0 failed; 0 skipped; finished in 4.22ms (3.01ms CPU time)
+
+Ran 5 tests for test/CrossContractUpgrade.t.sol:CrossContractUpgradeTest
+[PASS] testPausedContractUpgrade() (gas: 13364590)
+[PASS] testRDATUpgradeWithActiveStakingPositions() (gas: 7906841)
+[PASS] testSequentialUpgradesWithActivePositions() (gas: 13707315)
+[PASS] testSimpleRDATUpgradePreservesStakingBalance() (gas: 7175694)
+[PASS] testUpgradeFailureRecovery() (gas: 424694)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 4.47ms (2.87ms CPU time)
+
+Ran 4 tests for test/integration/RDATEmergencyPause.t.sol:RDATEmergencyPauseIntegration
+[PASS] test_AutoExpiryIntegration() (gas: 122494)
+[PASS] test_EmergencyPauseScenario() (gas: 126835)
+[PASS] test_MultipleSystemsEmergencyPause() (gas: 7209831)
+[PASS] test_NormalOperationWhenNotPaused() (gas: 43447)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 3.60ms (1.54ms CPU time)
+
+Ran 11 tests for test/integration/ModularGovernanceIntegration.t.sol:ModularGovernanceIntegrationTest
+[PASS] test_ExecutionFlow() (gas: 399669)
+[PASS] test_GetVoteTotals() (gas: 541132)
+[PASS] test_ModuleRoleConfiguration() (gas: 41997)
+[PASS] test_ProposalCancellation() (gas: 194838)
+[PASS] test_ProposalCreationFlow() (gas: 166590)
+[PASS] test_ProposalStateTransitions() (gas: 174204)
+[PASS] test_QuadraticVotingCost() (gas: 182065)
+[PASS] test_QuorumChecks() (gas: 1759751)
+[PASS] test_RevertDoubleVote() (gas: 403181)
+[PASS] test_RevertInsufficientVRDAT() (gas: 206144)
+[PASS] test_VotingFlow() (gas: 406773)
+Suite result: ok. 11 passed; 0 failed; 0 skipped; finished in 3.47ms (2.58ms CPU time)
+
+Ran 19 tests for test/unit/EmergencyPause.t.sol:EmergencyPauseTest
+[PASS] test_AddPauser() (gas: 47293)
+[PASS] test_AddPauserAlreadyAdded() (gas: 42707)
+[PASS] test_AddPauserUnauthorized() (gas: 17509)
+[PASS] test_AddPauserZeroAddress() (gas: 14426)
+[PASS] test_AutoExpiry() (gas: 96474)
+[PASS] test_EmergencyPauseAlreadyPaused() (gas: 123364)
+[PASS] test_EmergencyPauseByAuthorizedPauser() (gas: 95216)
+[PASS] test_EmergencyPauseUnauthorized() (gas: 18836)
+[PASS] test_EmergencyUnpauseByGuardian() (gas: 83086)
+[PASS] test_EmergencyUnpauseNotPaused() (gas: 21234)
+[PASS] test_EmergencyUnpauseUnauthorized() (gas: 96746)
+[PASS] test_InitialState() (gas: 27426)
+[PASS] test_MultiplePausers() (gas: 143171)
+[PASS] test_PauseTimeRemaining() (gas: 102466)
+[PASS] test_ReentrancyProtection() (gas: 2484)
+[PASS] test_RemovePauser() (gas: 35443)
+[PASS] test_RemovePauserNotAdded() (gas: 18836)
+[PASS] test_WhenEmergencyPausedModifier() (gas: 391600)
+[PASS] test_WhenNotEmergencyPausedModifier() (gas: 386236)
+Suite result: ok. 19 passed; 0 failed; 0 skipped; finished in 1.41ms (958.79µs CPU time)
+
+Ran 6 tests for test/StakingPositionsUpgrade.t.sol:StakingPositionsUpgradeTest
+[PASS] testCanCreateNewPositionsAfterUpgrade() (gas: 7172702)
+[PASS] testExistingPositionsCanBeUnstakedAfterUpgrade() (gas: 6591373)
+[PASS] testExistingPositionsCanClaimRewardsAfterUpgrade() (gas: 6831544)
+[PASS] testStorageCollisionPrevention() (gas: 6822857)
+[PASS] testUpgradePreservesAllNFTPositions() (gas: 7482093)
+[PASS] testV2FeaturesWorkWithBoosts() (gas: 7181047)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 4.05ms (2.71ms CPU time)
+
+Ran 2 tests for test/security/MinStakeTest.t.sol:MinStakeTest
+[PASS] test_MaxPositionsLimit() (gas: 918980)
+[PASS] test_MinimumStakeEnforcement() (gas: 691111)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 1.56ms (547.04µs CPU time)
+
+Ran 14 tests for test/RewardsManagerBasic.t.sol:RewardsManagerBasicTest
+[PASS] test_AccessControl() (gas: 44771)
+[PASS] test_CalculateAllRewards() (gas: 817693)
+[PASS] test_ClaimAllRewards() (gas: 986769)
+[PASS] test_ClaimRewards_NoPrograms() (gas: 24585)
+[PASS] test_ClaimRewards_WithRDATProgram() (gas: 643773)
+[PASS] test_GetActivePrograms() (gas: 523322)
+[PASS] test_InvalidProgramOperations() (gas: 40857)
+[PASS] test_NotifyRevenueReward() (gas: 219817)
+[PASS] test_NotifyStake() (gas: 571351)
+[PASS] test_NotifyUnstake() (gas: 566123)
+[PASS] test_ProgramLifecycle() (gas: 228319)
+[PASS] test_ProgramWithFutureStart() (gas: 247854)
+[PASS] test_RegisterMultiplePrograms() (gas: 368002)
+[PASS] test_RegisterProgram() (gas: 221088)
+Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 7.83ms (4.98ms CPU time)
+
+Ran 8 tests for test/RDATUpgradeable.t.sol:RDATUpgradeableTest
+[PASS] test_CREATE2Deployment() (gas: 7390030)
+[PASS] test_CannotReinitialize() (gas: 21561)
+[PASS] test_FailedUpgradeRollback() (gas: 144850)
+[PASS] test_Initialization() (gas: 63719)
+[PASS] test_PauseAndUpgrade() (gas: 6840683)
+[PASS] test_StatePreservationAfterUpgrade() (gas: 6870573)
+[PASS] test_UpgradeAuthorization() (gas: 6781144)
+[PASS] test_UpgradeWithReinitialize() (gas: 6884145)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 5.02ms (3.76ms CPU time)
+
+Ran 7 tests for test/MigrationBonusVesting.t.sol:MigrationBonusVestingTest
+[PASS] test_InitialState() (gas: 29610)
+[PASS] test_MigrationWithBonusVesting() (gas: 628233)
+[PASS] test_MigrationWithoutBonusContract() (gas: 3363036)
+[PASS] test_MultipleMigrationsWithDecayingBonus() (gas: 1370191)
+[PASS] test_RevertInsufficientFunds() (gas: 255484)
+[PASS] test_RevertManualBeneficiaryAddition() (gas: 14524)
+[PASS] test_RevertManualEligibilityDate() (gas: 12161)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 3.20ms (2.01ms CPU time)
+
+Ran 28 tests for test/RevenueCollector.t.sol:RevenueCollectorTest
+[PASS] test_AddSupportedToken() (gas: 123010)
+[PASS] test_AutomaticDistributionNonRDAT() (gas: 264632)
+[PASS] test_AutomaticDistributionRDAT() (gas: 404973)
+[PASS] test_CannotInitializeWithZeroAddresses() (gas: 5002029)
+[PASS] test_DistributeAll() (gas: 457756)
+[PASS] test_DistributeAllNoRevenue() (gas: 27600)
+[PASS] test_DistributeInvalidToken() (gas: 26652)
+[PASS] test_DistributeNoRevenue() (gas: 124883)
+[PASS] test_DistributionRounding() (gas: 262646)
+[PASS] test_GetPendingRevenue() (gas: 386590)
+[PASS] test_GetStats() (gas: 267066)
+[PASS] test_InitializationValues() (gas: 34019)
+[PASS] test_IsDistributionNeeded() (gas: 292072)
+[PASS] test_ManualDistributionNonRDAT() (gas: 278178)
+[PASS] test_ManualDistributionRDAT() (gas: 430934)
+[PASS] test_NonRDATTokensGoToTreasury() (gas: 275938)
+[PASS] test_NotifyRevenue() (gas: 223359)
+[PASS] test_NotifyRevenueRequiresRole() (gas: 50982)
+[PASS] test_NotifyRevenueValidation() (gas: 37001)
+[PASS] test_OnlyAdminCanManageTokens() (gas: 22088)
+[PASS] test_OnlyAdminCanSetAddresses() (gas: 29096)
+[PASS] test_OnlyAdminCanSetThreshold() (gas: 119946)
+[PASS] test_RemoveSupportedToken() (gas: 100360)
+[PASS] test_RewardsManagerIntegration() (gas: 3397889)
+[PASS] test_SetContributorPool() (gas: 31827)
+[PASS] test_SetDistributionThreshold() (gas: 123048)
+[PASS] test_SetRewardsManager() (gas: 46081)
+[PASS] test_SetTreasury() (gas: 31807)
+Suite result: ok. 28 passed; 0 failed; 0 skipped; finished in 10.10ms (5.44ms CPU time)
+
+Ran 13 tests for test/security/GriefingAttacks.t.sol:GriefingAttacksTest
+[PASS] test_CanTransferAfterEmergencyExit() (gas: 519152)
+[PASS] test_CannotBlockEmergencyWithdrawByBurningvRDAT() (gas: 523382)
+[PASS] test_CannotCreateZombiePositionByBurningvRDAT() (gas: 597261)
+[PASS] test_CannotStakeFromContractWithoutApproval() (gas: 549712)
+[PASS] test_CannotTransferLockedPosition() (gas: 581864)
+[PASS] test_CannotTransferPositionWithActivevRDAT() (gas: 582793)
+[PASS] test_EmergencyExitPreventsZombiePositions() (gas: 523872)
+[PASS] test_EmergencyWithdrawFailsWithoutVRDAT() (gas: 527164)
+[PASS] test_NormalUnstakeBurnsvRDAT() (gas: 521619)
+[PASS] test_PositionEnumerationGasStaysReasonable() (gas: 3498730)
+[PASS] test_PositionLimitPreventsDoS() (gas: 3809653)
+[PASS] test_ReentrancyProtectionDuringStake() (gas: 885137)
+[PASS] test_UnstakeAllowsNewPositions() (gas: 823978)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 12.96ms (9.07ms CPU time)
+
+Ran 38 tests for test/TokenVesting.t.sol:TokenVestingTest
+[PASS] test_AddBeneficiary() (gas: 97809)
+[PASS] test_AddBeneficiary_Duplicate() (gas: 19003)
+[PASS] test_AddBeneficiary_InvalidAddress() (gas: 14623)
+[PASS] test_AddBeneficiary_InvalidAllocation() (gas: 14667)
+[PASS] test_AddBeneficiary_OnlyAdmin() (gas: 14686)
+[PASS] test_BeneficiarySetup() (gas: 63932)
+[PASS] test_Claim_EligibilityNotSet() (gas: 20623)
+[PASS] test_Claim_InsufficientTokenBalance() (gas: 2321537)
+[PASS] test_Claim_MultipleBeneficiaries() (gas: 448954)
+[PASS] test_Claim_NoTokensToClaim() (gas: 79352)
+[PASS] test_Claim_NotABeneficiary() (gas: 73787)
+[PASS] test_Claim_PartialThenFull() (gas: 203699)
+[PASS] test_Claim_Success() (gas: 186504)
+[PASS] test_Deployment() (gas: 18166)
+[PASS] test_EdgeCase_ClaimExactlyAtCliffEnd() (gas: 77159)
+[PASS] test_EdgeCase_VestingBoundaries() (gas: 108711)
+[PASS] test_GetBeneficiaryInfo() (gas: 180438)
+[PASS] test_GetContractStats() (gas: 125741)
+[PASS] test_GetVestingSchedule() (gas: 65505)
+[PASS] test_Integration_FullVestingCycle() (gas: 304196)
+[PASS] test_Integration_VanaComplianceChecklist() (gas: 107250)
+[PASS] test_RecoverToken() (gas: 6732144)
+[PASS] test_Security_NoDoubleClaimSameBlock() (gas: 176956)
+[PASS] test_Security_ReentrancyProtection() (gas: 173466)
+[PASS] test_SetEligibilityDate() (gas: 62393)
+[PASS] test_SetEligibilityDate_AlreadySet() (gas: 62531)
+[PASS] test_SetEligibilityDate_OnlyAdmin() (gas: 14125)
+[PASS] test_SetEligibilityDate_TooFarFuture() (gas: 16557)
+[PASS] test_SetEligibilityDate_TooFarPast() (gas: 17451)
+[PASS] test_TokenBalance() (gas: 45550)
+[PASS] test_VestedAmountAt_SpecificTimestamp() (gas: 73512)
+[PASS] test_VestedAmount_AfterCliff() (gas: 73620)
+[PASS] test_VestedAmount_BeforeEligibility() (gas: 74716)
+[PASS] test_VestedAmount_DuringCliff() (gas: 117474)
+[PASS] test_VestedAmount_FullyVested() (gas: 90355)
+[PASS] test_VestedAmount_LinearVesting() (gas: 101083)
+[PASS] test_VestedAmount_NonBeneficiary() (gas: 73308)
+[PASS] test_VestingConstants() (gas: 9900)
+Suite result: ok. 38 passed; 0 failed; 0 skipped; finished in 5.59ms (4.48ms CPU time)
+
+Ran 23 tests for test/VRC20Compliance.t.sol:VRC20ComplianceTest
+[PASS] test_Blacklist_AddAddress() (gas: 78286)
+[PASS] test_Blacklist_BlocksTransferFrom() (gas: 75811)
+[PASS] test_Blacklist_BlocksTransferTo() (gas: 78110)
+[PASS] test_Blacklist_CannotBlacklistTokenContract() (gas: 24966)
+[PASS] test_Blacklist_CannotBlacklistZeroAddress() (gas: 24678)
+[PASS] test_Blacklist_CannotDoubleBlacklist() (gas: 76427)
+[PASS] test_Blacklist_OnlyAdminCanBlacklist() (gas: 21439)
+[PASS] test_Blacklist_RemoveAddress() (gas: 65535)
+[PASS] test_DLPRegistry_CannotRegisterWithoutRegistry() (gas: 26912)
+[PASS] test_DLPRegistry_CannotSetZeroAddress() (gas: 24723)
+[PASS] test_DLPRegistry_OnlyAdminCanSetRegistry() (gas: 21508)
+[PASS] test_DLPRegistry_Registration() (gas: 121974)
+[PASS] test_DLPRegistry_SetRegistry() (gas: 60016)
+[PASS] test_DLPRegistry_UpdateRegistry() (gas: 61457)
+[PASS] test_Integration_FullVRC20Flow() (gas: 238582)
+[PASS] test_Integration_PostDeploymentConfiguration() (gas: 126813)
+[PASS] test_Timelock_CancelAction() (gas: 56387)
+[PASS] test_Timelock_CannotExecuteNonExistent() (gas: 21617)
+[PASS] test_Timelock_CannotExecuteTwice() (gas: 75456)
+[PASS] test_Timelock_ExecuteAfterDelay() (gas: 77960)
+[PASS] test_Timelock_OnlyAdminCanSchedule() (gas: 19592)
+[PASS] test_Timelock_ScheduleAction() (gas: 70098)
+[PASS] test_VRC20_ComplianceStatus() (gas: 14244)
+Suite result: ok. 23 passed; 0 failed; 0 skipped; finished in 16.36ms (5.68ms CPU time)
+
+Ran 34 tests for test/RewardsManager.t.sol:RewardsManagerTest
+[PASS] test_CalculateAllRewards() (gas: 1108511)
+[PASS] test_ClaimAllRewards() (gas: 1722740)
+[PASS] test_ClaimRewardsFor() (gas: 790169)
+[PASS] test_ClaimRewardsFor_Unauthorized() (gas: 697620)
+[PASS] test_ClaimRewards_MultiplePrograms() (gas: 1039004)
+[PASS] test_ClaimRewards_NonExistentPosition() (gas: 24567)
+[PASS] test_ClaimRewards_SingleProgram() (gas: 808582)
+[PASS] test_EmergencyPauseProgram() (gas: 221743)
+[PASS] test_EmergencyUnpauseProgram() (gas: 225931)
+[PASS] test_GetActivePrograms() (gas: 523363)
+[PASS] test_GetProgram() (gas: 232935)
+[PASS] test_GetProgramCount() (gas: 369605)
+[PASS] test_GetUserClaimablePrograms() (gas: 1046971)
+[PASS] test_MultipleFailingModules() (gas: 1723243)
+[PASS] test_NotifyRevenueReward() (gas: 1091539)
+[PASS] test_NotifyRevenueReward_NoProgramMatch() (gas: 208853)
+[PASS] test_NotifyStake() (gas: 760285)
+[PASS] test_NotifyStake_OnlyStakingManager() (gas: 20085)
+[PASS] test_NotifyStake_WhenPaused() (gas: 326255)
+[PASS] test_NotifyUnstake() (gas: 659896)
+[PASS] test_NotifyUnstake_Emergency() (gas: 688061)
+[PASS] test_Pause() (gas: 49286)
+[PASS] test_RegisterProgram() (gas: 219636)
+[PASS] test_RegisterProgram_InvalidModule() (gas: 21819)
+[PASS] test_RegisterProgram_InvalidToken() (gas: 433824)
+[PASS] test_RegisterProgram_WithStartTimeAndDuration() (gas: 230562)
+[PASS] test_SetStakingManager() (gas: 25558)
+[PASS] test_SetStakingManager_Unauthorized() (gas: 19346)
+[PASS] test_SetStakingManager_ZeroAddress() (gas: 19211)
+[PASS] test_Unpause() (gas: 43327)
+[PASS] test_UpdateProgramStatus() (gas: 198534)
+[PASS] test_UpdateProgramStatus_Unauthorized() (gas: 211471)
+[PASS] test_UpgradeToNewImplementation() (gas: 5107617)
+[PASS] test_UpgradeToNewImplementation_Unauthorized() (gas: 5096717)
+Suite result: ok. 34 passed; 0 failed; 0 skipped; finished in 12.31ms (13.55ms CPU time)
+
+Ran 9 tests for test/security/CoreGriefingProtection.t.sol:CoreGriefingProtectionTest
+[PASS] test_CannotCreateZombiePositionByBurningvRDAT() (gas: 397412)
+[PASS] test_CannotTransferLockedPosition() (gas: 379516)
+[PASS] test_CannotTransferPositionWithActivevRDAT() (gas: 380399)
+[PASS] test_EmergencyExitBurnsPosition() (gas: 339150)
+[PASS] test_ExactlyMinStakeWorks() (gas: 378663)
+[PASS] test_MinimumStakePreventsDustAttacks() (gas: 413659)
+[PASS] test_OnlyStakingCanBurnVRDAT() (gas: 344900)
+[PASS] test_PositionLimitPreventsSpam() (gas: 1488687)
+[PASS] test_ReentrancyProtectionExists() (gas: 811256)
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 14.53ms (1.88ms CPU time)
+
+Ran 5 tests for test/security/PrecisionExploits.t.sol:PrecisionExploitsTest
+[PASS] test_DustStakeWithHighMultiplier() (gas: 61828)
+[PASS] test_InvalidLockPeriodHandling() (gas: 64278)
+[PASS] test_ManyDustStakes() (gas: 259833)
+[PASS] test_MaxPositionsPerUserLimit() (gas: 2366358)
+[PASS] test_RoundingErrorAccumulation() (gas: 7127067)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 16.19ms (14.35ms CPU time)
+
+Ran 4 tests for test/security/PositionLimitCore.t.sol:PositionLimitCoreTest
+[PASS] test_ActualPositionLimit_100Positions() (gas: 27403360)
+[PASS] test_GasCostAtMaximumPositions() (gas: 27526697)
+[PASS] test_PositionLimitIsPerUser() (gas: 1784626)
+[PASS] test_UnstakeFreesPositionSlot() (gas: 27410939)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 15.19ms (23.50ms CPU time)
+
+Ran 11 tests for test/mocks/MockRDAT.t.sol:MockRDATTest
+[PASS] testFuzz_Transfer(address,uint256) (runs: 256, μ: 64540, ~: 64117)
+[PASS] test_AdminFunctions() (gas: 156750)
+[PASS] test_Approve_TransferFrom() (gas: 70773)
+[PASS] test_InitialState() (gas: 38299)
+[PASS] test_MigrationScenario() (gas: 161233)
+[PASS] test_MintBlocking() (gas: 96135)
+[PASS] test_OnlyAdminFunctions() (gas: 51024)
+[PASS] test_OnlyOwnerFunctions() (gas: 30668)
+[PASS] test_Permit() (gas: 114878)
+[PASS] test_Transfer() (gas: 55011)
+[PASS] test_Votes() (gas: 210836)
+Suite result: ok. 11 passed; 0 failed; 0 skipped; finished in 19.42ms (21.19ms CPU time)
+
+Ran 9 tests for test/security/PositionLimitDoS.t.sol:PositionLimitDoSTest
+[PASS] test_ActualMaxPositionsEnforcement() (gas: 27445521)
+[PASS] test_EmergencyWithdrawReducesPositionCount() (gas: 27513631)
+[PASS] test_FrontendDoSViaPositionEnumeration() (gas: 27553849)
+[PASS] test_GasCostAtMaxPositions() (gas: 27547412)
+[PASS] test_PositionCreationGasAtLimit() (gas: 27370044)
+[PASS] test_PositionIDsKeepIncrementing() (gas: 659991)
+[PASS] test_PositionLimitPerUser_NotGlobal() (gas: 27636909)
+[PASS] test_SystemStillFunctionalAtMaxCapacity() (gas: 41116649)
+[PASS] test_UnstakeReducesPositionCount() (gas: 27451079)
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 26.03ms (61.91ms CPU time)
+
+Ran 18 tests for test/unit/vRDAT.t.sol:vRDATTest
+[PASS] testFuzz_MintBurn(uint256,uint256) (runs: 256, μ: 190382, ~: 192713)
+[PASS] testFuzz_QuadraticMath(uint256) (runs: 256, μ: 25002, ~: 26532)
+[PASS] test_BurningWithRole() (gas: 186737)
+[PASS] test_BurningWithoutRole() (gas: 17905)
+[PASS] test_CanMint() (gas: 164785)
+[PASS] test_ConsecutiveMints() (gas: 195300)
+[PASS] test_Delegation() (gas: 404365)
+[PASS] test_GetUserStats() (gas: 274743)
+[PASS] test_InitialState() (gas: 51883)
+[PASS] test_MaxBalanceLimit() (gas: 148872)
+[PASS] test_MintingWithRole() (gas: 148371)
+[PASS] test_MintingWithoutRole() (gas: 18015)
+[PASS] test_MultipleMints() (gas: 157589)
+[PASS] test_NonTransferableApprove() (gas: 14385)
+[PASS] test_NonTransferableTransfer() (gas: 145658)
+[PASS] test_NonTransferableTransferFrom() (gas: 146200)
+[PASS] test_QuadraticVotingMath() (gas: 46956)
+[PASS] test_VotingPowerAfterBurn() (gas: 268017)
+Suite result: ok. 18 passed; 0 failed; 0 skipped; finished in 35.08ms (53.13ms CPU time)
+
+Ran 14 tests for test/TreasuryWallet.t.sol:TreasuryWalletTest
+[PASS] testFuzz_Distribution(uint256,string) (runs: 256, μ: 215006, ~: 215157)
+[PASS] test_CheckAndRelease_TGE() (gas: 140815)
+[PASS] test_DAOProposalExecution() (gas: 230808)
+[PASS] test_Distribute() (gas: 216373)
+[PASS] test_Distribute_RevertConditions() (gas: 98564)
+[PASS] test_GetAllVestingSchedules() (gas: 77679)
+[PASS] test_Initialization() (gas: 119358)
+[PASS] test_LinearVestingCalculations() (gas: 107824)
+[PASS] test_MultipleClaims() (gas: 147504)
+[PASS] test_Phase3Activation() (gas: 55610)
+[PASS] test_Phase3_CheckAndRelease() (gas: 180307)
+[PASS] test_ReceiveETH() (gas: 17355)
+[PASS] test_TGEUnlocks() (gas: 77514)
+[PASS] test_TreasuryVesting() (gas: 162470)
+Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 31.86ms (34.58ms CPU time)
+
+Ran 9 tests for test/Create2Factory.t.sol:Create2FactoryTest
+[PASS] testFuzz_Deploy(bytes32,uint256) (runs: 256, μ: 109270, ~: 110981)
+[PASS] test_ComputeAddressWithDeployer() (gas: 86173)
+[PASS] test_CrossChainDeterminism() (gas: 17138)
+[PASS] test_DeploySimpleContract() (gas: 90001)
+[PASS] test_DeployWithConstructorArgs() (gas: 3848398)
+[PASS] test_DeterministicAddresses() (gas: 1040432859)
+[PASS] test_DifferentSaltsDifferentAddresses() (gas: 162567)
+[PASS] test_RevertOnZeroBytecode() (gas: 10229)
+[PASS] test_RevertOnZeroSalt() (gas: 10988)
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 42.63ms (44.70ms CPU time)
+
+Ran 30 test suites in 114.62ms (313.48ms CPU time): 355 tests passed, 1 failed, 0 skipped (356 total tests)
+
+Failing tests:
+Encountered 1 failing test in test/CREATE2Deployment.t.sol:CREATE2DeploymentTest
+[FAIL: Deployment too expensive: 11536222 >= 10000000] test_DeploymentGasEstimate() (gas: 11543755)
+
+Encountered a total of 1 failing tests, 355 tests succeeded
