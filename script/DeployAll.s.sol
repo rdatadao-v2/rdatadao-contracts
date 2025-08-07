@@ -18,12 +18,12 @@ contract DeployAll is BaseDeployScript {
     address public emergencyPause;
     address public revenueCollector;
     address public proofOfContribution;
-    
+
     function deploy() internal view override {
         console2.log("==========================================");
         console2.log("Deploying RDAT V2 Contracts to", getChainName());
         console2.log("==========================================");
-        
+
         // TODO: Deploy contracts in order
         // 1. Deploy EmergencyPause (shared by all contracts)
         // 2. Deploy RDAT token
@@ -34,60 +34,60 @@ contract DeployAll is BaseDeployScript {
         // 7. Deploy MigrationBridge (chain-specific)
         // 8. Configure contract connections
         // 9. Transfer ownerships to multisig
-        
+
         console2.log("==========================================");
         console2.log("Deployment Summary:");
         console2.log("==========================================");
         // Log all deployed addresses
     }
-    
+
     function _deployEmergencyPause() internal pure returns (address) {
         console2.log("Deploying EmergencyPause...");
         // TODO: Implement
         return address(0);
     }
-    
+
     function _deployRDAT() internal pure returns (address) {
         console2.log("Deploying RDAT token...");
         // TODO: Implement
         return address(0);
     }
-    
+
     function _deployVRDAT() internal pure returns (address) {
         console2.log("Deploying vRDAT token...");
         // TODO: Implement
         return address(0);
     }
-    
+
     function _deployStaking() internal pure returns (address) {
         console2.log("Deploying Staking contract...");
         // TODO: Implement
         return address(0);
     }
-    
+
     function _deployRevenueCollector() internal pure returns (address) {
         console2.log("Deploying RevenueCollector...");
         // TODO: Implement
         return address(0);
     }
-    
+
     function _deployProofOfContribution() internal pure returns (address) {
         console2.log("Deploying ProofOfContribution...");
         // TODO: Implement
         return address(0);
     }
-    
+
     function _deployMigrationBridge() internal pure returns (address) {
         console2.log("Deploying MigrationBridge...");
         // TODO: Implement
         return address(0);
     }
-    
+
     function _configureContracts() internal pure {
         console2.log("Configuring contract connections...");
         // TODO: Set up all contract connections
     }
-    
+
     function _transferOwnerships() internal pure {
         console2.log("Transferring ownerships to multisig...");
         // TODO: Transfer all ownerships

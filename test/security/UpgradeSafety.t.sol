@@ -22,26 +22,26 @@ contract UpgradeSafetyTest is Test {
     RDATUpgradeable public rdat;
     vRDAT public vrdat;
     RewardsManager public rewardsManager;
-    
+
     ERC1967Proxy public stakingProxy;
     ERC1967Proxy public rdatProxy;
     ERC1967Proxy public rewardsProxy;
-    
+
     address public admin = address(0x1);
     address public alice = address(0x2);
     address public bob = address(0x3);
     address public treasury = address(0x4);
-    
+
     uint256 constant STAKE_AMOUNT = 1000e18;
-    
+
     // Position tracking
     uint256 alicePosition1;
     uint256 alicePosition2;
     uint256 bobPosition1;
-    
+
     function setUp() public {
         vm.startPrank(admin);
-        
+
         // Deploy RDAT
         RDATUpgradeable rdatImpl = new RDATUpgradeable();
         bytes memory rdatInitData = abi.encodeCall(
@@ -50,47 +50,41 @@ contract UpgradeSafetyTest is Test {
         );
         rdatProxy = new ERC1967Proxy(address(rdatImpl), rdatInitData);
         rdat = RDATUpgradeable(address(rdatProxy));
-        
+
         // Deploy vRDAT
         vrdat = new vRDAT(admin);
         // No mint delay needed for soul-bound tokens
-        
+
         // Deploy StakingPositions V1
         StakingPositions stakingImpl = new StakingPositions();
-        bytes memory stakingInitData = abi.encodeCall(
-            stakingImpl.initialize,
-            (address(rdat), address(vrdat), admin)
-        );
+        bytes memory stakingInitData = abi.encodeCall(stakingImpl.initialize, (address(rdat), address(vrdat), admin));
         stakingProxy = new ERC1967Proxy(address(stakingImpl), stakingInitData);
         stakingV1 = StakingPositions(address(stakingProxy));
-        
+
         // Deploy RewardsManager
         RewardsManager rewardsManagerImpl = new RewardsManager();
-        bytes memory rewardsInitData = abi.encodeCall(
-            rewardsManagerImpl.initialize,
-            (address(stakingV1), admin)
-        );
+        bytes memory rewardsInitData = abi.encodeCall(rewardsManagerImpl.initialize, (address(stakingV1), admin));
         rewardsProxy = new ERC1967Proxy(address(rewardsManagerImpl), rewardsInitData);
         rewardsManager = RewardsManager(address(rewardsProxy));
-        
+
         // Configure
         stakingV1.setRewardsManager(address(rewardsManager));
         vrdat.grantRole(vrdat.MINTER_ROLE(), address(stakingV1));
         // Grant admin the UPGRADER_ROLE for the test
         stakingV1.grantRole(stakingV1.UPGRADER_ROLE(), admin);
-        
+
         vm.stopPrank();
-        
+
         // Transfer tokens from treasury (no minting)
         vm.startPrank(treasury);
         rdat.transfer(alice, STAKE_AMOUNT * 10);
         rdat.transfer(bob, STAKE_AMOUNT * 10);
         vm.stopPrank();
-        
+
         // Create active positions
         _createActivePositions();
     }
-    
+
     function _createActivePositions() internal {
         // Alice stakes
         vm.startPrank(alice);
@@ -98,134 +92,134 @@ contract UpgradeSafetyTest is Test {
         alicePosition1 = stakingV1.stake(STAKE_AMOUNT, 30 days);
         alicePosition2 = stakingV1.stake(STAKE_AMOUNT * 2, 365 days);
         vm.stopPrank();
-        
+
         // Bob stakes
         vm.startPrank(bob);
         rdat.approve(address(stakingV1), STAKE_AMOUNT);
         bobPosition1 = stakingV1.stake(STAKE_AMOUNT, 90 days);
         vm.stopPrank();
-        
+
         // Fast forward to accumulate rewards
         vm.warp(block.timestamp + 7 days);
     }
-    
+
     // ============ State Preservation Tests ============
-    
+
     function test_UpgradePreservesPositions() public {
         // Record state before upgrade
         IStakingPositions.Position memory alicePos1Before = stakingV1.getPosition(alicePosition1);
         IStakingPositions.Position memory alicePos2Before = stakingV1.getPosition(alicePosition2);
         IStakingPositions.Position memory bobPos1Before = stakingV1.getPosition(bobPosition1);
         uint256 totalStakedBefore = stakingV1.totalStaked();
-        
+
         // Deploy V2 implementation
         StakingPositionsV2Example stakingV2Impl = new StakingPositionsV2Example();
-        
+
         // Upgrade
         vm.prank(admin);
         stakingV1.upgradeToAndCall(address(stakingV2Impl), "");
-        
+
         StakingPositionsV2Example stakingV2 = StakingPositionsV2Example(address(stakingProxy));
-        
+
         // Verify all positions preserved
         IStakingPositions.Position memory alicePos1After = stakingV2.getPosition(alicePosition1);
         IStakingPositions.Position memory alicePos2After = stakingV2.getPosition(alicePosition2);
         IStakingPositions.Position memory bobPos1After = stakingV2.getPosition(bobPosition1);
-        
+
         // Check position data integrity
         assertEq(alicePos1After.amount, alicePos1Before.amount);
         assertEq(alicePos1After.startTime, alicePos1Before.startTime);
         assertEq(alicePos1After.lockPeriod, alicePos1Before.lockPeriod);
         assertEq(alicePos1After.vrdatMinted, alicePos1Before.vrdatMinted);
-        
+
         assertEq(alicePos2After.amount, alicePos2Before.amount);
         assertEq(bobPos1After.amount, bobPos1Before.amount);
-        
+
         // Check global state
         assertEq(stakingV2.totalStaked(), totalStakedBefore);
-        
+
         // Verify NFT ownership preserved
         assertEq(stakingV2.ownerOf(alicePosition1), alice);
         assertEq(stakingV2.ownerOf(alicePosition2), alice);
         assertEq(stakingV2.ownerOf(bobPosition1), bob);
     }
-    
+
     // REMOVED: test_UpgradeWithPendingRewards - No longer relevant in fixed supply model
     // StakingPositions.calculatePendingRewards always returns 0 in new architecture
     // Rewards are handled by RewardsManager, not StakingPositions
-    
+
     // ============ Storage Collision Tests ============
-    
+
     function test_StorageGapProtection() public {
         // Deploy a malicious V2 with different storage layout
         MaliciousStakingV2 maliciousImpl = new MaliciousStakingV2();
-        
+
         // Try to upgrade
         vm.prank(admin);
         stakingV1.upgradeToAndCall(address(maliciousImpl), "");
-        
+
         MaliciousStakingV2 maliciousStaking = MaliciousStakingV2(address(stakingProxy));
-        
+
         // Original storage should be intact despite new variables
         assertEq(maliciousStaking.totalStaked(), stakingV1.totalStaked());
-        
+
         // New functionality should not corrupt old data
         maliciousStaking.setMaliciousData(0xDEADBEEF);
-        
+
         // Old positions should still be valid
         IStakingPositions.Position memory position = maliciousStaking.getPosition(alicePosition1);
         assertEq(position.amount, STAKE_AMOUNT);
     }
-    
+
     // ============ Upgrade During Active Operations ============
-    
+
     function test_UpgradeDuringActiveStaking() public {
         // Start a stake transaction
         vm.startPrank(alice);
         rdat.approve(address(stakingV1), STAKE_AMOUNT);
-        
+
         // Someone else triggers upgrade in same block
         vm.stopPrank();
         StakingPositionsV2Example stakingV2Impl = new StakingPositionsV2Example();
         bytes memory initData = abi.encodeCall(StakingPositionsV2Example.initializeV2, ());
         vm.prank(admin);
         stakingV1.upgradeToAndCall(address(stakingV2Impl), initData);
-        
+
         // Complete the stake on V2
         vm.prank(alice);
         uint256 newPosition = StakingPositionsV2Example(address(stakingProxy)).stake(STAKE_AMOUNT, 30 days);
-        
+
         // Should work correctly
         assertGt(newPosition, 0);
         assertEq(StakingPositionsV2Example(address(stakingProxy)).ownerOf(newPosition), alice);
     }
-    
+
     // REMOVED: test_RewardsManagerCompatibilityAfterUpgrade - No longer relevant in fixed supply model
     // This test attempted to mint tokens which is impossible after deployment
-    
+
     // ============ Emergency Scenarios During Upgrade ============
-    
+
     function test_EmergencyPauseDuringUpgrade() public {
         // Pause before upgrade
         vm.prank(admin);
         stakingV1.pause();
-        
+
         // Upgrade while paused
         StakingPositionsV2Example stakingV2Impl = new StakingPositionsV2Example();
         vm.prank(admin);
         stakingV1.upgradeToAndCall(address(stakingV2Impl), "");
-        
+
         StakingPositionsV2Example stakingV2 = StakingPositionsV2Example(address(stakingProxy));
-        
+
         // Should still be paused
         vm.expectRevert(abi.encodeWithSelector(PausableUpgradeable.EnforcedPause.selector));
         vm.prank(alice);
         stakingV2.stake(STAKE_AMOUNT, 30 days);
-        
+
         // Unpause should work
         vm.prank(admin);
         stakingV2.unpause();
-        
+
         // Now staking should work
         vm.startPrank(alice);
         rdat.approve(address(stakingV2), STAKE_AMOUNT);
@@ -233,15 +227,15 @@ contract UpgradeSafetyTest is Test {
         assertGt(newPosition, 0);
         vm.stopPrank();
     }
-    
+
     function test_MultipleUpgrades() public {
         // First upgrade
         StakingPositionsV2Example v2Impl = new StakingPositionsV2Example();
         vm.prank(admin);
         stakingV1.upgradeToAndCall(address(v2Impl), "");
-        
+
         StakingPositionsV2Example stakingV2 = StakingPositionsV2Example(address(stakingProxy));
-        
+
         // Use V2 features - first set referral, then stake separately
         vm.startPrank(alice);
         rdat.approve(address(stakingV2), STAKE_AMOUNT);
@@ -249,18 +243,18 @@ contract UpgradeSafetyTest is Test {
         // Actually create the position
         stakingV2.stake(STAKE_AMOUNT, 30 days);
         vm.stopPrank();
-        
+
         // Second upgrade back to V1 (simulating rollback)
         StakingPositions v1Impl = new StakingPositions();
         vm.prank(admin);
         stakingV2.upgradeToAndCall(address(v1Impl), "");
-        
+
         // Should still have all positions
         StakingPositions rolledBack = StakingPositions(address(stakingProxy));
         // Total staked should be: Alice (1 + 2) + Bob (1) + new position (1) = 5 * STAKE_AMOUNT
         uint256 expectedTotal = STAKE_AMOUNT * 5;
         assertEq(rolledBack.totalStaked(), expectedTotal);
-        
+
         // Original positions should be intact
         IStakingPositions.Position memory position = rolledBack.getPosition(alicePosition1);
         assertEq(position.amount, STAKE_AMOUNT);
@@ -272,11 +266,11 @@ contract MaliciousStakingV2 is StakingPositions {
     // Add new storage variables without respecting gap
     uint256 public maliciousData;
     mapping(address => uint256) public exploitTracking;
-    
+
     function setMaliciousData(uint256 data) external {
         maliciousData = data;
     }
-    
+
     // Try to manipulate positions
     function corruptPosition(uint256 positionId) external {
         // This should not affect the actual position data due to storage layout

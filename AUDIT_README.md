@@ -47,6 +47,7 @@ rdatadao-contracts/
 │   ├── TreasuryWallet.sol    # Phased vesting treasury
 │   ├── BaseMigrationBridge.sol    # Base chain migration entry
 │   ├── VanaMigrationBridge.sol    # Vana chain migration exit
+│   ├── RDATDataDAO.sol       # Vana DLP for data contribution
 │   ├── EmergencyPause.sol    # Shared emergency system
 │   ├── RevenueCollector.sol  # Fee distribution
 │   ├── RewardsManager.sol    # Modular rewards orchestrator
@@ -80,13 +81,15 @@ rdatadao-contracts/
 | RewardsManager | UUPS Proxy | 523 | Medium | Medium | 18.1/24.0 | ✅ |
 | ProofOfContributionStub | Non-upgradeable | 178 | Low | Low | 9.4/24.0 | ✅ |
 
+**Note:** DLP registry contracts (RDATDataDAO, SimpleVanaDLP) are excluded from audit scope pending Vana team coordination for manual registration.
+
 ### Key Features
 
 1. **Fixed Supply Model**: 100M tokens minted at deployment (no inflation possible)
 2. **Cross-Chain Migration**: Secure one-way bridge from Base to Vana (30M allocation)
 3. **Time-Locked Staking**: NFT-based positions with 30/90/180/365 day locks
 4. **Soul-Bound Governance**: Non-transferable vRDAT with quadratic voting
-5. **VRC-20 Compliance**: Full Vana network integration with DLP support
+5. **VRC-20 Compliance**: Full Vana network integration (DLP registration pending)
 6. **Emergency Response**: 72-hour pause with auto-expiry and multisig control
 
 ### Deployment Strategy
@@ -241,6 +244,8 @@ test/security/
 - **vRDAT**: `0x386f44505DB03a387dF1402884d5326247DCaaC8`
 - **StakingPositions**: `0x3f2236ef5360BEDD999378672A145538f701E662`
 - **TreasuryWallet**: `0x31C3e3F091FB2A25d4dac82474e7dc709adE754a`
+- **VanaMigrationBridge**: `0xdCa8b322c11515A3B5e6e806170b573bDe179328`
+- **RDATDataDAO**: `0x254A9344AAb674530D47B6F2dDd8e328A17Da860`
 - **Status**: ✅ Fully Deployed
 - **Explorer**: [Vanascan Moksha](https://moksha.vanascan.io)
 
@@ -254,23 +259,25 @@ test/security/
 
 | Network | Chain ID | Target Date | Requirements |
 |---------|----------|-------------|--------------|
-| Vana | 1480 | Post-audit | 1 VANA for DLP registration |
-| Base | 8453 | Post-audit | Bridge deployment |
+| Vana | 1480 | Post-audit | Core system deployment (DLP registration separate) |
+| Base | 8453 | Post-audit | Migration bridge deployment |
 
 ## Audit Scope & Recommendations
 
 ### In Scope
-1. **Smart Contracts**: All 11 core contracts
-2. **Integrations**: OpenZeppelin libraries, Vana DLP Registry
-3. **Cross-Chain**: Migration bridge and messaging
+1. **Smart Contracts**: 11 core contracts (excluding DLP registry integration)
+2. **Integrations**: OpenZeppelin libraries, cross-chain messaging
+3. **Cross-Chain**: Migration bridge and validator consensus
 4. **Governance**: Voting, proposals, execution
 5. **Economics**: Tokenomics, vesting, rewards
+6. **Staking**: NFT positions and reward distribution
 
 ### Out of Scope
 1. **Frontend**: Web interface and user experience
 2. **Backend**: API and indexing services
-3. **Third-Party**: External DeFi protocols
-4. **Post-Audit**: Future upgrade implementations
+3. **Third-Party**: External DeFi protocols, Vana DLP Registry
+4. **DLP Registration**: Vana ecosystem integration (pending manual registration)
+5. **Post-Audit**: Future upgrade implementations
 
 ### Priority Focus Areas
 
@@ -321,6 +328,21 @@ test/security/
 - **Critical Issues**: < 4 hours
 - **High Priority**: < 12 hours
 - **Medium/Low**: < 48 hours
+
+## Known Limitations & Future Work
+
+### Vana DLP Registration Status
+**Current Status:** Core tokenomics fully operational, DLP registration pending manual coordination with Vana team.
+
+**Background:** Multiple automated registration attempts failed due to undocumented Vana registry validation requirements. Two DLP contract implementations were developed and tested:
+- **RDATDataDAO** (`0x254A9344AAb674530D47B6F2dDd8e328A17Da860`): Full-featured custom implementation
+- **SimpleVanaDLP** (`0xC1aC75130533c7F93BDa67f6645De65C9DEE9a3A`): Minimal Vana-compatible implementation
+
+**Impact:** Zero impact on core functionality. All tokenomics, migration, staking, and governance systems operate independently of DLP registration status.
+
+**Resolution Path:** Manual registration request submitted to Vana team with technical details and error analysis. Alternative: Deploy official Vana template via their Hardhat workflow.
+
+**For Auditors:** DLP registry integration is excluded from audit scope as it depends on external Vana team coordination. Focus should remain on core contract functionality, tokenomics, and security mechanisms.
 
 ## Appendices
 

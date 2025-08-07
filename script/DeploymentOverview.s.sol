@@ -10,11 +10,11 @@ import {Script, console2} from "forge-std/Script.sol";
 contract DeploymentOverview is Script {
     function run() external pure {
         console2.log("=== RDAT V2 Multi-Chain Deployment Strategy ===\n");
-        
+
         console2.log("PROJECT TYPE: Vana-native token project");
         console2.log("V1 TOKEN: Currently on Base mainnet");
         console2.log("V2 TOKEN: Will live on Vana network\n");
-        
+
         console2.log("--- BASE NETWORKS (V1 Location) ---");
         console2.log("Base Mainnet (8453):");
         console2.log("  [X] MigrationBridge - Burns V1 RDAT tokens");
@@ -26,7 +26,7 @@ contract DeploymentOverview is Script {
         console2.log("  [X] MockRDAT - Simulates V1 token for testing");
         console2.log("  [ ] RDAT V2 Token - NOT DEPLOYED HERE");
         console2.log("");
-        
+
         console2.log("--- VANA NETWORKS (V2 Home) ---");
         console2.log("Vana Mainnet (1480):");
         console2.log("  [X] RDAT V2 Token (Upgradeable)");
@@ -40,7 +40,7 @@ contract DeploymentOverview is Script {
         console2.log("Vana Moksha Testnet (14800):");
         console2.log("  [X] All V2 contracts for testing");
         console2.log("");
-        
+
         console2.log("--- MIGRATION FLOW ---");
         console2.log("1. User approves MigrationBridge on Base");
         console2.log("2. MigrationBridge burns V1 RDAT on Base");
@@ -48,7 +48,7 @@ contract DeploymentOverview is Script {
         console2.log("4. Validators confirm burn on Vana");
         console2.log("5. User claims V2 RDAT on Vana (1:1 + bonus)");
         console2.log("");
-        
+
         console2.log("--- KEY ADDRESSES ---");
         console2.log("Deployer: 0x58eCB94e6F5e6521228316b55c465ad2A2938FbB");
         console2.log("Base Treasury: 0x90013583c66D2bf16327cB5Bc4a647AcceCF4B9A");

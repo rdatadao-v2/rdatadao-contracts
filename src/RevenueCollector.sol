@@ -17,20 +17,20 @@ import "./interfaces/IRewardsManager.sol";
  * @author r/datadao
  * @notice Collects and distributes protocol revenue according to tokenomics
  * @dev Implements 50/30/20 distribution: Stakers/Treasury/Contributors
- * 
+ *
  * Key Features:
  * - Automated revenue collection from protocol operations
  * - Fair distribution based on tokenomics ratios (for RDAT only)
  * - Threshold-based distribution to optimize gas costs
  * - Integration with StakingPositions for RDAT staker rewards
  * - Multi-token support for diverse revenue streams
- * 
+ *
  * Distribution Logic:
  * - RDAT tokens: Distributed according to 50/30/20 tokenomics
  * - Non-RDAT tokens (USDC, USDT, etc.): Sent entirely to treasury
  *   until DAO governance decides on distribution mechanism
  */
-contract RevenueCollector is 
+contract RevenueCollector is
     Initializable,
     AccessControlUpgradeable,
     PausableUpgradeable,
@@ -47,10 +47,10 @@ contract RevenueCollector is
     bytes32 public constant REVENUE_REPORTER_ROLE = keccak256("REVENUE_REPORTER_ROLE");
 
     // Distribution ratios (out of 10000 = 100%)
-    uint256 public constant STAKING_SHARE = 5000;     // 50% to stakers
-    uint256 public constant TREASURY_SHARE = 3000;    // 30% to treasury
+    uint256 public constant STAKING_SHARE = 5000; // 50% to stakers
+    uint256 public constant TREASURY_SHARE = 3000; // 30% to treasury
     uint256 public constant CONTRIBUTOR_SHARE = 2000; // 20% to contributors
-    uint256 public constant PRECISION = 10000;        // 100% in basis points
+    uint256 public constant PRECISION = 10000; // 100% in basis points
 
     // Core contracts
     IStakingPositions public stakingPositions;
@@ -63,7 +63,7 @@ contract RevenueCollector is
     mapping(address => uint256) public pendingRevenue;
     mapping(address => uint256) public totalRevenueCollected;
     mapping(address => uint256) public totalDistributed;
-    
+
     // Distribution settings
     mapping(address => uint256) public distributionThreshold;
     address[] public supportedTokens;
@@ -88,12 +88,10 @@ contract RevenueCollector is
      * @param contributorPool_ Contributor pool address
      * @param admin_ Admin address
      */
-    function initialize(
-        address stakingPositions_,
-        address treasury_,
-        address contributorPool_,
-        address admin_
-    ) public initializer {
+    function initialize(address stakingPositions_, address treasury_, address contributorPool_, address admin_)
+        public
+        initializer
+    {
         require(stakingPositions_ != address(0), "Invalid staking positions");
         require(treasury_ != address(0), "Invalid treasury");
         require(contributorPool_ != address(0), "Invalid contributor pool");
@@ -107,7 +105,7 @@ contract RevenueCollector is
         stakingPositions = IStakingPositions(stakingPositions_);
         treasury = treasury_;
         contributorPool = contributorPool_;
-        
+
         // Get RDAT token address from StakingPositions
         rdatToken = stakingPositions.rdatToken();
         require(rdatToken != address(0), "Invalid RDAT token");
@@ -126,11 +124,11 @@ contract RevenueCollector is
      * @param token Token address of the revenue
      * @param amount Amount of revenue to report
      */
-    function notifyRevenue(address token, uint256 amount) 
-        external 
-        override 
-        onlyRole(REVENUE_REPORTER_ROLE) 
-        whenNotPaused 
+    function notifyRevenue(address token, uint256 amount)
+        external
+        override
+        onlyRole(REVENUE_REPORTER_ROLE)
+        whenNotPaused
     {
         require(token != address(0), "Invalid token");
         require(amount > 0, "Zero amount");
@@ -147,7 +145,7 @@ contract RevenueCollector is
             supportedTokens.push(token);
             isSupportedToken[token] = true;
             // Set default threshold: 1000 tokens (scaled by decimals would be better)
-            distributionThreshold[token] = 1000 * 10**18; // Assume 18 decimals
+            distributionThreshold[token] = 1000 * 10 ** 18; // Assume 18 decimals
         }
 
         emit RevenueReported(token, amount, msg.sender);
@@ -165,12 +163,12 @@ contract RevenueCollector is
      * @return treasuryAmount Amount sent to treasury
      * @return contributorAmount Amount sent to contributors
      */
-    function distribute(address token) 
-        external 
-        override 
-        nonReentrant 
-        whenNotPaused 
-        returns (uint256 stakingAmount, uint256 treasuryAmount, uint256 contributorAmount) 
+    function distribute(address token)
+        external
+        override
+        nonReentrant
+        whenNotPaused
+        returns (uint256 stakingAmount, uint256 treasuryAmount, uint256 contributorAmount)
     {
         require(isSupportedToken[token], "Token not supported");
         require(pendingRevenue[token] > 0, "No revenue to distribute");
@@ -185,19 +183,19 @@ contract RevenueCollector is
      * @return treasuryAmounts Amounts sent to treasury for each token
      * @return contributorAmounts Amounts sent to contributors for each token
      */
-    function distributeAll() 
-        external 
-        nonReentrant 
-        whenNotPaused 
+    function distributeAll()
+        external
+        nonReentrant
+        whenNotPaused
         returns (
             address[] memory tokens,
             uint256[] memory stakingAmounts,
             uint256[] memory treasuryAmounts,
             uint256[] memory contributorAmounts
-        ) 
+        )
     {
         uint256 tokenCount = 0;
-        
+
         // Count tokens with pending revenue
         for (uint256 i = 0; i < supportedTokens.length; i++) {
             if (pendingRevenue[supportedTokens[i]] > 0) {
@@ -231,9 +229,9 @@ contract RevenueCollector is
      * @return treasuryAmount Amount sent to treasury
      * @return contributorAmount Amount sent to contributors
      */
-    function _distribute(address token) 
-        internal 
-        returns (uint256 stakingAmount, uint256 treasuryAmount, uint256 contributorAmount) 
+    function _distribute(address token)
+        internal
+        returns (uint256 stakingAmount, uint256 treasuryAmount, uint256 contributorAmount)
     {
         uint256 totalAmount = pendingRevenue[token];
         require(totalAmount > 0, "No revenue to distribute");
@@ -255,21 +253,21 @@ contract RevenueCollector is
 
         // Check if we have a distribution mechanism for this token
         bool hasRewardProgram = false;
-        
+
         // First check if RewardsManager is set and supports this token
         if (address(rewardsManager) != address(0)) {
             hasRewardProgram = rewardsManager.isTokenSupported(token);
         }
-        
+
         // Fall back to checking if it's RDAT (legacy support)
         if (!hasRewardProgram && token == rdatToken) {
             hasRewardProgram = true;
         }
-        
+
         if (hasRewardProgram) {
             // We have a reward distribution mechanism for this token
             // Distribute according to tokenomics: 50/30/20
-            
+
             // Distribute to stakers
             if (token == rdatToken && address(stakingPositions) != address(0)) {
                 // Legacy: Direct distribution to StakingPositions for RDAT
@@ -281,12 +279,12 @@ contract RevenueCollector is
                 // RewardsManager will handle distribution to the appropriate module
                 rewardsManager.notifyRevenueReward(stakingAmount);
             }
-            
+
             // Distribute to treasury
             if (treasuryAmount > 0) {
                 IERC20(token).safeTransfer(treasury, treasuryAmount);
             }
-            
+
             // Distribute to contributors
             if (contributorAmount > 0) {
                 IERC20(token).safeTransfer(contributorPool, contributorAmount);
@@ -295,9 +293,9 @@ contract RevenueCollector is
             // For tokens without reward programs (USDC, USDT, etc.), send all to treasury
             // The DAO hasn't reached consensus on distribution for these tokens yet
             // Treasury will hold these until governance decides on distribution
-            
+
             IERC20(token).safeTransfer(treasury, totalAmount);
-            
+
             // Reset the individual amounts to reflect actual distribution
             stakingAmount = 0;
             treasuryAmount = totalAmount;
@@ -319,10 +317,7 @@ contract RevenueCollector is
      * @param token Token address
      * @param threshold Minimum amount required before automatic distribution
      */
-    function setDistributionThreshold(address token, uint256 threshold) 
-        external 
-        onlyRole(ADMIN_ROLE) 
-    {
+    function setDistributionThreshold(address token, uint256 threshold) external onlyRole(ADMIN_ROLE) {
         require(isSupportedToken[token], "Token not supported");
         require(threshold > 0, "Invalid threshold");
 
@@ -338,7 +333,7 @@ contract RevenueCollector is
      */
     function setTreasury(address newTreasury) external onlyRole(ADMIN_ROLE) {
         require(newTreasury != address(0), "Invalid treasury");
-        
+
         address oldTreasury = treasury;
         treasury = newTreasury;
 
@@ -351,7 +346,7 @@ contract RevenueCollector is
      */
     function setContributorPool(address newContributorPool) external onlyRole(ADMIN_ROLE) {
         require(newContributorPool != address(0), "Invalid contributor pool");
-        
+
         address oldContributorPool = contributorPool;
         contributorPool = newContributorPool;
 
@@ -363,10 +358,7 @@ contract RevenueCollector is
      * @param token Token address to support
      * @param threshold Distribution threshold for this token
      */
-    function addSupportedToken(address token, uint256 threshold) 
-        external 
-        onlyRole(ADMIN_ROLE) 
-    {
+    function addSupportedToken(address token, uint256 threshold) external onlyRole(ADMIN_ROLE) {
         require(token != address(0), "Invalid token");
         require(!isSupportedToken[token], "Token already supported");
         require(threshold > 0, "Invalid threshold");
@@ -410,7 +402,7 @@ contract RevenueCollector is
         rewardsManager = IRewardsManager(newRewardsManager);
         emit RewardsManagerUpdated(newRewardsManager);
     }
-    
+
     /**
      * @dev Pause the contract
      */
@@ -430,10 +422,7 @@ contract RevenueCollector is
      * @param token Token to recover
      * @param amount Amount to recover
      */
-    function emergencyRecoverToken(address token, uint256 amount) 
-        external 
-        onlyRole(ADMIN_ROLE) 
-    {
+    function emergencyRecoverToken(address token, uint256 amount) external onlyRole(ADMIN_ROLE) {
         require(token != address(0), "Invalid token");
         require(amount > 0, "Zero amount");
 
@@ -458,11 +447,7 @@ contract RevenueCollector is
      * @return tokens Array of token addresses
      * @return amounts Array of pending amounts
      */
-    function getPendingRevenue() 
-        external 
-        view 
-        returns (address[] memory tokens, uint256[] memory amounts) 
-    {
+    function getPendingRevenue() external view returns (address[] memory tokens, uint256[] memory amounts) {
         tokens = new address[](supportedTokens.length);
         amounts = new uint256[](supportedTokens.length);
 
@@ -477,13 +462,9 @@ contract RevenueCollector is
      * @return needed Whether distribution is needed
      * @return tokensReady Array of tokens ready for distribution
      */
-    function isDistributionNeeded() 
-        external 
-        view 
-        returns (bool needed, address[] memory tokensReady) 
-    {
+    function isDistributionNeeded() external view returns (bool needed, address[] memory tokensReady) {
         uint256 readyCount = 0;
-        
+
         // Count tokens ready for distribution
         for (uint256 i = 0; i < supportedTokens.length; i++) {
             address token = supportedTokens[i];
@@ -515,10 +496,10 @@ contract RevenueCollector is
      * @return lastDistributionTime_ Timestamp of last distribution
      * @return supportedTokenCount Number of supported tokens
      */
-    function getStats() 
-        external 
-        view 
-        returns (uint256 totalDistributions_, uint256 lastDistributionTime_, uint256 supportedTokenCount) 
+    function getStats()
+        external
+        view
+        returns (uint256 totalDistributions_, uint256 lastDistributionTime_, uint256 supportedTokenCount)
     {
         return (totalDistributions, lastDistributionTime, supportedTokens.length);
     }
@@ -526,9 +507,5 @@ contract RevenueCollector is
     /**
      * @dev Authorize upgrade
      */
-    function _authorizeUpgrade(address newImplementation) 
-        internal 
-        override 
-        onlyRole(UPGRADER_ROLE) 
-    {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {}
 }

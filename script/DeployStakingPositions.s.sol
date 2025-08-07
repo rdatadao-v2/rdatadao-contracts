@@ -13,7 +13,7 @@ contract DeployStakingPositions is Script {
     address public rdatAddress;
     address public vrdatAddress;
     address public adminAddress;
-    
+
     function setUp() public {
         // These should be set based on your deployment environment
         // For local testing
@@ -47,48 +47,42 @@ contract DeployStakingPositions is Script {
             adminAddress = 0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319; // Gnosis Safe
         }
     }
-    
+
     function run() public returns (address) {
         require(rdatAddress != address(0), "RDAT address not set");
         require(vrdatAddress != address(0), "vRDAT address not set");
         require(adminAddress != address(0), "Admin address not set");
-        
+
         vm.startBroadcast();
-        
+
         // Deploy implementation
         StakingPositions stakingImpl = new StakingPositions();
         console2.log("StakingPositions implementation deployed at:", address(stakingImpl));
-        
+
         // Deploy proxy
-        bytes memory initData = abi.encodeCall(
-            stakingImpl.initialize,
-            (rdatAddress, vrdatAddress, adminAddress)
-        );
-        
-        ERC1967Proxy proxy = new ERC1967Proxy(
-            address(stakingImpl),
-            initData
-        );
+        bytes memory initData = abi.encodeCall(stakingImpl.initialize, (rdatAddress, vrdatAddress, adminAddress));
+
+        ERC1967Proxy proxy = new ERC1967Proxy(address(stakingImpl), initData);
         console2.log("StakingPositions proxy deployed at:", address(proxy));
-        
+
         // Grant required roles on vRDAT if we're the admin
         if (msg.sender == adminAddress) {
             vRDAT vrdat = vRDAT(vrdatAddress);
-            
+
             // Grant MINTER_ROLE to staking contract
             vrdat.grantRole(vrdat.MINTER_ROLE(), address(proxy));
             console2.log("Granted MINTER_ROLE to StakingPositions");
-            
+
             // Grant BURNER_ROLE to staking contract
             vrdat.grantRole(vrdat.BURNER_ROLE(), address(proxy));
             console2.log("Granted BURNER_ROLE to StakingPositions");
-            
+
             // Note: RDAT has fixed supply - no MINTER_ROLE exists or needed
             console2.log("RDAT has fixed supply - no minting permissions required");
         }
-        
+
         vm.stopBroadcast();
-        
+
         // Log deployment info
         console2.log("==== StakingPositions Deployment Complete ====");
         console2.log("Proxy Address:", address(proxy));
@@ -97,16 +91,12 @@ contract DeployStakingPositions is Script {
         console2.log("RDAT Token:", rdatAddress);
         console2.log("vRDAT Token:", vrdatAddress);
         console2.log("============================================");
-        
+
         return address(proxy);
     }
-    
+
     // Helper function to deploy with specific addresses
-    function deployWithAddresses(
-        address _rdat,
-        address _vrdat,
-        address _admin
-    ) public returns (address) {
+    function deployWithAddresses(address _rdat, address _vrdat, address _admin) public returns (address) {
         rdatAddress = _rdat;
         vrdatAddress = _vrdat;
         adminAddress = _admin;

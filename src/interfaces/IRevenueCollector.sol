@@ -10,10 +10,10 @@ interface IRevenueCollector {
     // Events
     event RevenueReported(address indexed token, uint256 amount, address indexed reporter);
     event RevenueDistributed(
-        address indexed token, 
-        uint256 totalAmount, 
-        uint256 stakingAmount, 
-        uint256 treasuryAmount, 
+        address indexed token,
+        uint256 totalAmount,
+        uint256 stakingAmount,
+        uint256 treasuryAmount,
         uint256 contributorAmount
     );
     event ThresholdUpdated(address indexed token, uint256 oldThreshold, uint256 newThreshold);
@@ -26,13 +26,17 @@ interface IRevenueCollector {
 
     // Core functions
     function notifyRevenue(address token, uint256 amount) external;
-    function distribute(address token) external returns (uint256 stakingAmount, uint256 treasuryAmount, uint256 contributorAmount);
-    function distributeAll() external returns (
-        address[] memory tokens,
-        uint256[] memory stakingAmounts,
-        uint256[] memory treasuryAmounts,
-        uint256[] memory contributorAmounts
-    );
+    function distribute(address token)
+        external
+        returns (uint256 stakingAmount, uint256 treasuryAmount, uint256 contributorAmount);
+    function distributeAll()
+        external
+        returns (
+            address[] memory tokens,
+            uint256[] memory stakingAmounts,
+            uint256[] memory treasuryAmounts,
+            uint256[] memory contributorAmounts
+        );
 
     // View functions
     function pendingRevenue(address token) external view returns (uint256);
@@ -42,7 +46,10 @@ interface IRevenueCollector {
     function getSupportedTokens() external view returns (address[] memory);
     function getPendingRevenue() external view returns (address[] memory tokens, uint256[] memory amounts);
     function isDistributionNeeded() external view returns (bool needed, address[] memory tokensReady);
-    function getStats() external view returns (uint256 totalDistributions_, uint256 lastDistributionTime_, uint256 supportedTokenCount);
+    function getStats()
+        external
+        view
+        returns (uint256 totalDistributions_, uint256 lastDistributionTime_, uint256 supportedTokenCount);
 
     // Admin functions
     function setDistributionThreshold(address token, uint256 threshold) external;

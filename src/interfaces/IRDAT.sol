@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IRDAT is IERC20 {
     // Events
     event RevenueCollectorSet(address indexed collector);
-    
+
     // Functions
     function mint(address to, uint256 amount) external;
     function pause() external;
@@ -14,7 +14,7 @@ interface IRDAT is IERC20 {
     function setPoCContract(address _poc) external;
     function setDataRefiner(address _refiner) external;
     function setRevenueCollector(address _collector) external;
-    
+
     // Constants
     function TOTAL_SUPPLY() external view returns (uint256);
     function MIGRATION_ALLOCATION() external view returns (uint256);

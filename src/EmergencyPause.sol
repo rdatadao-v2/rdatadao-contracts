@@ -10,7 +10,7 @@ import "./interfaces/IEmergencyPause.sol";
  * @author r/datadao
  * @notice Shared emergency pause system for protocol-wide emergency response
  * @dev Implements auto-expiry mechanism and multi-pauser support
- * 
+ *
  * Key Features:
  * - Multiple authorized pausers
  * - Auto-expiry after fixed duration
@@ -22,19 +22,19 @@ contract EmergencyPause is AccessControl, ReentrancyGuard, IEmergencyPause {
     // Roles
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
     bytes32 public constant PAUSER_MANAGER_ROLE = keccak256("PAUSER_MANAGER_ROLE");
-    
+
     // Constants
     uint256 public constant override PAUSE_DURATION = 72 hours; // 3 days auto-expiry
-    
+
     // State
     bool private _paused;
     uint256 public override pausedAt;
     mapping(address => bool) public override pausers;
-    
+
     // Additional events
     event PauserAdded(address indexed pauser);
     event PauserRemoved(address indexed pauser);
-    
+
     /**
      * @dev Constructor sets up initial roles
      * @param admin Address to receive admin and guardian roles
@@ -45,7 +45,7 @@ contract EmergencyPause is AccessControl, ReentrancyGuard, IEmergencyPause {
         _grantRole(GUARDIAN_ROLE, admin);
         _grantRole(PAUSER_MANAGER_ROLE, admin);
     }
-    
+
     /**
      * @dev Add a new emergency pauser
      * @param pauser Address to grant pause permission
@@ -53,22 +53,22 @@ contract EmergencyPause is AccessControl, ReentrancyGuard, IEmergencyPause {
     function addPauser(address pauser) external override onlyRole(PAUSER_MANAGER_ROLE) {
         require(pauser != address(0), "Invalid pauser");
         require(!pausers[pauser], "Already a pauser");
-        
+
         pausers[pauser] = true;
         emit PauserAdded(pauser);
     }
-    
+
     /**
      * @dev Remove an emergency pauser
      * @param pauser Address to revoke pause permission
      */
     function removePauser(address pauser) external override onlyRole(PAUSER_MANAGER_ROLE) {
         require(pausers[pauser], "Not a pauser");
-        
+
         pausers[pauser] = false;
         emit PauserRemoved(pauser);
     }
-    
+
     /**
      * @dev Trigger emergency pause
      * @notice Can only be called by authorized pausers
@@ -76,26 +76,26 @@ contract EmergencyPause is AccessControl, ReentrancyGuard, IEmergencyPause {
     function emergencyPause() external override nonReentrant {
         require(pausers[msg.sender], "Not authorized to pause");
         require(!_isPaused(), "Already paused");
-        
+
         _paused = true;
         pausedAt = block.timestamp;
-        
+
         emit EmergencyPaused(msg.sender);
     }
-    
+
     /**
      * @dev Unpause before auto-expiry
      * @notice Only guardian can unpause early
      */
     function emergencyUnpause() external override onlyRole(GUARDIAN_ROLE) nonReentrant {
         require(_isPaused(), "Not paused");
-        
+
         _paused = false;
         pausedAt = 0;
-        
+
         emit EmergencyUnpaused(msg.sender);
     }
-    
+
     /**
      * @dev Check if system is currently paused
      * @return paused Whether emergency pause is active (considering auto-expiry)
@@ -103,7 +103,7 @@ contract EmergencyPause is AccessControl, ReentrancyGuard, IEmergencyPause {
     function emergencyPaused() external view override returns (bool) {
         return _isPaused();
     }
-    
+
     /**
      * @dev Internal function to check pause state with auto-expiry
      * @return Whether the system is currently paused
@@ -112,15 +112,15 @@ contract EmergencyPause is AccessControl, ReentrancyGuard, IEmergencyPause {
         if (!_paused) {
             return false;
         }
-        
+
         // Check if pause has auto-expired
         if (block.timestamp >= pausedAt + PAUSE_DURATION) {
             return false;
         }
-        
+
         return true;
     }
-    
+
     /**
      * @dev Get remaining pause time
      * @return remainingSeconds Seconds until auto-unpause (0 if not paused)
@@ -129,15 +129,15 @@ contract EmergencyPause is AccessControl, ReentrancyGuard, IEmergencyPause {
         if (!_isPaused()) {
             return 0;
         }
-        
+
         uint256 expiryTime = pausedAt + PAUSE_DURATION;
         if (block.timestamp >= expiryTime) {
             return 0;
         }
-        
+
         return expiryTime - block.timestamp;
     }
-    
+
     /**
      * @dev Check if an address is an authorized pauser
      * @param account Address to check
@@ -146,7 +146,7 @@ contract EmergencyPause is AccessControl, ReentrancyGuard, IEmergencyPause {
     function isPauser(address account) external view returns (bool) {
         return pausers[account];
     }
-    
+
     /**
      * @dev Modifier to check if not paused
      * @notice Use this in inheriting contracts
@@ -155,7 +155,7 @@ contract EmergencyPause is AccessControl, ReentrancyGuard, IEmergencyPause {
         require(!_isPaused(), "Emergency pause active");
         _;
     }
-    
+
     /**
      * @dev Modifier to check if paused
      * @notice Use this in inheriting contracts

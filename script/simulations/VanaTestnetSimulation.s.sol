@@ -13,7 +13,7 @@ contract VanaTestnetSimulation is Script {
     function run() external view {
         console2.log("=== VANA MOKSHA TESTNET DEPLOYMENT SIMULATION ===");
         console2.log("");
-        
+
         // Environment validation
         console2.log("+ Environment Configuration:");
         console2.log("  Chain ID: 14800 (Vana Moksha)");
@@ -21,7 +21,7 @@ contract VanaTestnetSimulation is Script {
         console2.log("  Admin:", vm.envOr("ADMIN_ADDRESS", address(0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319)));
         console2.log("  Treasury:", vm.envOr("TREASURY_ADDRESS", address(0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319)));
         console2.log("");
-        
+
         // Predicted addresses (deterministic via CREATE2)
         console2.log("+ Predicted Contract Addresses:");
         console2.log("  Factory: [Will be deterministic]");
@@ -31,7 +31,7 @@ contract VanaTestnetSimulation is Script {
         console2.log("  Staking: [Will be deterministic]");
         console2.log("  Emergency Pause: [Will be deterministic]");
         console2.log("");
-        
+
         // Gas estimates
         console2.log("+ Gas Estimates:");
         console2.log("  Factory Deployment: ~331,568 gas");
@@ -44,14 +44,14 @@ contract VanaTestnetSimulation is Script {
         console2.log("  Emergency Pause: ~3,484,620 gas");
         console2.log("  TOTAL ESTIMATED: ~18.9M gas");
         console2.log("");
-        
+
         // Token distribution validation
         console2.log("+ Token Distribution (100M RDAT):");
         console2.log("  Treasury Allocation: 70M RDAT (70%)");
         console2.log("  Migration Allocation: 30M RDAT (30%)");
         console2.log("  Total Supply: 100M RDAT");
         console2.log("");
-        
+
         // Security checklist
         console2.log("+ Security Validations:");
         console2.log("  + Multisig admin controls");
@@ -60,7 +60,7 @@ contract VanaTestnetSimulation is Script {
         console2.log("  + Access control implementation");
         console2.log("  + Reentrancy protection");
         console2.log("");
-        
+
         // Post-deployment tasks
         console2.log("+ Post-Deployment Checklist:");
         console2.log("  1. Verify all contracts on Vanascan");
@@ -70,7 +70,7 @@ contract VanaTestnetSimulation is Script {
         console2.log("  5. Verify CREATE2 address determinism");
         console2.log("  6. Document deployed addresses");
         console2.log("");
-        
+
         // Integration requirements
         console2.log("+ Integration Requirements:");
         console2.log("  + VRC-20 compliance for DLP rewards");
@@ -78,7 +78,7 @@ contract VanaTestnetSimulation is Script {
         console2.log("  + Frontend integration testing");
         console2.log("  + Staking rewards calculation");
         console2.log("");
-        
+
         console2.log("+ SIMULATION COMPLETE - READY FOR TESTNET +");
         console2.log("Run with --broadcast flag when ready to deploy");
     }

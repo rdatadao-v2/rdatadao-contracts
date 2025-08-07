@@ -21,7 +21,7 @@ contract MockRDAT is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
     EnumerableSet.AddressSet private _blockList;
 
     // Initial supply for the mock (30 million tokens)
-    uint256 private constant INITIAL_SUPPLY = 30_000_000 * 10**18;
+    uint256 private constant INITIAL_SUPPLY = 30_000_000 * 10 ** 18;
 
     /**
      * @dev Emitted when the pause is triggered by `account`.
@@ -39,7 +39,7 @@ contract MockRDAT is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
     /**
      * @dev Emitted when and address is added to the blockList
      *
-     * @param blockedAddress    the address to be blocked 
+     * @param blockedAddress    the address to be blocked
      */
     event AddressBlocked(address indexed blockedAddress);
 
@@ -95,21 +95,25 @@ contract MockRDAT is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
     function clock() public view override returns (uint48) {
         return uint48(block.timestamp);
     }
-    
+
     // solhint-disable-next-line func-name-mixedcase
     function CLOCK_MODE() public pure override returns (string memory) {
         return "mode=timestamp";
     }
 
-    function blockListLength() external view returns(uint256) {
+    function blockListLength() external view returns (uint256) {
         return _blockList.length();
     }
 
-    function blockListAt(uint256 _index) external view returns(address) {
+    function blockListAt(uint256 _index) external view returns (address) {
         return _blockList.at(_index);
     }
 
-    function _update(address from, address to, uint256 amount) internal override(ERC20, ERC20Votes) whenNotBlocked(from) {
+    function _update(address from, address to, uint256 amount)
+        internal
+        override(ERC20, ERC20Votes)
+        whenNotBlocked(from)
+    {
         super._update(from, to, amount);
     }
 

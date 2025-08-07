@@ -24,59 +24,59 @@ contract DeploySimple is Script {
     address public governanceCore;
     address public governanceVoting;
     address payable public governanceExecution;
-    
+
     function run() external {
         address admin = vm.envAddress("ADMIN_ADDRESS");
         address dlpAddress = vm.envAddress("DLP_ADDRESS");
-        
+
         console.log("Starting simple deployment...");
         console.log("Admin:", admin);
         console.log("DLP:", dlpAddress);
-        
+
         vm.startBroadcast();
-        
+
         // Deploy EmergencyPause
         console.log("\n1. Deploying EmergencyPause...");
         emergencyPause = address(new EmergencyPause(admin));
         console.log("   Deployed at:", emergencyPause);
-        
+
         // Deploy vRDAT
         console.log("\n2. Deploying vRDAT...");
         vrdatToken = address(new vRDAT(admin));
         console.log("   Deployed at:", vrdatToken);
-        
+
         // Deploy ProofOfContributionStub
         console.log("\n3. Deploying ProofOfContributionStub...");
         pocStub = address(new ProofOfContributionStub(admin, dlpAddress));
         console.log("   Deployed at:", pocStub);
-        
+
         // Deploy MockGovernance
         console.log("\n4. Deploying MockGovernance...");
         governance = address(new MockGovernance());
         console.log("   Deployed at:", governance);
-        
+
         // Deploy Modular Governance Components
         console.log("\n5. Deploying GovernanceCore...");
         governanceCore = address(new GovernanceCore(admin));
         console.log("   Deployed at:", governanceCore);
-        
+
         console.log("\n6. Deploying GovernanceVoting...");
         governanceVoting = address(new GovernanceVoting(vrdatToken, admin));
         console.log("   Deployed at:", governanceVoting);
-        
+
         console.log("\n7. Deploying GovernanceExecution...");
         governanceExecution = payable(address(new GovernanceExecution(admin)));
         console.log("   Deployed at:", governanceExecution);
-        
+
         // Configure governance modules
         console.log("\n8. Configuring governance modules...");
         GovernanceVoting(governanceVoting).setGovernanceCore(governanceCore);
         GovernanceExecution(governanceExecution).setGovernanceCore(governanceCore);
         vRDAT(vrdatToken).grantRole(keccak256("GOVERNANCE_ROLE"), governanceVoting);
         console.log("   Governance modules configured");
-        
+
         vm.stopBroadcast();
-        
+
         // Summary
         console.log("\n=== Deployment Summary ===");
         console.log("EmergencyPause:", emergencyPause);
@@ -88,18 +88,18 @@ contract DeploySimple is Script {
         console.log("GovernanceExecution:", governanceExecution);
         console.log("\nDeployment complete!");
     }
-    
+
     function dryRun() external view {
         address admin = vm.envOr("ADMIN_ADDRESS", address(0x1));
         address dlp = vm.envOr("DLP_ADDRESS", address(0x2));
         address deployer = vm.envOr("DEPLOYER_ADDRESS", msg.sender);
-        
+
         console.log("=== Dry Run ===");
         console.log("Admin:", admin);
         console.log("DLP:", dlp);
         console.log("Deployer:", deployer);
         console.log("Chain ID:", block.chainid);
-        
+
         console.log("\nExpected deployment order:");
         console.log("1. EmergencyPause");
         console.log("2. vRDAT");

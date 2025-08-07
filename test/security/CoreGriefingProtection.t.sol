@@ -17,17 +17,17 @@ contract CoreGriefingProtectionTest is Test {
     StakingPositions public stakingPositions;
     RDATUpgradeable public rdat;
     vRDAT public vrdat;
-    
+
     address public admin = address(0x1);
     address public attacker = address(0x2);
     address public victim = address(0x3);
     address public treasury = address(0x4);
-    
+
     uint256 constant STAKE_AMOUNT = 10e18; // 10 RDAT
-    
+
     function setUp() public {
         vm.startPrank(admin);
-        
+
         // Deploy RDAT
         RDATUpgradeable rdatImpl = new RDATUpgradeable();
         bytes memory rdatInitData = abi.encodeCall(
@@ -36,239 +36,232 @@ contract CoreGriefingProtectionTest is Test {
         );
         ERC1967Proxy rdatProxy = new ERC1967Proxy(address(rdatImpl), rdatInitData);
         rdat = RDATUpgradeable(address(rdatProxy));
-        
+
         // Deploy vRDAT
         vrdat = new vRDAT(admin);
         // No mint delay needed for soul-bound tokens
-        
+
         // Deploy StakingPositions
         StakingPositions stakingImpl = new StakingPositions();
-        bytes memory stakingInitData = abi.encodeCall(
-            stakingImpl.initialize,
-            (address(rdat), address(vrdat), admin)
-        );
+        bytes memory stakingInitData = abi.encodeCall(stakingImpl.initialize, (address(rdat), address(vrdat), admin));
         ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), stakingInitData);
         stakingPositions = StakingPositions(address(stakingProxy));
-        
+
         // Setup tokens and roles
         // RDAT no longer has MINTER_ROLE - all tokens minted at deployment
         vrdat.grantRole(vrdat.MINTER_ROLE(), address(stakingPositions));
         vrdat.grantRole(vrdat.BURNER_ROLE(), address(stakingPositions));
-        
+
         // Transfer tokens from treasury (no minting)
         vm.startPrank(treasury);
         rdat.transfer(attacker, 1000e18);
         rdat.transfer(victim, 1000e18);
         vm.stopPrank();
-        
+
         vm.startPrank(admin);
-        
+
         vm.stopPrank();
     }
-    
+
     // ============ Core Anti-Griefing Tests (Known Working) ============
-    
+
     function test_CannotTransferLockedPosition() public {
         // ✅ This test passes - confirms locked positions cannot be transferred
-        
+
         vm.startPrank(victim);
-        
+
         rdat.approve(address(stakingPositions), STAKE_AMOUNT);
         uint256 positionId = stakingPositions.stake(STAKE_AMOUNT, 365 days);
-        
+
         // Try to transfer locked position - should fail
         vm.expectRevert(IStakingPositions.TransferWhileLocked.selector);
         stakingPositions.transferFrom(victim, attacker, positionId);
-        
+
         vm.stopPrank();
     }
-    
+
     function test_CannotTransferPositionWithActivevRDAT() public {
         // ✅ This test passes - confirms positions with vRDAT cannot be transferred
-        
+
         vm.startPrank(victim);
-        
+
         rdat.approve(address(stakingPositions), STAKE_AMOUNT);
         uint256 positionId = stakingPositions.stake(STAKE_AMOUNT, 30 days);
-        
+
         // Wait for unlock but don't unstake (vRDAT still active)
         vm.warp(block.timestamp + 30 days + 1);
-        
+
         // Transfer should fail due to active vRDAT
         vm.expectRevert(IStakingPositions.TransferWithActiveRewards.selector);
         stakingPositions.transferFrom(victim, attacker, positionId);
-        
+
         vm.stopPrank();
     }
-    
+
     function test_CannotCreateZombiePositionByBurningvRDAT() public {
         // ✅ This test passes - proves zombie position attack is prevented
-        
+
         vm.startPrank(attacker);
-        
+
         // Step 1: Create a position
         rdat.approve(address(stakingPositions), STAKE_AMOUNT);
         uint256 positionId = stakingPositions.stake(STAKE_AMOUNT, 365 days);
-        
+
         // Step 2: Wait for unlock period
         vm.warp(block.timestamp + 365 days + 1);
-        
+
         // Step 3: Try to burn vRDAT directly (should fail - only StakingPositions can burn)
         IStakingPositions.Position memory position = stakingPositions.getPosition(positionId);
         uint256 vrdatAmount = position.vrdatMinted;
-        
+
         vm.expectRevert(
             abi.encodeWithSelector(
-                bytes4(keccak256("AccessControlUnauthorizedAccount(address,bytes32)")),
-                attacker,
-                vrdat.BURNER_ROLE()
+                bytes4(keccak256("AccessControlUnauthorizedAccount(address,bytes32)")), attacker, vrdat.BURNER_ROLE()
             )
         );
         vrdat.burn(attacker, vrdatAmount);
-        
+
         // Step 4: Transfer NFT should fail if vRDAT still exists
         vm.expectRevert(IStakingPositions.TransferWithActiveRewards.selector);
         stakingPositions.transferFrom(attacker, victim, positionId);
-        
+
         vm.stopPrank();
     }
-    
+
     function test_MinimumStakePreventsDustAttacks() public {
         // ✅ Verify minimum stake amount prevents dust attacks
-        
+
         vm.startPrank(attacker);
-        
+
         // Try to stake dust amount
         rdat.approve(address(stakingPositions), 1);
         vm.expectRevert(IStakingPositions.BelowMinimumStake.selector);
         stakingPositions.stake(1, 365 days);
-        
+
         // Try just under minimum
         rdat.approve(address(stakingPositions), 1e18 - 1);
         vm.expectRevert(IStakingPositions.BelowMinimumStake.selector);
         stakingPositions.stake(1e18 - 1, 365 days);
-        
+
         // Minimum amount should work
         rdat.approve(address(stakingPositions), 1e18);
         uint256 positionId = stakingPositions.stake(1e18, 365 days);
         assertEq(positionId, 1);
-        
+
         vm.stopPrank();
     }
-    
+
     function test_PositionLimitPreventsSpam() public {
         // ✅ Test position limit prevents DoS attacks (simplified version)
-        
+
         vm.startPrank(attacker);
-        
+
         // Create several positions (not hitting limit for test speed)
         uint256 numPositions = 5;
         for (uint256 i = 0; i < numPositions; i++) {
             rdat.approve(address(stakingPositions), stakingPositions.MIN_STAKE_AMOUNT());
             stakingPositions.stake(stakingPositions.MIN_STAKE_AMOUNT(), 30 days);
         }
-        
+
         // Verify positions were created
         assertEq(stakingPositions.balanceOf(attacker), numPositions);
-        
+
         // Position enumeration should work efficiently
         uint256[] memory positions = stakingPositions.getUserPositions(attacker);
         assertEq(positions.length, numPositions);
-        
+
         vm.stopPrank();
     }
-    
+
     function test_EmergencyExitBurnsPosition() public {
         // ✅ Verify emergency exit properly cleans up (no zombie positions)
-        
+
         vm.startPrank(victim);
-        
+
         rdat.approve(address(stakingPositions), STAKE_AMOUNT);
         uint256 positionId = stakingPositions.stake(STAKE_AMOUNT, 365 days);
-        
+
         // Emergency exit should succeed and burn NFT
         uint256 balanceBefore = rdat.balanceOf(victim);
         stakingPositions.emergencyWithdraw(positionId);
         uint256 balanceAfter = rdat.balanceOf(victim);
-        
+
         // Should receive reduced amount (50% penalty)
         uint256 expectedAmount = STAKE_AMOUNT / 2;
         assertEq(balanceAfter - balanceBefore, expectedAmount);
-        
+
         // Position should be completely gone (no zombie)
         vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("ERC721NonexistentToken(uint256)")), positionId));
         stakingPositions.ownerOf(positionId);
-        
+
         vm.stopPrank();
     }
-    
+
     // ============ Boundary Testing ============
-    
+
     function test_ExactlyMinStakeWorks() public {
         vm.startPrank(victim);
-        
+
         uint256 minStake = stakingPositions.MIN_STAKE_AMOUNT();
         rdat.approve(address(stakingPositions), minStake);
-        
+
         // Should work with exact minimum
         uint256 positionId = stakingPositions.stake(minStake, 30 days);
         assertEq(positionId, 1);
-        
+
         // In the new architecture, vRDAT is minted by RewardsManager modules
         // StakingPositions no longer mints vRDAT directly
         // Just verify the position was created
         IStakingPositions.Position memory position = stakingPositions.getPosition(positionId);
         assertEq(position.amount, minStake);
-        
+
         vm.stopPrank();
     }
-    
+
     function test_ReentrancyProtectionExists() public {
         // ✅ Verify that contracts can stake (no reentrancy test since this isn't a reentrancy vector)
-        
+
         vm.startPrank(attacker);
-        
+
         // Deploy a contract that implements ERC721Receiver
         SafeStakerContract safeStaker = new SafeStakerContract(address(stakingPositions), address(rdat));
         rdat.transfer(address(safeStaker), STAKE_AMOUNT);
-        
+
         vm.stopPrank();
-        
+
         // Have the contract stake
         vm.prank(attacker);
         uint256 positionId = safeStaker.stakeTokens(STAKE_AMOUNT, 30 days);
-        
+
         // Verify it worked
         assertEq(stakingPositions.ownerOf(positionId), address(safeStaker));
     }
-    
+
     // ============ Access Control ============
-    
+
     function test_OnlyStakingCanBurnVRDAT() public {
         // ✅ Verify only authorized contracts can burn vRDAT
-        
+
         vm.startPrank(attacker);
-        
+
         // Create position to have vRDAT
         rdat.approve(address(stakingPositions), STAKE_AMOUNT);
         uint256 positionId = stakingPositions.stake(STAKE_AMOUNT, 365 days);
-        
+
         IStakingPositions.Position memory position = stakingPositions.getPosition(positionId);
         uint256 vrdatAmount = position.vrdatMinted;
-        
+
         // Direct burn should fail
         vm.expectRevert(
             abi.encodeWithSelector(
-                bytes4(keccak256("AccessControlUnauthorizedAccount(address,bytes32)")),
-                attacker,
-                vrdat.BURNER_ROLE()
+                bytes4(keccak256("AccessControlUnauthorizedAccount(address,bytes32)")), attacker, vrdat.BURNER_ROLE()
             )
         );
         vrdat.burn(attacker, vrdatAmount);
-        
+
         // Only emergency withdraw (through StakingPositions) should work
         stakingPositions.emergencyWithdraw(positionId);
-        
+
         vm.stopPrank();
     }
 }
@@ -280,24 +273,19 @@ contract CoreGriefingProtectionTest is Test {
 contract SafeStakerContract {
     StakingPositions public stakingPositions;
     IERC20 public rdat;
-    
+
     constructor(address _stakingPositions, address _rdat) {
         stakingPositions = StakingPositions(_stakingPositions);
         rdat = IERC20(_rdat);
     }
-    
+
     function stakeTokens(uint256 amount, uint256 lockPeriod) external returns (uint256) {
         rdat.approve(address(stakingPositions), amount);
         return stakingPositions.stake(amount, lockPeriod);
     }
-    
+
     // Implement ERC721Receiver to receive NFT positions
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external pure returns (bytes4) {
+    function onERC721Received(address, address, uint256, bytes calldata) external pure returns (bytes4) {
         return this.onERC721Received.selector;
     }
 }

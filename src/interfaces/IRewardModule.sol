@@ -12,30 +12,20 @@ interface IRewardModule {
      * @notice Module metadata for identification and UI
      */
     struct ModuleInfo {
-        string name;             // Module name (e.g., "vRDAT Governance Rewards")
-        string version;          // Module version (e.g., "1.0.0")
-        address rewardToken;     // Token distributed by this module
-        bool isActive;           // Whether module is currently active
-        bool supportsHistory;    // Whether module can calculate historical rewards
-        uint256 totalAllocated;  // Total tokens allocated to this module
-        uint256 totalDistributed;// Total tokens distributed so far
+        string name; // Module name (e.g., "vRDAT Governance Rewards")
+        string version; // Module version (e.g., "1.0.0")
+        address rewardToken; // Token distributed by this module
+        bool isActive; // Whether module is currently active
+        bool supportsHistory; // Whether module can calculate historical rewards
+        uint256 totalAllocated; // Total tokens allocated to this module
+        uint256 totalDistributed; // Total tokens distributed so far
     }
 
     // Events
-    event RewardDistributed(
-        address indexed user,
-        uint256 indexed stakeId,
-        uint256 amount,
-        address token
-    );
-    
-    event RewardSlashed(
-        address indexed user,
-        uint256 indexed stakeId,
-        uint256 amount,
-        address token
-    );
-    
+    event RewardDistributed(address indexed user, uint256 indexed stakeId, uint256 amount, address token);
+
+    event RewardSlashed(address indexed user, uint256 indexed stakeId, uint256 amount, address token);
+
     event ModuleStatusChanged(bool active);
     event AllocationIncreased(uint256 amount);
 
@@ -55,12 +45,7 @@ interface IRewardModule {
      * @param amount Amount of tokens staked
      * @param lockPeriod Duration of the stake lock
      */
-    function onStake(
-        address user,
-        uint256 stakeId,
-        uint256 amount,
-        uint256 lockPeriod
-    ) external;
+    function onStake(address user, uint256 stakeId, uint256 amount, uint256 lockPeriod) external;
 
     /**
      * @notice Called when a user unstakes (normal or emergency)
@@ -70,12 +55,7 @@ interface IRewardModule {
      * @param amount Amount being unstaked
      * @param emergency Whether this is an emergency withdrawal
      */
-    function onUnstake(
-        address user,
-        uint256 stakeId,
-        uint256 amount,
-        bool emergency
-    ) external;
+    function onUnstake(address user, uint256 stakeId, uint256 amount, bool emergency) external;
 
     /**
      * @notice Calculate pending rewards for a stake
@@ -84,10 +64,7 @@ interface IRewardModule {
      * @param stakeId Unique identifier for the stake
      * @return amount Pending reward amount
      */
-    function calculateRewards(
-        address user,
-        uint256 stakeId
-    ) external view returns (uint256 amount);
+    function calculateRewards(address user, uint256 stakeId) external view returns (uint256 amount);
 
     /**
      * @notice Claim rewards for a stake
@@ -96,10 +73,7 @@ interface IRewardModule {
      * @param stakeId Unique identifier for the stake
      * @return amount Amount of rewards claimed
      */
-    function claimRewards(
-        address user,
-        uint256 stakeId
-    ) external returns (uint256 amount);
+    function claimRewards(address user, uint256 stakeId) external returns (uint256 amount);
 
     /**
      * @notice Get module information
