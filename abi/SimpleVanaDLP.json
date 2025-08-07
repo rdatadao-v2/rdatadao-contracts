@@ -1,76 +1,8 @@
 [
   {
     "type": "constructor",
-    "inputs": [
-      {
-        "name": "_v2Token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_admin",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "validators_",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
-    ],
+    "inputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "BASIS_POINTS",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "CHALLENGE_PERIOD",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "CONFIRMATION_BLOCKS",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "DAILY_LIMIT",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -87,20 +19,7 @@
   },
   {
     "type": "function",
-    "name": "MIN_VALIDATORS",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "PAUSER_ROLE",
+    "name": "MAINTAINER_ROLE",
     "inputs": [],
     "outputs": [
       {
@@ -113,64 +32,25 @@
   },
   {
     "type": "function",
-    "name": "VALIDATOR_ROLE",
+    "name": "UPGRADE_INTERFACE_VERSION",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "WEEK_1_2_BONUS",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "WEEK_3_4_BONUS",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "WEEK_5_8_BONUS",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "addValidator",
+    "name": "addRewardsForContributors",
     "inputs": [
       {
-        "name": "validator",
-        "type": "address",
-        "internalType": "address"
+        "name": "contributorsRewardAmount",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -178,52 +58,184 @@
   },
   {
     "type": "function",
-    "name": "bonusVesting",
+    "name": "calculateReward",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "address",
-        "internalType": "contract MigrationBonusVesting"
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "calculateBonus",
+    "name": "contributorFiles",
     "inputs": [
+      {
+        "name": "contributorAddress",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "fileId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "proofIndex",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "rewardAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "contributorFilesCount",
+    "inputs": [
+      {
+        "name": "contributorAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "contributorInfo",
+    "inputs": [
+      {
+        "name": "contributorAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "contributors",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "totalRewardAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "contributorsCount",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "contributorsList",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "dataRegistry",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "emergencyWithdraw",
+    "inputs": [
+      {
+        "name": "tokenAddress",
+        "type": "address",
+        "internalType": "address"
+      },
       {
         "name": "amount",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "challengeMigration",
-    "inputs": [
-      {
-        "name": "requestId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "dailyMigrated",
+    "name": "fileRewardFactor",
     "inputs": [],
     "outputs": [
       {
@@ -236,8 +248,48 @@
   },
   {
     "type": "function",
-    "name": "deploymentTime",
-    "inputs": [],
+    "name": "files",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "proofIndex",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "rewardAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "filesList",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [
       {
         "name": "",
@@ -249,16 +301,35 @@
   },
   {
     "type": "function",
-    "name": "executeMigration",
+    "name": "filesListAt",
     "inputs": [
       {
-        "name": "requestId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "filesListCount",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -323,129 +394,58 @@
   },
   {
     "type": "function",
-    "name": "hasValidated",
+    "name": "initialize",
     "inputs": [
       {
-        "name": "requestId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "validator",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "initiateMigration",
-    "inputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "pure"
-  },
-  {
-    "type": "function",
-    "name": "lastResetTime",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "migrationDeadline",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "migrationRequests",
-    "inputs": [
-      {
-        "name": "requestId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
+        "name": "params",
         "type": "tuple",
-        "internalType": "struct IMigrationBridge.MigrationRequest",
+        "internalType": "struct SimpleVanaDLP.InitParams",
         "components": [
           {
-            "name": "user",
+            "name": "ownerAddress",
             "type": "address",
             "internalType": "address"
           },
           {
-            "name": "amount",
+            "name": "tokenAddress",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "dlpName",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "dlpPublicKey",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "dlpProofInstruction",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "dlpFileRewardFactor",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "bonus",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "burnTxHash",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "burnBlockNumber",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "validatorApprovals",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "challengeEndTime",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "executed",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "challenged",
-            "type": "bool",
-            "internalType": "bool"
           }
         ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "name",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "stateMutability": "view"
@@ -472,35 +472,42 @@
   },
   {
     "type": "function",
-    "name": "processedBurnHashes",
-    "inputs": [
-      {
-        "name": "burnHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
+    "name": "proofInstruction",
+    "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "removeValidator",
-    "inputs": [
+    "name": "proxiableUUID",
+    "inputs": [],
+    "outputs": [
       {
-        "name": "validator",
-        "type": "address",
-        "internalType": "address"
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "publicKey",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -522,12 +529,17 @@
   },
   {
     "type": "function",
-    "name": "returnUnclaimedTokens",
+    "name": "requestReward",
     "inputs": [
       {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
+        "name": "registryFileId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "proofIndex",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -546,47 +558,6 @@
         "name": "account",
         "type": "address",
         "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setBonusVesting",
-    "inputs": [
-      {
-        "name": "_bonusVesting",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "submitValidation",
-    "inputs": [
-      {
-        "name": "user",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "burnTxHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "burnBlockNumber",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -613,7 +584,33 @@
   },
   {
     "type": "function",
-    "name": "totalMigrated",
+    "name": "teePool",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "token",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IERC20"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "totalContributorsRewardAmount",
     "inputs": [],
     "outputs": [
       {
@@ -633,10 +630,10 @@
   },
   {
     "type": "function",
-    "name": "updateDailyLimit",
+    "name": "updateFileRewardFactor",
     "inputs": [
       {
-        "name": "newLimit",
+        "name": "newFileRewardFactor",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -646,43 +643,55 @@
   },
   {
     "type": "function",
-    "name": "userMigrations",
+    "name": "updateProofInstruction",
     "inputs": [
       {
-        "name": "user",
-        "type": "address",
-        "internalType": "address"
+        "name": "newProofInstruction",
+        "type": "string",
+        "internalType": "string"
       }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "v2Token",
+    "name": "updatePublicKey",
+    "inputs": [
+      {
+        "name": "newPublicKey",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "upgradeToAndCall",
+    "inputs": [
+      {
+        "name": "newImplementation",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "data",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "version",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "address",
-        "internalType": "contract IERC20"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "validatorCount",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -690,30 +699,23 @@
     "stateMutability": "view"
   },
   {
-    "type": "function",
-    "name": "validators",
-    "inputs": [
-      {
-        "name": "validator",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
     "type": "event",
-    "name": "DailyLimitReset",
+    "name": "FileAdded",
     "inputs": [
       {
-        "name": "newDayTimestamp",
+        "name": "fileId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "rewardAmount",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -723,138 +725,13 @@
   },
   {
     "type": "event",
-    "name": "DailyLimitUpdated",
+    "name": "Initialized",
     "inputs": [
       {
-        "name": "newLimit",
-        "type": "uint256",
+        "name": "version",
+        "type": "uint64",
         "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "MigrationChallenged",
-    "inputs": [
-      {
-        "name": "requestId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "challenger",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "MigrationCompleted",
-    "inputs": [
-      {
-        "name": "user",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "bonus",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "MigrationExecuted",
-    "inputs": [
-      {
-        "name": "requestId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "user",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "bonus",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "MigrationInitiated",
-    "inputs": [
-      {
-        "name": "requestId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "user",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "burnTxHash",
-        "type": "bytes32",
-        "indexed": false,
-        "internalType": "bytes32"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "MigrationValidated",
-    "inputs": [
-      {
-        "name": "requestId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "validator",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        "internalType": "uint64"
       }
     ],
     "anonymous": false
@@ -868,6 +745,37 @@
         "type": "address",
         "indexed": false,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RewardRequested",
+    "inputs": [
+      {
+        "name": "contributorAddress",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "fileId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "proofIndex",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "rewardAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -962,23 +870,10 @@
   },
   {
     "type": "event",
-    "name": "ValidatorAdded",
+    "name": "Upgraded",
     "inputs": [
       {
-        "name": "validator",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ValidatorRemoved",
-    "inputs": [
-      {
-        "name": "validator",
+        "name": "implementation",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -1009,27 +904,29 @@
   },
   {
     "type": "error",
-    "name": "AlreadyProcessed",
-    "inputs": []
+    "name": "AddressEmptyCode",
+    "inputs": [
+      {
+        "name": "target",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
-    "name": "AlreadyValidated",
-    "inputs": []
+    "name": "ERC1967InvalidImplementation",
+    "inputs": [
+      {
+        "name": "implementation",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
-    "name": "AlreadyValidator",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ChallengePeriodActive",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "DailyLimitExceeded",
+    "name": "ERC1967NonPayable",
     "inputs": []
   },
   {
@@ -1044,37 +941,17 @@
   },
   {
     "type": "error",
-    "name": "InsufficientBalance",
+    "name": "FailedCall",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "InsufficientValidators",
+    "name": "InvalidInitialization",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "InvalidRequest",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidValidator",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MigrationDeadlinePassed",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NotChallenged",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NotValidator",
+    "name": "NotInitializing",
     "inputs": []
   },
   {
@@ -1095,7 +972,18 @@
   },
   {
     "type": "error",
-    "name": "ZeroAmount",
+    "name": "UUPSUnauthorizedCallContext",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UUPSUnsupportedProxiableUUID",
+    "inputs": [
+      {
+        "name": "slot",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
   }
 ]

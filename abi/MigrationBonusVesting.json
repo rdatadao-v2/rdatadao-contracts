@@ -3,7 +3,7 @@
     "type": "constructor",
     "inputs": [
       {
-        "name": "_vRDAT",
+        "name": "_rdatToken",
         "type": "address",
         "internalType": "address"
       },
@@ -17,13 +17,13 @@
   },
   {
     "type": "function",
-    "name": "ADMIN_ROLE",
+    "name": "CLIFF_DURATION",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -43,7 +43,7 @@
   },
   {
     "type": "function",
-    "name": "GOVERNANCE_ROLE",
+    "name": "MIGRATION_BRIDGE_ROLE",
     "inputs": [],
     "outputs": [
       {
@@ -56,7 +56,7 @@
   },
   {
     "type": "function",
-    "name": "MIN_QUORUM_VRDAT",
+    "name": "VESTING_DURATION",
     "inputs": [],
     "outputs": [
       {
@@ -69,47 +69,145 @@
   },
   {
     "type": "function",
-    "name": "MIN_UNIQUE_VOTERS",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "castVote",
+    "name": "addBeneficiary",
     "inputs": [
       {
-        "name": "params",
-        "type": "tuple",
-        "internalType": "struct IGovernance.VoteParams",
-        "components": [
-          {
-            "name": "proposalId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "voteType",
-            "type": "uint8",
-            "internalType": "enum IGovernance.VoteType"
-          },
-          {
-            "name": "voteWeight",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "reason",
-            "type": "string",
-            "internalType": "string"
-          }
-        ]
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "allocations",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "beneficiaries",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "beneficiaryClaimed",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "beneficiaryEligibilityDates",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "bonusClaimingEnabled",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "calculateVestedAmount",
+    "inputs": [
+      {
+        "name": "beneficiary",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "claim",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "configureLiquidityPool",
+    "inputs": [
+      {
+        "name": "_liquidityToken",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [],
@@ -117,37 +215,44 @@
   },
   {
     "type": "function",
-    "name": "getReceipt",
+    "name": "disableBonusClaiming",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "enableBonusClaiming",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "fundLiquidityTokens",
     "inputs": [
       {
-        "name": "proposalId",
+        "name": "amount",
         "type": "uint256",
         "internalType": "uint256"
-      },
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getClaimableAmount",
+    "inputs": [
       {
-        "name": "voter",
+        "name": "beneficiary",
         "type": "address",
         "internalType": "address"
       }
     ],
     "outputs": [
       {
-        "name": "hasVoted",
-        "type": "bool",
-        "internalType": "bool"
-      },
-      {
-        "name": "voteType",
-        "type": "uint8",
-        "internalType": "enum IGovernance.VoteType"
-      },
-      {
-        "name": "weight",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "vrdatBurned",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -175,37 +280,11 @@
   },
   {
     "type": "function",
-    "name": "getVoteTotals",
-    "inputs": [
-      {
-        "name": "proposalId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
+    "name": "getTotalAllocated",
+    "inputs": [],
     "outputs": [
       {
-        "name": "forVotes",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "againstVotes",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "abstainVotes",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "uniqueVoters",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "totalVRDATBurned",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -214,16 +293,39 @@
   },
   {
     "type": "function",
-    "name": "governanceCore",
+    "name": "getVestingSchedule",
     "inputs": [],
     "outputs": [
       {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
+        "name": "cliff",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "duration",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "grantMigrationBonus",
+    "inputs": [
+      {
+        "name": "beneficiary",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -242,25 +344,6 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "hasQuorum",
-    "inputs": [
-      {
-        "name": "proposalId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -288,39 +371,52 @@
   },
   {
     "type": "function",
-    "name": "proposalVotes",
-    "inputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
+    "name": "isReadyForBonuses",
+    "inputs": [],
     "outputs": [
       {
-        "name": "forVotes",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
+        "name": "ready",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "liquidityPoolConfigured",
+    "inputs": [],
+    "outputs": [
       {
-        "name": "againstVotes",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "liquidityToken",
+    "inputs": [],
+    "outputs": [
       {
-        "name": "abstainVotes",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
+        "name": "",
+        "type": "address",
+        "internalType": "contract IERC20"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "rdatToken",
+    "inputs": [],
+    "outputs": [
       {
-        "name": "uniqueVoters",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "totalVRDATBurned",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "",
+        "type": "address",
+        "internalType": "contract IERC20"
       }
     ],
     "stateMutability": "view"
@@ -363,10 +459,23 @@
   },
   {
     "type": "function",
-    "name": "setGovernanceCore",
+    "name": "setEligibilityDate",
     "inputs": [
       {
-        "name": "_governanceCore",
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "setMigrationBridge",
+    "inputs": [
+      {
+        "name": "bridge",
         "type": "address",
         "internalType": "address"
       }
@@ -395,35 +504,99 @@
   },
   {
     "type": "function",
-    "name": "vRDAT",
+    "name": "totalAllocations",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "address",
-        "internalType": "contract IvRDATGovernance"
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
   },
   {
-    "type": "function",
-    "name": "voteCost",
+    "type": "event",
+    "name": "BeneficiaryAdded",
     "inputs": [
       {
-        "name": "votes",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
+        "name": "beneficiary",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
       {
-        "name": "",
+        "name": "allocation",
         "type": "uint256",
+        "indexed": false,
         "internalType": "uint256"
       }
     ],
-    "stateMutability": "pure"
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BonusClaimingEnabled",
+    "inputs": [
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LiquidityPoolConfigured",
+    "inputs": [
+      {
+        "name": "liquidityToken",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LiquidityTokenFunded",
+    "inputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MigrationBonusGranted",
+    "inputs": [
+      {
+        "name": "beneficiary",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "vestingStart",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
   },
   {
     "type": "event",
@@ -502,34 +675,22 @@
   },
   {
     "type": "event",
-    "name": "VoteCast",
+    "name": "TokensClaimed",
     "inputs": [
       {
-        "name": "voter",
+        "name": "beneficiary",
         "type": "address",
         "indexed": true,
         "internalType": "address"
       },
       {
-        "name": "proposalId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "voteType",
-        "type": "uint8",
-        "indexed": false,
-        "internalType": "enum IGovernance.VoteType"
-      },
-      {
-        "name": "weight",
+        "name": "amount",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
       },
       {
-        "name": "vrdatBurned",
+        "name": "totalClaimedByBeneficiary",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -560,7 +721,63 @@
   },
   {
     "type": "error",
+    "name": "BonusClaimingDisabled",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientFunds",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidAmount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidBeneficiary",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidLiquidityToken",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidVestingStart",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "LiquidityPoolNotConfigured",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoTokensToClaim",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotABeneficiary",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ReentrancyGuardReentrantCall",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SafeERC20FailedOperation",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   }
 ]

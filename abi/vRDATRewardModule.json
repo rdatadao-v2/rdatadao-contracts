@@ -3,12 +3,22 @@
     "type": "constructor",
     "inputs": [
       {
-        "name": "_admin",
+        "name": "_vrdatToken",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "_dlpAddress",
+        "name": "_stakingManager",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_rewardsManager",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_admin",
         "type": "address",
         "internalType": "address"
       }
@@ -43,7 +53,33 @@
   },
   {
     "type": "function",
-    "name": "INTEGRATION_ROLE",
+    "name": "NAME",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "PRECISION",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "REWARDS_MANAGER_ROLE",
     "inputs": [],
     "outputs": [
       {
@@ -56,184 +92,26 @@
   },
   {
     "type": "function",
-    "name": "addValidator",
-    "inputs": [
-      {
-        "name": "validator",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "claimRewards",
-    "inputs": [
-      {
-        "name": "contributor",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "contributionCount",
-    "inputs": [
-      {
-        "name": "contributor",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "contributions",
-    "inputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct IProofOfContribution.Contribution",
-        "components": [
-          {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "score",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "dataHash",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "validated",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "contributorData",
-    "inputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "count",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "totalScore",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "pendingRewards",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "dlpAddress",
+    "name": "VERSION",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "address",
-        "internalType": "address"
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "getCurrentEpoch",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getEpochScore",
+    "name": "calculateRewards",
     "inputs": [
       {
-        "name": "contributor",
+        "name": "",
         "type": "address",
         "internalType": "address"
       },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getEpochTotalScore",
-    "inputs": [
       {
         "name": "",
         "type": "uint256",
@@ -248,6 +126,98 @@
       }
     ],
     "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "claimRewards",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "emergencyWithdraw",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getModuleInfo",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IRewardModule.ModuleInfo",
+        "components": [
+          {
+            "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "version",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "rewardToken",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "isActive",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "supportsHistory",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "totalAllocated",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalDistributed",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -270,16 +240,27 @@
   },
   {
     "type": "function",
-    "name": "grantIntegrationRole",
+    "name": "getVRDATMinted",
     "inputs": [
       {
-        "name": "account",
+        "name": "user",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "stakeId",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -298,30 +279,6 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "hasContributedInEpoch",
-    "inputs": [
-      {
-        "name": "contributor",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -362,14 +319,8 @@
   },
   {
     "type": "function",
-    "name": "isValidator",
-    "inputs": [
-      {
-        "name": "validator",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
+    "name": "isActiveFlag",
+    "inputs": [],
     "outputs": [
       {
         "name": "",
@@ -381,12 +332,12 @@
   },
   {
     "type": "function",
-    "name": "pendingRewards",
+    "name": "lockMultipliers",
     "inputs": [
       {
-        "name": "contributor",
-        "type": "address",
-        "internalType": "address"
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [
@@ -400,45 +351,96 @@
   },
   {
     "type": "function",
-    "name": "recordContribution",
+    "name": "mintedAmounts",
     "inputs": [
       {
-        "name": "contributor",
+        "name": "",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "qualityScore",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
-      },
-      {
-        "name": "dataHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
       }
     ],
     "outputs": [
       {
         "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "removeValidator",
+    "name": "onStake",
     "inputs": [
       {
-        "name": "validator",
+        "name": "user",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "stakeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "lockPeriod",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "onUnstake",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "stakeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "emergency",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "remainingAllocation",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
   },
   {
     "type": "function",
@@ -478,6 +480,76 @@
   },
   {
     "type": "function",
+    "name": "rewardToken",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "rewardsManager",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setActive",
+    "inputs": [
+      {
+        "name": "active",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setMultiplier",
+    "inputs": [
+      {
+        "name": "lockPeriod",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "multiplier",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "stakingManager",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IStakingPositions"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "supportsInterface",
     "inputs": [
       {
@@ -497,37 +569,21 @@
   },
   {
     "type": "function",
-    "name": "systemState",
+    "name": "totalAllocated",
     "inputs": [],
     "outputs": [
       {
-        "name": "dlpAddress",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "currentEpoch",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
-      },
-      {
-        "name": "isActive",
-        "type": "bool",
-        "internalType": "bool"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "pure"
   },
   {
     "type": "function",
-    "name": "totalScore",
-    "inputs": [
-      {
-        "name": "contributor",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
+    "name": "totalDistributed",
+    "inputs": [],
     "outputs": [
       {
         "name": "",
@@ -539,17 +595,12 @@
   },
   {
     "type": "function",
-    "name": "validateContribution",
+    "name": "updateRewardsManager",
     "inputs": [
       {
-        "name": "contributor",
+        "name": "_rewardsManager",
         "type": "address",
         "internalType": "address"
-      },
-      {
-        "name": "contributionId",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -557,62 +608,25 @@
   },
   {
     "type": "function",
-    "name": "validators",
-    "inputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
+    "name": "vrdatToken",
+    "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        "type": "address",
+        "internalType": "contract IvRDAT"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "event",
-    "name": "ContributionRecorded",
+    "name": "AllocationIncreased",
     "inputs": [
       {
-        "name": "contributor",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "score",
+        "name": "amount",
         "type": "uint256",
         "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "dataHash",
-        "type": "bytes32",
-        "indexed": false,
-        "internalType": "bytes32"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ContributionValidated",
-    "inputs": [
-      {
-        "name": "contributor",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "contributionId",
-        "type": "uint256",
-        "indexed": true,
         "internalType": "uint256"
       }
     ],
@@ -620,19 +634,106 @@
   },
   {
     "type": "event",
-    "name": "RewardsDistributed",
+    "name": "ModuleActivated",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ModuleDeactivated",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ModuleStatusChanged",
     "inputs": [
       {
-        "name": "contributor",
+        "name": "active",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MultiplierUpdated",
+    "inputs": [
+      {
+        "name": "lockPeriod",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "multiplier",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RewardDistributed",
+    "inputs": [
+      {
+        "name": "user",
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      },
+      {
+        "name": "stakeId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
       },
       {
         "name": "amount",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RewardSlashed",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "stakeId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -713,51 +814,6 @@
     "anonymous": false
   },
   {
-    "type": "event",
-    "name": "SystemInitialized",
-    "inputs": [
-      {
-        "name": "dlpAddress",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      },
-      {
-        "name": "admin",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ValidatorAdded",
-    "inputs": [
-      {
-        "name": "validator",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ValidatorRemoved",
-    "inputs": [
-      {
-        "name": "validator",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
     "type": "error",
     "name": "AccessControlBadConfirmation",
     "inputs": []
@@ -777,5 +833,40 @@
         "internalType": "bytes32"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "DistributionFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientAllocation",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidStakeData",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ModuleInactive",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotRewardsManager",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ReentrancyGuardReentrantCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SlashingFailed",
+    "inputs": []
   }
 ]
