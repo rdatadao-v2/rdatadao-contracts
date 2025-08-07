@@ -3,17 +3,17 @@
 **Version**: 3.0 Beta (Full VRC Compliance)  
 **Sprint Duration**: August 5-18, 2025 (13 days)  
 **Context**: Upgrade from V1 (30M RDAT on Base) to V2 (100M RDAT on Vana)  
-**Approach**: Modular rewards system with VRC-20 stub implementation (full compliance in Phase 2)  
+**Approach**: Modular rewards system with minimal VRC-20 compliance (Option B) and updateable DLP Registry  
 **Risk Reduction**: $85M+ → ~$10M through major design flaw resolution  
 **Contracts**: 11 core contracts (plus deployment helpers)
 
 ### 📊 Progress Update (August 7, 2025)
-**Status**: ✅ 100% Complete - 333/333 tests passing  
+**Status**: ✅ Core Complete - 333/333 tests passing  
+**VRC-20 Strategy**: Option B - Minimal compliance with updateable DLP Registry  
 **Architecture**: Hybrid approach - UUPS upgradeable RDAT token + non-upgradeable staking  
-**Key Completions**: Full test suite adapted for fixed supply model ✅  
-**Recent Achievement**: Modular governance architecture implemented (not yet integrated)  
-**Impact**: Production-ready codebase with comprehensive test coverage  
-**Audit Readiness**: 100% - Ready for security audit
+**Key Decision**: Implementing updateable DLP Registry for post-deployment configuration  
+**Sprint Focus**: Adding VRC-20 compliance features before audit (11 days remaining)  
+**Audit Date**: August 19, 2025
 
 ## 🎯 Overview
 
@@ -131,8 +131,17 @@ For detailed architecture specification, see [Modular Rewards Architecture](./MO
 
 ## 🚀 Phased Implementation Plan
 
-### Phase 1: V2 Beta (13 Days - August 5-18, 2025)
-**Focus**: Core functionality with time-lock staking and UUPS upgradeable token
+### Phase 1: V2 Beta with VRC-20 (August 7-18, 2025)
+**Focus**: Core functionality + minimal VRC-20 compliance before audit
+
+#### 🔄 **VRC-20 Implementation Plan (Option B)**
+- **Days 1-2**: Review and test V2 Minimal implementation
+- **Days 3-4**: Integrate blocklisting system (required)
+- **Days 5-6**: Add 48-hour timelocks (required)
+- **Days 7**: Integration testing
+- **Days 8-9**: DLP registry integration (updateable)
+- **Days 10**: Deploy to testnets
+- **Days 11**: Final audit preparation
 
 #### ✅ **Completed (Major Architecture)**
 - **RDAT V2 Token**: Upgradeable with VRC-20 stubs + reentrancy protection
@@ -219,6 +228,60 @@ The 30M RDAT "Future Rewards" allocation is locked until community governance ap
 - **Enhanced Liquidity Mining**: Additional LP incentives
 - **Ecosystem Grants**: Developer funding program
 - **Data Contributor Bonuses**: Quality-based rewards
+
+## 🆕 VRC-20 Option B: Updateable DLP Registry Approach
+
+### **Strategy: Deploy Now, Configure Later**
+We implement minimal VRC-20 compliance with an updateable DLP Registry address, allowing us to:
+1. Deploy and audit the contracts without waiting for Vana's registry address
+2. Set the DLP Registry address when Vana provides it
+3. Update the registry if Vana deploys new versions
+4. Maintain VRC-20 compliance throughout
+
+### **Implementation Timeline (11 Days)**
+```
+Aug 7-8:  Review & test V2 Minimal implementation
+Aug 9-10: Integrate blocklisting system (VRC-20 requirement)
+Aug 11-12: Add 48-hour timelocks (VRC-20 requirement)
+Aug 13:   Integration testing
+Aug 14-15: DLP registry integration (updateable)
+Aug 16:   Deploy to testnets
+Aug 17-18: Final audit preparation
+Aug 19:   Submit to audit
+```
+
+### **Key Contract: RDATUpgradeableV2Minimal**
+```solidity
+contract RDATUpgradeableV2Minimal {
+    // Updateable DLP Registry
+    address public dlpRegistry;  // Can be set post-deployment
+    bool public isDLPRegistered;
+    
+    // VRC-20 Required Features
+    mapping(address => bool) private _blacklist;
+    mapping(bytes32 => uint256) private _timelocks;
+    
+    // Admin can set/update registry anytime
+    function setDLPRegistry(address _registry) external onlyAdmin {
+        dlpRegistry = _registry;
+        emit DLPRegistryUpdated(_registry);
+    }
+    
+    // Register when ready
+    function registerWithDLP(uint256 dlpId) external onlyAdmin {
+        require(dlpRegistry != address(0), "Registry not set");
+        // Register with Vana's DLP Registry
+        isDLPRegistered = true;
+    }
+}
+```
+
+### **Deployment Flexibility**
+1. **Deploy V2**: Launch without DLP registry address
+2. **Pass Audit**: Contracts are VRC-20 compliant
+3. **Set Registry**: When Vana provides address
+4. **Register DLP**: Enable rewards when ready
+5. **Update if Needed**: Change registry if Vana updates
 
 ## 📊 System Architecture Overview
 
@@ -478,13 +541,16 @@ contract RDATUpgradeable is
     AccessControlUpgradeable,
     ReentrancyGuardUpgradeable,
     UUPSUpgradeable,
-    IVRC20Basic  // Simplified VRC compliance for Phase 1
+    IVRC20Basic  // Minimal VRC compliance (Option B)
 ```
 
-**Key Changes:**
+**Key Changes for VRC-20 Option B:**
 - ✅ **UUPS Upgradeable Pattern**: Allows future contract improvements without migration
 - ✅ **CREATE2 Deployment**: Deterministic addresses across chains
 - ✅ **Proxy Pattern**: Separates logic from storage for upgradeability
+- 🆕 **Updateable DLP Registry**: Can set/change Vana's registry address post-deployment
+- 🆕 **Minimal Compliance**: Blocklisting + Timelocks + DLP Registry (11-day implementation)
+- 🆕 **Future Enhancement**: Full VRC-20 features can be added post-audit
 
 **Phase 3 Full Implementation:**
 ```solidity
@@ -525,15 +591,15 @@ contract RDAT is
   - Flash loan protection mechanisms
   - Revenue distribution to stakers (fee switch)
 
-- **VRC-20 Compliance:**
-  - Fixed supply of 100M tokens (no minting after deployment)
-  - Transfer fees: 0-3% (configurable, max 300 basis points)
-  - Fee distribution: 50% to stakers, 30% to treasury, 20% to contributors
-  - Team vesting: Minimum 6-month cliff (REQUIRED for DLP rewards)
-  - Blocklist capability for regulatory compliance
-  - No rebasing functionality
-  - Public disclosure of team allocations and locking mechanism
-  - Data licensing hooks for revenue capture
+- **VRC-20 Compliance (Option B - Minimal):**
+  - ✅ Fixed supply of 100M tokens (no minting after deployment)
+  - ✅ Team vesting: 6-month cliff + 18-month linear (REQUIRED for DLP rewards)
+  - 🆕 Blocklist capability for regulatory compliance (adding before audit)
+  - 🆕 48-hour timelocks for critical operations (adding before audit)
+  - 🆕 Updateable DLP Registry address (post-deployment configuration)
+  - ✅ No rebasing functionality
+  - ❌ Transfer fees: Deferred to post-audit (not required for compliance)
+  - ❌ Data licensing hooks: Deferred to post-audit (stub implementation only)
 
 - **VRC-15 Compliance:**
   - Data utility hooks for marketplace integration

@@ -20,6 +20,8 @@ This document captures important technical decisions, architectural patterns, an
 12. [Emergency Migration Architecture](#emergency-migration-architecture)
 13. [Token Architecture](#token-architecture)
 14. [Security Decisions](#security-decisions)
+15. [Bridge Validator Architecture](#bridge-validator-architecture)
+16. [Data Contribution Validation](#data-contribution-validation)
 
 ---
 
@@ -1641,6 +1643,219 @@ Automatic distribution could send funds to wrong addresses or before system veri
 
 This will be corrected to use "StakingPositions" consistently.
 
+## DATFactory & VRC-20 Compliance
+
+### Q: How does our updateable DLP Registry approach work?
+
+**A:** We implement an updateable DLP Registry pattern that provides maximum flexibility:
+
+**Key Benefits:**
+1. **Deploy Without Delays**: Don't need Vana's registry address at deployment time
+2. **Future-Proof**: Can update if Vana deploys new registry contracts
+3. **Audit Ready**: Contracts are VRC-20 compliant even without registry set
+4. **Post-Deployment Configuration**: Admin can set/update registry anytime
+
+**Implementation:**
+```solidity
+// Deploy token first
+RDATUpgradeableV2Minimal token = deploy();
+
+// Later, when Vana provides address
+token.setDLPRegistry(0x...vana_registry...);
+
+// Register when ready
+token.registerWithDLP(dlpId);
+
+// Update if Vana changes registry
+token.setDLPRegistry(new_registry);
+```
+
+**Timeline Flexibility:**
+- Day 1: Deploy V2 with updateable registry
+- Day X: Vana provides registry address
+- Day X+1: Set registry and register
+- Future: Update registry if needed
+
+This approach ensures we're never blocked by external dependencies while maintaining full VRC-20 compliance.
+
+---
+
+### Q: What's the difference between minimum and full VRC-20 compliance?
+
+**A:** We're implementing Option B - Minimum VRC-20 compliance before audit:
+
+**Minimum Compliance (Option B - Our Approach):**
+- ✅ Fixed supply (no unlimited minting)
+- ✅ Team vesting (6+ months)
+- 🆕 Address blocklisting (adding now)
+- 🆕 48-hour timelocks (adding now)
+- 🆕 Basic DLP registration (adding now)
+- **Timeline**: 11 days
+- **Result**: Pass VRC-20 verification, eligible for rewards
+
+**Full Compliance (Future Enhancement):**
+- All minimum requirements PLUS:
+- Complete DLP Registry integration
+- Proof of Contribution scoring
+- Data pool management
+- Epoch reward distribution
+- Kismet formula implementation
+- Data licensing functions
+- **Timeline**: 25-37 days
+- **Result**: Maximum rewards and full ecosystem integration
+
+**Our Strategy:**
+1. Implement minimum before audit (Aug 7-18)
+2. Pass audit with clean VRC-20 compliant code
+3. Add enhanced features post-audit without breaking changes
+4. Use updateable DLP Registry for flexibility
+
+This approach balances speed, quality, and compliance requirements.
+
+---
+
+### Q: Why aren't we using Vana's DATFactory for deployment?
+
+**A:** We're implementing DATFactory-equivalent features directly rather than using their factory for several strategic reasons:
+
+#### 1. **Custom Tokenomics Requirements**
+```solidity
+// Our specific requirements:
+- 100M fixed supply (minted once at deployment)
+- 70M to Treasury, 30M to Migration Bridge
+- No minting capability ever (true fixed supply)
+- Complex vesting for multiple beneficiary types
+```
+DATFactory assumes standard token distribution patterns that don't match our unique allocation model.
+
+#### 2. **Dual Token Architecture**
+Our system uses two tokens with different purposes:
+- **RDAT**: Value/utility token (transferable)
+- **vRDAT**: Governance token (soul-bound)
+
+DATFactory creates single tokens. While DATVotes adds voting, it doesn't support our soul-bound governance model.
+
+#### 3. **Upgrade Flexibility**
+```solidity
+// We use UUPS pattern for specific upgrade paths
+contract RDATUpgradeable is UUPSUpgradeable {
+    // Custom upgrade logic with our own safeguards
+}
+```
+DATFactory uses minimal proxies (clones) which are cheaper but less flexible for upgrades.
+
+#### 4. **Integration Complexity**
+Our contracts integrate with:
+- Custom RewardsManager (modular rewards)
+- StakingPositions (NFT-based)
+- EmergencyPause (shared pause state)
+- Cross-chain MigrationBridge
+
+DATFactory doesn't account for these complex integrations.
+
+### Q: How do we ensure VRC-20 compliance without DATFactory?
+
+**A:** We're implementing all critical DATFactory features manually:
+
+#### Features We're Adopting:
+```solidity
+// 1. Blocklisting (exact same interface as DATFactory)
+mapping(address => bool) private _blacklist;
+function blacklist(address account) external;
+function unBlacklist(address account) external;
+
+// 2. 48-Hour Timelocks (matching DATFactory pattern)
+uint256 constant TIMELOCK_DURATION = 48 hours;
+mapping(bytes32 => PendingAction) public pendingActions;
+
+// 3. Admin Transfer Delays (same as DATFactory)
+uint256 constant ADMIN_TRANSFER_DELAY = 48 hours;
+function initiateAdminTransfer(address newAdmin) external;
+
+// 4. Compliance Tracking (similar to DATFactory)
+mapping(string => bool) public complianceChecks;
+complianceChecks["VRC20_COMPLIANT"] = true;
+```
+
+#### Compatibility Measures:
+1. **Event Names**: Match DATFactory events for indexer compatibility
+2. **Function Signatures**: Same interface for critical functions
+3. **Storage Patterns**: Similar structure for easier migration if needed
+4. **Compliance Flags**: Track same compliance requirements
+
+### Q: What are the trade-offs of not using DATFactory?
+
+**A:** Trade-offs and their mitigations:
+
+#### Disadvantages:
+1. **No Auto-Verification**: Must manually verify on block explorer
+   - *Mitigation*: Automated verification scripts prepared
+   
+2. **Higher Deploy Cost**: Full deployment vs. cheap clones
+   - *Mitigation*: One-time cost, worth it for flexibility
+   
+3. **Manual Compliance**: Must implement each requirement ourselves
+   - *Mitigation*: Following DATFactory code as reference
+
+4. **Audit Scrutiny**: Custom code needs more review
+   - *Mitigation*: Extra week added for VRC-20 compliance
+
+#### Advantages:
+1. **Full Control**: Can customize every aspect
+2. **Upgrade Path**: UUPS allows future improvements
+3. **Integration**: Seamless with our ecosystem
+4. **Innovation**: Can add features beyond DATFactory
+
+### Q: Will we be compatible with Vana's DLP Registry?
+
+**A:** Yes, full compatibility is ensured through:
+
+```solidity
+// Implementing required interfaces
+interface IVRC20Compliant {
+    function isVRC20() external view returns (bool);
+    function complianceChecks(string memory) external view returns (bool);
+    // ... other required functions
+}
+
+// Registration capability
+function registerWithDLPRegistry(
+    address registryAddress,
+    string memory metadata,
+    address[] memory validators
+) external returns (uint256);
+```
+
+The DLP Registry checks for:
+- ✅ VRC-20 compliance flags (we have them)
+- ✅ Blocklist functionality (we're adding it)
+- ✅ Timelock mechanisms (we're implementing)
+- ✅ Vesting contracts (we have TokenVesting)
+
+### Q: What if Vana requires DATFactory deployment later?
+
+**A:** We have contingency plans:
+
+**Option 1: Wrapper Contract**
+```solidity
+// Deploy a wrapper that makes us look like DATFactory output
+contract DATFactoryWrapper {
+    RDATUpgradeable public actualToken;
+    // Expose DATFactory interface, delegate to our token
+}
+```
+
+**Option 2: Migration Path**
+- Deploy new token via DATFactory
+- Migrate balances from current token
+- Maintain same economics
+
+**Option 3: Registry Override**
+- Work with Vana team for manual registry inclusion
+- Demonstrate equivalent compliance
+
+**Current Status**: Vana has indicated that DATFactory is recommended but not required as long as VRC-20 compliance is met.
+
 ## Test Suite Architecture
 
 ### Q: What edge cases are no longer possible in the fixed supply model?
@@ -2133,6 +2348,922 @@ Before writing complex functions:
 5. **Document Breaking Points**: Note what combination of features caused issues
 
 This experience reinforced that good architecture prevents rather than fixes stack depth issues.
+
+---
+
+## Bridge Validator Architecture
+
+### Q: How are validators chosen for the VanaMigrationBridge?
+
+**A:** The VanaMigrationBridge uses a multi-validator oracle model where trusted entities verify cross-chain burn events and authorize token minting on Vana:
+
+#### **Validator Model Overview**
+- **Minimum Validators**: 2 required (MIN_VALIDATORS constant)
+- **Role-Based Access**: Validators have VALIDATOR_ROLE, distinct from admin roles
+- **Multi-Signature Validation**: Each migration requires at least 2 independent validator confirmations
+- **Challenge Period**: 24-hour window for validators to dispute suspicious migrations
+
+#### **Who Should Be Validators?**
+
+Validators should be **trusted infrastructure providers**, not end users. Ideal candidates include:
+
+1. **DAO Multisig Members**: Existing trusted governance participants
+2. **Professional Node Operators**: Entities with proven track record in cross-chain operations
+3. **Bridge Service Providers**: Specialized services like Chainlink CCIP nodes
+4. **Community-Elected Validators**: Reputable community members elected through governance
+
+**NOT Regular Users**: Validators require technical infrastructure and high availability.
+
+### Q: What are the technical requirements for running a validator?
+
+**A:** Validators operate semi-automated infrastructure with specific responsibilities:
+
+#### **Core Responsibilities**
+```solidity
+// Validators monitor Base blockchain and submit validations
+function submitValidation(
+    address user,
+    uint256 amount,
+    bytes32 burnTxHash,
+    uint256 burnBlockNumber
+) external onlyRole(VALIDATOR_ROLE) {
+    // Verify burn on Base, authorize mint on Vana
+}
+```
+
+#### **Technical Infrastructure Required**
+1. **Base Chain Monitoring**: 
+   - Event listener for V1 RDAT burn events
+   - Block confirmation verification (wait for finality)
+   - Transaction hash validation
+
+2. **Vana Chain Submission**:
+   - Automated submission of validation transactions
+   - Gas management for Vana network
+   - Retry logic for failed submissions
+
+3. **Security Measures**:
+   - Secure key management (hardware security modules recommended)
+   - Rate limiting and anomaly detection
+   - Manual review for large migrations (>10,000 RDAT)
+
+4. **High Availability**:
+   - 99.9% uptime target
+   - Redundant infrastructure
+   - Alert systems for missed validations
+
+### Q: How does the validator consensus mechanism work?
+
+**A:** The bridge uses a threshold consensus model with built-in security features:
+
+#### **Consensus Flow**
+```solidity
+// 1. First validator submits validation
+submitValidation(user, amount, burnTxHash, blockNumber);
+// Creates migration request, sets 24-hour challenge period
+
+// 2. Second validator confirms
+submitValidation(user, amount, burnTxHash, blockNumber);
+// Increments validatorApprovals counter
+
+// 3. Auto-execution after consensus + challenge period
+if (request.validatorApprovals >= MIN_VALIDATORS && 
+    block.timestamp >= request.challengeEndTime &&
+    !request.challenged) {
+    _executeMigration(requestId);
+}
+```
+
+#### **Security Features**
+1. **Unique Validation Tracking**: Each validator can only validate once per request
+2. **Data Consistency Checks**: All validators must submit identical migration data
+3. **Challenge Mechanism**: Any validator can challenge suspicious migrations
+4. **Daily Limits**: Maximum 300,000 RDAT per day (1% of allocation)
+
+### Q: What happens if validators disagree or submit conflicting data?
+
+**A:** The system has multiple safeguards against validator conflicts:
+
+#### **Conflicting Data Prevention**
+```solidity
+// Second validator must submit identical data
+if (request.validatorApprovals > 0) {
+    require(request.user == user, "User mismatch");
+    require(request.amount == amount, "Amount mismatch");
+    require(request.burnTxHash == burnTxHash, "Burn hash mismatch");
+}
+```
+
+#### **Challenge Process**
+If a validator detects fraud:
+```solidity
+function challengeMigration(bytes32 requestId) external onlyRole(VALIDATOR_ROLE) {
+    MigrationRequest storage request = _migrationRequests[requestId];
+    require(!request.challenged, "Already challenged");
+    
+    request.challenged = true;
+    request.challengedBy = msg.sender;
+    request.challengeTime = block.timestamp;
+    
+    emit MigrationChallenged(requestId, msg.sender, block.timestamp);
+}
+```
+
+#### **Resolution Process**
+1. **Challenged migrations cannot auto-execute**
+2. **Admin review required for resolution**
+3. **Evidence submitted on-chain**
+4. **DAO vote may be required for large disputes**
+
+### Q: How are validators added or removed from the system?
+
+**A:** Validator management is controlled by the admin role (DAO multisig):
+
+#### **Adding Validators**
+```solidity
+function addValidator(address validator) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    require(validator != address(0), "Invalid address");
+    require(!_validators[validator], "Already validator");
+    
+    _validators[validator] = true;
+    _validatorCount++;
+    _grantRole(VALIDATOR_ROLE, validator);
+    
+    emit ValidatorAdded(validator);
+}
+```
+
+#### **Removing Validators**
+```solidity
+function removeValidator(address validator) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    require(_validators[validator], "Not a validator");
+    require(_validatorCount > MIN_VALIDATORS, "Would fall below minimum");
+    
+    _validators[validator] = false;
+    _validatorCount--;
+    _revokeRole(VALIDATOR_ROLE, validator);
+    
+    emit ValidatorRemoved(validator);
+}
+```
+
+#### **Governance Process**
+1. **Proposal**: Community or team proposes validator change
+2. **Review**: Technical and reputation assessment
+3. **Vote**: DAO votes on validator addition/removal
+4. **Execution**: Multisig executes approved changes
+
+### Q: What are the economic incentives for validators?
+
+**A:** While the current implementation doesn't include automatic validator rewards, the system is designed to support future incentive mechanisms:
+
+#### **Potential Incentive Models**
+1. **Fee-Based Rewards**: Small percentage of migrated amounts
+2. **Fixed Stipends**: Monthly RDAT payments from treasury
+3. **Performance Bonuses**: Extra rewards for high availability
+4. **Slashing Penalties**: Stake requirement with penalties for misbehavior
+
+#### **Current Model (Launch)**
+- **Reputation-Based**: Validators participate for ecosystem benefit
+- **DAO Funding**: Potential manual payments via governance
+- **Future Upgrade**: RewardsManager could add validator reward module
+
+### Q: How does the bridge handle edge cases and failure scenarios?
+
+**A:** The bridge is designed to handle various failure modes gracefully:
+
+#### **Validator Unavailability**
+- System continues functioning with remaining validators
+- Minimum 2 validators ensures no single point of failure
+- Admin can add emergency validators if needed
+
+#### **Network Issues**
+```solidity
+// Migrations have 365-day deadline
+if (block.timestamp > migrationDeadline) revert MigrationDeadlinePassed();
+
+// Unclaimed tokens return to treasury after deadline
+function reclaimUnusedAllocation() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    require(block.timestamp > migrationDeadline + 30 days, "Grace period active");
+    uint256 remaining = v2Token.balanceOf(address(this));
+    v2Token.transfer(treasuryAddress, remaining);
+}
+```
+
+#### **Attack Scenarios**
+1. **Sybil Attack**: Prevented by admin-controlled validator list
+2. **Collusion**: Requires compromising multiple independent validators
+3. **Replay Attack**: Each burn hash can only be processed once
+4. **Griefing**: Challenge mechanism and admin override available
+
+### Q: What monitoring and tooling exists for validators?
+
+**A:** Validators need comprehensive monitoring infrastructure:
+
+#### **Essential Monitoring**
+```javascript
+// Example validator monitoring script
+class BridgeValidator {
+    async monitorBurnEvents() {
+        // Listen for burn events on Base
+        v1Contract.on('Transfer', async (from, to, amount, event) => {
+            if (to === ZERO_ADDRESS) {  // Burn detected
+                await this.validateAndSubmit(from, amount, event.transactionHash);
+            }
+        });
+    }
+    
+    async validateAndSubmit(user, amount, burnTxHash) {
+        // Verify burn transaction
+        const tx = await baseProvider.getTransaction(burnTxHash);
+        const receipt = await tx.wait(CONFIRMATIONS_REQUIRED);
+        
+        // Submit validation to Vana
+        await vanaBridge.submitValidation(
+            user,
+            amount,
+            burnTxHash,
+            receipt.blockNumber
+        );
+    }
+}
+```
+
+#### **Operational Tools**
+1. **Dashboard**: Real-time view of pending/completed migrations
+2. **Alerts**: Notifications for large migrations or anomalies
+3. **Analytics**: Historical data on migration patterns
+4. **Redundancy**: Backup validators auto-activate if primary fails
+
+### Q: How does the testnet validator setup differ from mainnet?
+
+**A:** Testnet uses simplified validator configuration for development:
+
+#### **Testnet Configuration**
+```solidity
+// Current testnet setup uses placeholder addresses
+validators[0] = admin;  // Admin acts as validator for testing
+validators[1] = address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
+validators[2] = address(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC);
+```
+
+#### **Mainnet Requirements**
+1. **Independent Entities**: No address should control multiple validators
+2. **Geographic Distribution**: Validators in different jurisdictions
+3. **Stake Requirements**: Potential stake/bond requirement
+4. **Service Agreements**: Formal SLAs with validators
+5. **Disaster Recovery**: Clear procedures for validator replacement
+
+### Q: What is the long-term vision for bridge decentralization?
+
+**A:** The bridge is designed to progressively decentralize:
+
+#### **Phase 1 (Launch)**: Trusted Validators
+- 3-5 hand-picked validators
+- DAO multisig can add/remove
+- Manual dispute resolution
+
+#### **Phase 2 (Growth)**: Expanded Validator Set
+- 7-11 validators
+- Community nomination process
+- Automated reward distribution
+
+#### **Phase 3 (Maturity)**: Fully Decentralized
+- Permissionless validator participation with staking
+- Slashing for misbehavior
+- On-chain dispute resolution
+- Cross-chain message verification (e.g., via Chainlink CCIP)
+
+This progressive approach ensures security while building toward decentralization.
+
+---
+
+## Data Contribution Validation
+
+### Q: How does data contribution validation differ from bridge validation?
+
+**A:** Data contribution validation is fundamentally different from bridge validation, focusing on data quality and ownership rather than cross-chain transfers:
+
+#### **Key Differences**
+
+| Aspect | Bridge Validators | Data Contribution Validators |
+|--------|------------------|---------------------------|
+| **Purpose** | Verify cross-chain token burns | Verify data ownership & quality |
+| **Consensus Model** | 2+ validators required | Single validator sufficient |
+| **Validation Type** | Objective (burn happened or not) | Subjective (quality scoring) |
+| **Automation Level** | Highly automated monitoring | AI-assisted with human review |
+| **Reward Source** | No direct rewards | 20% of protocol revenue |
+| **Validator Type** | Infrastructure providers | Community members or AI services |
+
+### Q: How will data contributions be validated and rewarded?
+
+**A:** The system uses a multi-step validation process integrated with Vana's Data Liquidity Pool (DLP):
+
+#### **Validation Flow**
+
+```solidity
+// 1. User submits data contribution
+function recordContribution(
+    address contributor,
+    uint256 qualityScore,  // 0-100 score
+    bytes32 dataHash       // Proof of data
+) external onlyRole(INTEGRATION_ROLE) {
+    // Record contribution with quality score
+    contributorData[contributor].totalScore += qualityScore;
+}
+
+// 2. Validator verifies the contribution
+function validateContribution(
+    address contributor,
+    uint256 contributionId
+) external {
+    require(validators[msg.sender], "Not validator");
+    // Mark contribution as validated
+    emit ContributionValidated(contributor, contributionId);
+}
+
+// 3. Rewards calculated based on validated contributions
+function claimRewards(address contributor) external returns (uint256) {
+    uint256 rewards = calculateDataRewards(contributor);
+    // Transfer rewards from data contributor pool (20% of revenue)
+}
+```
+
+#### **Quality Scoring Factors**
+
+1. **Data Completeness** (25%)
+   - Full post/comment history
+   - Metadata preservation
+   - Thread context included
+
+2. **Uniqueness Score** (25%)
+   - Not duplicate data
+   - Original content (not reposts)
+   - Historical significance
+
+3. **Relevance Score** (25%)
+   - Related to r/datadao
+   - Quality discussions
+   - Community value
+
+4. **Verification Score** (25%)
+   - Proof of ownership verified
+   - Account age and karma
+   - Authenticity checks
+
+### Q: Who can become a data contribution validator?
+
+**A:** Unlike bridge validators (infrastructure providers), data validators can be diverse entities:
+
+#### **Potential Validator Types**
+
+1. **Community Validators**
+   - Elected by DAO governance
+   - Understand Reddit ecosystem
+   - Manual review for edge cases
+   - Stake RDAT for alignment
+
+2. **AI Validation Services**
+   - Automated quality scoring
+   - Plagiarism detection
+   - Sentiment analysis
+   - Pattern recognition for value
+
+3. **Hybrid Model (Recommended)**
+   ```javascript
+   // Example validation pipeline
+   async function validateContribution(data) {
+       // Step 1: AI pre-screening
+       const aiScore = await runAIQualityCheck(data);
+       
+       // Step 2: Automated checks
+       const ownershipValid = await verifyRedditOwnership(data);
+       const uniquenessScore = await checkUniqueness(data);
+       
+       // Step 3: Human review for high-value or edge cases
+       if (aiScore > 80 || data.value > threshold) {
+           return await humanValidatorReview(data);
+       }
+       
+       return aiScore;
+   }
+   ```
+
+4. **Professional Data Auditors**
+   - Third-party services
+   - Specialized in data valuation
+   - Provide attestations
+
+### Q: What is the current implementation status?
+
+**A:** The system currently uses a stub implementation with plans for full deployment:
+
+#### **Current (ProofOfContributionStub)**
+- Basic structure in place
+- Validator role management implemented
+- Integration points defined
+- Minimal validation logic
+
+#### **Phase 3 (Full Implementation)**
+- Complete Vana DLP integration
+- Automated quality scoring
+- Reddit API integration
+- Validator staking/slashing
+- Cross-DLP data sharing
+
+### Q: How do data contribution rewards integrate with staking?
+
+**A:** Data contributions and staking are separate but complementary reward streams:
+
+#### **Revenue Distribution Model**
+```solidity
+// RevenueCollector distributes protocol revenue:
+// 50% → Stakers (for providing liquidity/governance)
+// 30% → Treasury (DAO operations)  
+// 20% → Data Contributors (for providing valuable data)
+
+function distributeRevenue(uint256 totalRevenue) {
+    uint256 stakersShare = (totalRevenue * 50) / 100;
+    uint256 treasuryShare = (totalRevenue * 30) / 100;
+    uint256 contributorsShare = (totalRevenue * 20) / 100;
+    
+    // Each pool managed separately
+    rewardsManager.addToStakingPool(stakersShare);
+    treasury.addToOperations(treasuryShare);
+    proofOfContribution.addToContributorPool(contributorsShare);
+}
+```
+
+#### **User Perspective**
+- **As a Staker**: Earn from the 50% staking pool based on stake size/duration
+- **As a Contributor**: Earn from the 20% data pool based on data quality/value
+- **As Both**: Maximize rewards by staking AND contributing data
+
+### Q: What data sources will be supported?
+
+**A:** The system is designed to support multiple data sources, starting with Reddit:
+
+#### **Phase 1 (Launch)**: Reddit Data
+- Post history export
+- Comment history export  
+- Saved posts/comments
+- Vote history (if available)
+
+#### **Phase 2 (Expansion)**: Additional Platforms
+- Twitter/X data exports
+- Discord message history
+- GitHub contributions
+- Other social platforms
+
+#### **Phase 3 (Advanced)**: Specialized Data
+- Trading data
+- DeFi activity
+- NFT collections
+- Custom datasets
+
+### Q: How does Vana DLP integration work?
+
+**A:** Full VRC-20 compliance enables integration with Vana's Data Liquidity Pool ecosystem:
+
+#### **DLP Benefits**
+1. **Cross-DLP Rewards**: Data shared across multiple DLPs earns from each
+2. **Vana Token Rewards**: Additional VANA tokens for quality data
+3. **Data Marketplace Access**: Sell data to interested buyers
+4. **Reputation System**: Build on-chain data provider reputation
+
+#### **Integration Requirements**
+```solidity
+// Must implement IVRC20DataLicensing interface
+function onDataLicenseCreated(
+    bytes32 licenseId,
+    address licensor,
+    uint256 value
+) external {
+    // Track data licensing events
+    _processDataLicense(licenseId, licensor, value);
+}
+
+function calculateDataRewards(
+    address user,
+    uint256 dataValue
+) external view returns (uint256) {
+    // Use Vana's kismet formula for cross-DLP rewards
+    return _calculateKismetRewards(user, dataValue);
+}
+```
+
+### Q: What prevents gaming of the data contribution system?
+
+**A:** Multiple mechanisms prevent exploitation:
+
+#### **Anti-Gaming Measures**
+
+1. **Ownership Verification**
+   - Must prove Reddit account ownership
+   - Can't submit others' data
+   - One account per user enforced
+
+2. **Quality Requirements**
+   - Low-quality spam filtered out
+   - Minimum karma thresholds
+   - Account age requirements
+
+3. **Duplicate Detection**
+   - Each piece of data hashed
+   - Duplicates automatically rejected
+   - Cross-user duplicate checks
+
+4. **Rate Limiting**
+   ```solidity
+   mapping(address => uint256) public lastContributionTime;
+   uint256 constant CONTRIBUTION_COOLDOWN = 1 hours;
+   
+   function recordContribution(...) external {
+       require(
+           block.timestamp >= lastContributionTime[msg.sender] + CONTRIBUTION_COOLDOWN,
+           "Cooldown period active"
+       );
+       // Process contribution
+   }
+   ```
+
+5. **Validator Penalties**
+   - Validators can be slashed for approving bad data
+   - Reputation system for validators
+   - Community can challenge validations
+
+### Q: How are validator disputes resolved?
+
+**A:** The system includes dispute resolution for contested validations:
+
+#### **Dispute Process**
+
+1. **Challenge Period**: 24 hours after validation
+2. **Challenge Stake**: Challenger must stake RDAT
+3. **Evidence Submission**: Both parties provide proof
+4. **Resolution Methods**:
+   - **Automated**: For objective criteria (ownership, duplicates)
+   - **DAO Vote**: For subjective quality disputes
+   - **Arbitration**: Third-party arbitrator for complex cases
+5. **Outcomes**:
+   - Valid challenge: Challenger gets stake back + penalty from validator
+   - Invalid challenge: Challenger loses stake to validator
+
+### Q: What is the roadmap for full data contribution functionality?
+
+**A:** Implementation follows a phased approach:
+
+#### **Phase 1 (Current)**: Foundation
+- ✅ ProofOfContributionStub deployed
+- ✅ Basic validator management
+- ✅ Integration hooks in place
+- ⏳ Manual validation only
+
+#### **Phase 2 (Q1 2025)**: Reddit Integration
+- [ ] Reddit API integration
+- [ ] Ownership verification system
+- [ ] Basic quality scoring
+- [ ] Initial validator onboarding
+
+#### **Phase 3 (Q2 2025)**: Full DLP Compliance
+- [ ] Complete VRC-20 implementation
+- [ ] Vana DLP registration
+- [ ] Automated quality scoring
+- [ ] Cross-DLP data sharing
+
+#### **Phase 4 (Q3 2025)**: Advanced Features
+- [ ] Multi-platform support
+- [ ] AI validation services
+- [ ] Data marketplace integration
+- [ ] Advanced analytics
+
+This roadmap ensures careful rollout with community feedback at each stage.
+
+---
+
+## VRC-20 Compliance Gap Analysis
+
+### Q: What is VRC-20 and why does r/datadao need it?
+
+**A:** VRC-20 is Vana's token standard that extends ERC-20 with data licensing and DLP (Data Liquidity Pool) functionality. Full compliance enables:
+
+1. **DLP Rewards Eligibility**: Access to Vana's reward pools
+2. **Data Monetization**: Enable data licensing and sales
+3. **Cross-Chain Data Value**: Interoperability with other Vana DLPs
+4. **Ecosystem Integration**: Full participation in Vana's data economy
+
+### Q: What are the current VRC-20 compliance gaps?
+
+**A:** Based on our implementation analysis, here are the gaps between current state and full VRC-20 compliance:
+
+#### **Compliance Status Overview**
+
+| Component | Required | Current Status | Gap |
+|-----------|----------|---------------|-----|
+| **ERC-20 Base** | ✅ | ✅ Fully implemented | None |
+| **Team Vesting** | ✅ | ✅ TokenVesting.sol ready | Deploy & configure |
+| **Data Licensing** | ✅ | ⚠️ Partial (interface only) | Full implementation |
+| **Proof of Contribution** | ✅ | ⚠️ Stub only | Full implementation |
+| **DLP Registration** | ✅ | ❌ Not implemented | Complete integration |
+| **Kismet Rewards** | ✅ | ❌ Not implemented | Formula implementation |
+| **Data Pools** | ✅ | ❌ Not implemented | Pool management system |
+| **Epoch Rewards** | ✅ | ⚠️ Partial (structure exists) | Vana integration |
+
+### Q: What specific interfaces need implementation?
+
+**A:** Full VRC-20 requires implementing three interface levels:
+
+#### **1. IVRC20Basic (Partially Complete)**
+```solidity
+interface IVRC20Basic {
+    // ✅ Implemented
+    function mint(address to, uint256 amount) external;
+    function burn(uint256 amount) external;
+    
+    // ⚠️ Partially Implemented  
+    function onDataLicenseCreated(bytes32 licenseId, address licensor, uint256 value) external;
+    function calculateDataRewards(address user, uint256 dataValue) external view returns (uint256);
+    function processDataLicensePayment(bytes32 licenseId, uint256 amount) external;
+    
+    // ❌ Not Implemented
+    function getDataLicenseInfo(bytes32 licenseId) external view returns (bytes memory);
+    function updateDataValuation(address dataProvider, uint256 newValue) external;
+}
+```
+
+#### **2. IVRC20Full (Not Implemented)**
+```solidity
+interface IVRC20Full extends IVRC20Basic {
+    // ❌ All need implementation
+    function createDataPool(bytes32 poolId, string memory metadata, address[] memory initialContributors) external;
+    function addDataToPool(bytes32 poolId, bytes32 dataHash, uint256 quality) external;
+    function verifyDataOwnership(bytes32 dataHash, address owner) external view returns (bool);
+    function epochRewards(uint256 epoch) external view returns (uint256);
+    function claimEpochRewards(uint256 epoch) external returns (uint256);
+    function registerDLP(address dlpAddress) external returns (bool);
+}
+```
+
+#### **3. IProofOfContribution (Stub Only)**
+```solidity
+// Current: Stub implementation
+// Needed: Full implementation with:
+- Reddit data verification
+- Quality scoring algorithm
+- Validator consensus mechanism
+- Reward distribution logic
+```
+
+### Q: What is the implementation plan for VRC-20 compliance?
+
+**A:** Here's a detailed plan to achieve full compliance:
+
+#### **Phase 1: Foundation (2 weeks)**
+```solidity
+// 1. Complete data licensing functions in RDATUpgradeable
+function getDataLicenseInfo(bytes32 licenseId) external view returns (
+    address licensor,
+    uint256 value,
+    uint256 timestamp,
+    bool active
+) {
+    DataLicense memory license = _dataLicenses[licenseId];
+    return (license.licensor, license.value, license.timestamp, license.active);
+}
+
+function updateDataValuation(address dataProvider, uint256 newValue) external {
+    require(hasRole(VALUATION_ROLE, msg.sender), "Not authorized");
+    _dataValuations[dataProvider] = newValue;
+    emit DataValuationUpdated(dataProvider, newValue);
+}
+```
+
+#### **Phase 2: Data Pools (3 weeks)**
+```solidity
+// 2. Implement data pool management
+contract DataPoolManager {
+    struct DataPool {
+        address creator;
+        string metadata;
+        mapping(address => bool) contributors;
+        mapping(bytes32 => DataPoint) dataPoints;
+        uint256 contributorCount;
+        uint256 totalDataPoints;
+        bool active;
+    }
+    
+    mapping(bytes32 => DataPool) public dataPools;
+    
+    function createDataPool(
+        bytes32 poolId,
+        string memory metadata,
+        address[] memory initialContributors
+    ) external {
+        require(dataPools[poolId].creator == address(0), "Pool exists");
+        
+        DataPool storage pool = dataPools[poolId];
+        pool.creator = msg.sender;
+        pool.metadata = metadata;
+        pool.active = true;
+        
+        for (uint i = 0; i < initialContributors.length; i++) {
+            pool.contributors[initialContributors[i]] = true;
+            pool.contributorCount++;
+        }
+        
+        emit DataPoolCreated(poolId, msg.sender, metadata);
+    }
+}
+```
+
+#### **Phase 3: DLP Registration (2 weeks)**
+```solidity
+// 3. Vana DLP registration and integration
+contract DLPIntegration {
+    address public dlpAddress;
+    bool public isDLPRegistered;
+    uint256 public dlpRegistrationTime;
+    
+    function registerDLP(address _dlpAddress) external onlyRole(ADMIN_ROLE) {
+        require(!isDLPRegistered, "Already registered");
+        require(_dlpAddress != address(0), "Invalid DLP");
+        
+        // Call Vana's DLP registry
+        IVanaDLPRegistry(VANA_REGISTRY).registerDLP(
+            address(this),
+            _dlpAddress,
+            "r/datadao",
+            "Reddit Data Contribution DLP"
+        );
+        
+        dlpAddress = _dlpAddress;
+        isDLPRegistered = true;
+        dlpRegistrationTime = block.timestamp;
+        
+        emit DLPRegistered(_dlpAddress, block.timestamp);
+    }
+}
+```
+
+#### **Phase 4: Kismet Formula (2 weeks)**
+```solidity
+// 4. Implement Vana's kismet reward calculation
+function calculateDataRewards(
+    address user,
+    uint256 dataValue
+) external view returns (uint256) {
+    // Kismet formula components
+    uint256 userStake = stakingPositions.userTotalStaked(user);
+    uint256 qualityScore = proofOfContribution.totalScore(user);
+    uint256 epochParticipation = getEpochParticipation(user);
+    
+    // Kismet calculation (per Vana specification)
+    uint256 stakeMultiplier = sqrt(userStake) / 1e9; // Square root of stake
+    uint256 qualityMultiplier = (qualityScore * 100) / MAX_QUALITY_SCORE;
+    uint256 participationBonus = epochParticipation * 10; // 10% per epoch
+    
+    uint256 baseReward = (dataValue * REWARD_RATE) / 10000;
+    uint256 kismetReward = baseReward * 
+        (100 + stakeMultiplier + qualityMultiplier + participationBonus) / 100;
+    
+    return kismetReward;
+}
+```
+
+#### **Phase 5: Epoch Rewards (1 week)**
+```solidity
+// 5. Implement epoch-based reward distribution
+mapping(uint256 => uint256) public epochRewards;
+mapping(address => mapping(uint256 => bool)) public epochClaimed;
+
+function setEpochRewards(uint256 epoch, uint256 amount) external onlyRole(ADMIN_ROLE) {
+    require(epoch > currentEpoch(), "Invalid epoch");
+    epochRewards[epoch] = amount;
+    emit EpochRewardsSet(epoch, amount);
+}
+
+function claimEpochRewards(uint256 epoch) external returns (uint256) {
+    require(epoch < currentEpoch(), "Epoch not ended");
+    require(!epochClaimed[msg.sender][epoch], "Already claimed");
+    
+    uint256 userShare = calculateUserEpochShare(msg.sender, epoch);
+    epochClaimed[msg.sender][epoch] = true;
+    
+    IERC20(rdat).transfer(msg.sender, userShare);
+    emit EpochRewardsClaimed(msg.sender, epoch, userShare);
+    
+    return userShare;
+}
+```
+
+### Q: What are the testing requirements for VRC-20 compliance?
+
+**A:** Comprehensive testing is required for certification:
+
+#### **Test Coverage Requirements**
+1. **Unit Tests** (100% coverage)
+   - All VRC-20 functions
+   - Edge cases and error conditions
+   - Gas optimization tests
+
+2. **Integration Tests**
+   - Cross-contract interactions
+   - DLP registration flow
+   - Data contribution lifecycle
+
+3. **Vana Compliance Tests**
+   ```solidity
+   contract VRC20ComplianceTest is Test {
+       function test_VRC20_DataLicenseCreation() public {
+           // Test license creation per Vana spec
+       }
+       
+       function test_VRC20_KismetCalculation() public {
+           // Verify kismet formula implementation
+       }
+       
+       function test_VRC20_DLPRegistration() public {
+           // Test DLP registration process
+       }
+       
+       function test_VRC20_EpochRewards() public {
+           // Test epoch-based distributions
+       }
+   }
+   ```
+
+4. **Security Audits**
+   - Code review by Vana team
+   - Third-party security audit
+   - Economic model validation
+
+### Q: What is the timeline and resource requirement?
+
+**A:** Full VRC-20 compliance estimated timeline:
+
+#### **Timeline Overview**
+- **Total Duration**: 10-12 weeks
+- **Development**: 8 weeks (phases 1-5)
+- **Testing**: 2 weeks
+- **Audit & Certification**: 2 weeks
+
+#### **Resource Requirements**
+1. **Development Team**
+   - 2 Solidity developers
+   - 1 Backend developer (API integration)
+   - 1 QA engineer
+
+2. **External Dependencies**
+   - Vana team coordination
+   - Reddit API access
+   - Audit firm engagement
+
+3. **Budget Estimates**
+   - Development: $150-200k
+   - Audit: $50-75k
+   - Vana certification: TBD
+   - Total: ~$200-275k
+
+### Q: What are the risks and mitigation strategies?
+
+**A:** Key risks and mitigation approaches:
+
+#### **Technical Risks**
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Vana spec changes | High | Regular sync with Vana team |
+| Reddit API limitations | Medium | Alternative data sources ready |
+| Smart contract bugs | High | Extensive testing + audit |
+| Gas costs too high | Medium | Optimize critical paths |
+
+#### **Business Risks**
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Low data contribution | Medium | Incentive campaigns |
+| Validator participation | Low | Start with trusted validators |
+| DLP reward delays | Low | Treasury can bridge gaps |
+
+### Q: What happens if we don't achieve full VRC-20 compliance?
+
+**A:** The system is designed to function without full compliance, with reduced features:
+
+#### **Without VRC-20 Compliance**
+- ✅ Core staking still works
+- ✅ Migration still works
+- ✅ Basic rewards still work
+- ❌ No Vana DLP rewards
+- ❌ No cross-DLP data sharing
+- ❌ Limited data monetization
+- ❌ No kismet multipliers
+
+#### **Incremental Compliance Benefits**
+Each compliance milestone unlocks features:
+1. **Team Vesting**: Unlocks team token allocation
+2. **Data Licensing**: Enables basic data sales
+3. **DLP Registration**: Access to Vana rewards
+4. **Full Compliance**: Maximum ecosystem benefits
+
+The modular architecture ensures the protocol remains functional and valuable even with partial compliance.
 
 ---
 
