@@ -38,7 +38,13 @@ interface IDLPRegistryProxy {
 /**
  * @title RegisterDLP
  * @notice Script to register r/datadao as a DLP on Vana network
- * @dev Registers with Vana's DLPRegistryProxy contract
+ * @dev Registers the RDATDataDAO contract with Vana's DLPRegistryProxy
+ *
+ * Required environment variables:
+ * - RDAT_DATA_DAO_ADDRESS: The deployed RDATDataDAO contract address
+ * - RDAT_TOKEN_ADDRESS: The deployed RDAT token address (for updating)
+ * - TREASURY_ADDRESS: The treasury address for the DLP
+ * - ADMIN_ADDRESS: The admin address for the DLP
  *
  * Usage:
  * forge script script/RegisterDLP.s.sol:RegisterDLP \
@@ -64,7 +70,8 @@ contract RegisterDLP is Script {
 
     function run() external {
         // Get deployment parameters from environment
-        address rdatToken = vm.envAddress("RDAT_TOKEN_ADDRESS");
+        address rdatDataDAO = vm.envAddress("RDAT_DATA_DAO_ADDRESS"); // The DLP contract
+        address rdatToken = vm.envAddress("RDAT_TOKEN_ADDRESS"); // The token contract (for updating later)
         address treasury = vm.envAddress("TREASURY_ADDRESS");
         address admin = vm.envAddress("ADMIN_ADDRESS");
 
@@ -89,7 +96,7 @@ contract RegisterDLP is Script {
 
         // Step 1: Check if already registered
         IDLPRegistryProxy registry = IDLPRegistryProxy(dlpRegistry);
-        uint256 existingDlpId = registry.dlpIds(rdatToken);
+        uint256 existingDlpId = registry.dlpIds(rdatDataDAO);
 
         if (existingDlpId > 0) {
             console2.log("DLP already registered with ID:", existingDlpId);
@@ -118,6 +125,7 @@ contract RegisterDLP is Script {
 
         // Step 2: Register as new DLP
         console2.log("\n[START] Registering r/datadao as DLP on Vana...");
+        console2.log("  DLP Contract Address:", rdatDataDAO);
         console2.log("  Token Address:", rdatToken);
         console2.log("  Owner Address:", admin);
         console2.log("  Treasury Address:", treasury);
@@ -130,7 +138,7 @@ contract RegisterDLP is Script {
 
         // Register the DLP
         registry.registerDlp{value: REGISTRATION_FEE}(
-            rdatToken, // dlpAddress (using RDAT token as DLP)
+            rdatDataDAO, // dlpAddress (the actual DLP contract)
             admin, // ownerAddress
             treasury, // treasuryAddress
             DLP_NAME, // name
@@ -140,7 +148,7 @@ contract RegisterDLP is Script {
         );
 
         // Step 3: Get the assigned DLP ID
-        uint256 dlpId = registry.dlpIds(rdatToken);
+        uint256 dlpId = registry.dlpIds(rdatDataDAO);
         require(dlpId > 0, "Registration failed - no DLP ID assigned");
 
         console2.log("\n[OK] Successfully registered as DLP!");
@@ -172,20 +180,24 @@ contract RegisterDLP is Script {
      * @notice Check DLP registration status without registering
      */
     function check() external view {
+        address rdatDataDAO = vm.envAddress("RDAT_DATA_DAO_ADDRESS");
         address rdatToken = vm.envAddress("RDAT_TOKEN_ADDRESS");
 
         uint256 chainId = block.chainid;
         address dlpRegistry = (chainId == 1480) ? DLP_REGISTRY_MAINNET : DLP_REGISTRY_MOKSHA;
 
         IDLPRegistryProxy registry = IDLPRegistryProxy(dlpRegistry);
-        uint256 dlpId = registry.dlpIds(rdatToken);
+        uint256 dlpId = registry.dlpIds(rdatDataDAO);
 
         if (dlpId == 0) {
             console2.log("[ERROR] DLP not registered");
+            console2.log("  RDATDataDAO Address:", rdatDataDAO);
             console2.log("  Run this script with --broadcast to register");
         } else {
             console2.log("[OK] DLP is registered!");
             console2.log("  DLP ID:", dlpId);
+            console2.log("  RDATDataDAO Address:", rdatDataDAO);
+            console2.log("  RDAT Token Address:", rdatToken);
         }
     }
 }
