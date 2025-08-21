@@ -15,6 +15,7 @@ out/
 .env
 .env.local
 .env.production
+.env.backup
 
 # Private keys - CRITICAL SECURITY
 *_PRIVATE_KEY*
@@ -26,3 +27,6 @@ out/
 
 # Temporary directories
 src_old/
+
+# Reference repositories (not part of this repo)
+.reference/

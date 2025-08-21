@@ -26,8 +26,13 @@ contract RDATDataDAO is AccessControl, Pausable, ReentrancyGuard {
     // State variables
     IERC20 public immutable rdatToken;
     address public immutable treasury;
+    address public immutable dlpOwner; // Track the DLP owner for Vana registry
     string public constant DLP_NAME = "r/datadao";
     string public constant VERSION = "1.0.0";
+
+    // Vana ecosystem addresses (from successful DLPs on Moksha)
+    address public constant DATA_REGISTRY = 0xEA882bb75C54DE9A08bC46b46c396727B4BFe9a5;
+    address public constant TEE_POOL = 0xF084Ca24B4E29Aa843898e0B12c465fAFD089965;
 
     // Data contribution tracking
     mapping(address => uint256) public contributorScores;
@@ -65,6 +70,7 @@ contract RDATDataDAO is AccessControl, Pausable, ReentrancyGuard {
 
         rdatToken = IERC20(_rdatToken);
         treasury = _treasury;
+        dlpOwner = _admin; // Set the DLP owner for Vana registry
         lastEpochTime = block.timestamp;
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
@@ -209,6 +215,44 @@ contract RDATDataDAO is AccessControl, Pausable, ReentrancyGuard {
     // ========== View Functions ==========
 
     /**
+     * @notice Get the owner/admin of the DLP contract
+     * @dev Required by Vana DLP Registry for validation
+     * @return The address that has the DEFAULT_ADMIN_ROLE
+     */
+    function owner() external view returns (address) {
+        // Return the DLP owner address stored in constructor
+        // Required by Vana DLP Registry for validation
+        return dlpOwner;
+    }
+
+    /**
+     * @notice Get the name of the DLP
+     * @dev Required by Vana DLP Registry for validation
+     * @return The DLP name
+     */
+    function name() external pure returns (string memory) {
+        return DLP_NAME;
+    }
+
+    /**
+     * @notice Get the data registry address
+     * @dev Required by Vana DLP Registry for validation
+     * @return The data registry contract address
+     */
+    function dataRegistry() external pure returns (address) {
+        return DATA_REGISTRY;
+    }
+
+    /**
+     * @notice Get the TEE pool address
+     * @dev Required by Vana DLP Registry for validation
+     * @return The TEE pool contract address
+     */
+    function teePool() external pure returns (address) {
+        return TEE_POOL;
+    }
+
+    /**
      * @notice Get contributor information
      */
     function getContributor(address contributor) external view returns (uint256 score, uint256 rewards) {
@@ -226,8 +270,8 @@ contract RDATDataDAO is AccessControl, Pausable, ReentrancyGuard {
             uint256 validatorCount,
             uint256 epoch,
             uint256 nextEpochTime,
-            string memory name,
-            string memory version
+            string memory dlpName,
+            string memory dlpVersion
         )
     {
         return (totalContributions, totalValidators, currentEpoch, lastEpochTime + EPOCH_DURATION, DLP_NAME, VERSION);

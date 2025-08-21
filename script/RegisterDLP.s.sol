@@ -57,6 +57,9 @@ contract RegisterDLP is Script {
     // Vana DLPRegistryProxy addresses
     address constant DLP_REGISTRY_MAINNET = 0x4D59880a924526d1dD33260552Ff4328b1E18a43;
     address constant DLP_REGISTRY_MOKSHA = 0x4D59880a924526d1dD33260552Ff4328b1E18a43; // Same on testnet
+    
+    // Alternative registry address from Vana docs (doesn't work with current interface)
+    // address constant DLP_REGISTRY_MOKSHA_ALT = 0x8C8788f98385F6ba1adD4234e551ABba0f82Cb7C;
 
     // Registration fee
     uint256 constant REGISTRATION_FEE = 1 ether; // 1 VANA

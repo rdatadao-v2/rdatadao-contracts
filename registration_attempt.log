@@ -1,0 +1,93 @@
+Compiling 1 files with Solc 0.8.23
+Solc 0.8.23 finished in 737.08ms
+Compiler run successful!
+Traces:
+  [1322671] → new RegisterDLP@0x5b73C5498c1E3b4dbA84de0F1833c4a029d90519
+    └─ ← [Return] 6496 bytes of code
+
+  [35456] RegisterDLP::run()
+    ├─ [0] VM::envAddress("RDAT_DATA_DAO_ADDRESS") [staticcall]
+    │   └─ ← [Return] <env var value>
+    ├─ [0] VM::envAddress("RDAT_TOKEN_ADDRESS") [staticcall]
+    │   └─ ← [Return] <env var value>
+    ├─ [0] VM::envAddress("TREASURY_ADDRESS") [staticcall]
+    │   └─ ← [Return] <env var value>
+    ├─ [0] VM::envAddress("ADMIN_ADDRESS") [staticcall]
+    │   └─ ← [Return] <env var value>
+    ├─ [0] console::log("Using Vana Moksha DLP Registry:", 0x4D59880a924526d1dD33260552Ff4328b1E18a43) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [0] VM::startBroadcast()
+    │   └─ ← [Return]
+    ├─ [8132] 0x4D59880a924526d1dD33260552Ff4328b1E18a43::dlpIds(0x32B481b52616044E5c937CF6D20204564AD62164) [staticcall]
+    │   ├─ [3239] 0x72bA0c4DF3122e8aACe5066443eEb33B0491909C::dlpIds(0x32B481b52616044E5c937CF6D20204564AD62164) [delegatecall]
+    │   │   └─ ← [Return] 0
+    │   └─ ← [Return] 0
+    ├─ [0] console::log("\n[START] Registering r/datadao as DLP on Vana...") [staticcall]
+    │   └─ ← [Stop]
+    ├─ [0] console::log("  DLP Contract Address:", 0x32B481b52616044E5c937CF6D20204564AD62164) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [0] console::log("  Token Address:", 0xC1aC75130533c7F93BDa67f6645De65C9DEE9a3A) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [0] console::log("  Owner Address:", 0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [0] console::log("  Treasury Address:", 0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [0] console::log("  Name:", "r/datadao") [staticcall]
+    │   └─ ← [Stop]
+    ├─ [0] console::log("  Registration Fee:", 1, "VANA") [staticcall]
+    │   └─ ← [Stop]
+    ├─ [1422] 0x4D59880a924526d1dD33260552Ff4328b1E18a43::registerDlp{value: 1000000000000000000}(0x32B481b52616044E5c937CF6D20204564AD62164, 0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319, 0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319, "r/datadao", "https://rdatadao.org/logo.png", "https://rdatadao.org", "{\"description\":\"Reddit Data DAO\",\"type\":\"SocialMedia\",\"dataSource\":\"Reddit\",\"version\":\"2.0\"}")
+    │   ├─ [938] 0x72bA0c4DF3122e8aACe5066443eEb33B0491909C::registerDlp{value: 1000000000000000000}(0x32B481b52616044E5c937CF6D20204564AD62164, 0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319, 0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319, "r/datadao", "https://rdatadao.org/logo.png", "https://rdatadao.org", "{\"description\":\"Reddit Data DAO\",\"type\":\"SocialMedia\",\"dataSource\":\"Reddit\",\"version\":\"2.0\"}") [delegatecall]
+    │   │   └─ ← [Revert] EvmError: Revert
+    │   └─ ← [Revert] EvmError: Revert
+    └─ ← [Revert] EvmError: Revert
+
+
+
+== Logs ==
+  Using Vana Moksha DLP Registry: 0x4D59880a924526d1dD33260552Ff4328b1E18a43
+  
+[START] Registering r/datadao as DLP on Vana...
+    DLP Contract Address: 0x32B481b52616044E5c937CF6D20204564AD62164
+    Token Address: 0xC1aC75130533c7F93BDa67f6645De65C9DEE9a3A
+    Owner Address: 0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319
+    Treasury Address: 0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319
+    Name: r/datadao
+    Registration Fee: 1 VANA
+Error: script failed: <empty revert data>
+
+blockHash            0x458b4e1a092682bbde9b4d917126098a3bfa3df395f2d762d883e8631d7ed008
+blockNumber          4060007
+contractAddress      
+cumulativeGasUsed    31814
+effectiveGasPrice    1000007
+from                 0x58eCB94e6F5e6521228316b55c465ad2A2938FbB
+gasUsed              31814
+logs                 []
+logsBloom            0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+root                 
+status               0 (failed)
+transactionHash      0x5d14de23f6a563d545629adf755d1d7b55246ac065cf87dc87837e0d2554a8c3
+transactionIndex     0
+type                 2
+blobGasPrice         
+blobGasUsed          
+to                   0x4D59880a924526d1dD33260552Ff4328b1E18a43
+
+blockHash            0x5b13f5a669f236705dd28e619064528632d5e97f88ffe2dc6db84722e40fbdb8
+blockNumber          4060012
+contractAddress      
+cumulativeGasUsed    441534
+effectiveGasPrice    1000007
+from                 0x58eCB94e6F5e6521228316b55c465ad2A2938FbB
+gasUsed              31874
+logs                 []
+logsBloom            0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+root                 
+status               0 (failed)
+transactionHash      0x9117fe408bd02c6270af2bf546e941d6c07b35639049265e498cf1003e19746e
+transactionIndex     10
+type                 2
+blobGasPrice         
+blobGasUsed          
+to                   0x4D59880a924526d1dD33260552Ff4328b1E18a43
