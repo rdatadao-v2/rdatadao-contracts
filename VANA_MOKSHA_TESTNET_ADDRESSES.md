@@ -27,9 +27,10 @@ All contracts deployed across testnet environments for frontend development and 
 - **Purpose**: Handles V1→V2 token migration from Base
 - **Explorer**: [View on Vanascan](https://moksha.vanascan.io/address/0x31C3e3F091FB2A25d4dac82474e7dc709adE754a)
 
-### 4. RDATDataDAO (DLP Contract) 
-- **Address**: `0x32B481b52616044E5c937CF6D20204564AD62164` *(Latest version with all interfaces)*
-- **Status**: Deployed, pending DLP registration
+### 4. RDATDataDAO (DLP Contract) ✅
+- **Address**: `0x32B481b52616044E5c937CF6D20204564AD62164`
+- **DLP ID**: `155` (Successfully registered with Vana!)
+- **Status**: ✅ **Deployed and Registered**
 - **Purpose**: Data Liquidity Pool for Reddit data contribution
 - **Explorer**: [View on Vanascan](https://moksha.vanascan.io/address/0x32B481b52616044E5c937CF6D20204564AD62164)
 
@@ -176,14 +177,14 @@ const baseSepolia = {
 
 ### ✅ Deployed & Operational:
 - RDAT Token contract
-- Treasury Wallet
+- Treasury Wallet 
 - Migration Bridge
-- RDATDataDAO contract
+- RDATDataDAO contract ✅ **Successfully registered as DLP ID 155**
 
-### ⏳ Pending:
-- DLP Registration (awaiting Vana team assistance)
-- Staking contracts (to be deployed after DLP registration)
-- vRDAT governance token (to be deployed after DLP registration)
+### ⏳ Ready for Next Phase:
+- Staking contracts (ready to deploy now that DLP is registered)
+- vRDAT governance token (ready to deploy now that DLP is registered)
+- Additional reward modules
 
 ## Contact
 For technical questions or issues, please refer to:

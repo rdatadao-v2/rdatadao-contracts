@@ -5,16 +5,19 @@ import "forge-std/Script.sol";
 import "forge-std/console2.sol";
 import "../src/RDATUpgradeable.sol";
 
+// DLP Registration struct
+struct DLPInfo {
+    address dlpAddress;
+    address ownerAddress;
+    address treasuryAddress;
+    string name;
+    string iconUrl;
+    string website;
+    string metadata;
+}
+
 interface IDLPRegistryProxy {
-    function registerDlp(
-        address dlpAddress,
-        address ownerAddress,
-        address treasuryAddress,
-        string calldata name,
-        string calldata iconUrl,
-        string calldata website,
-        string calldata metadata
-    ) external payable;
+    function registerDlp(DLPInfo calldata dlpInfo) external payable;
 
     function dlpIds(address dlpAddress) external view returns (uint256);
 
@@ -139,16 +142,19 @@ contract RegisterDLP is Script {
         uint256 balance = msg.sender.balance;
         require(balance >= REGISTRATION_FEE, "Insufficient VANA for registration fee");
 
-        // Register the DLP
-        registry.registerDlp{value: REGISTRATION_FEE}(
-            rdatDataDAO, // dlpAddress (the actual DLP contract)
-            admin, // ownerAddress
-            treasury, // treasuryAddress
-            DLP_NAME, // name
-            DLP_ICON, // iconUrl
-            DLP_WEBSITE, // website
-            DLP_METADATA // metadata
-        );
+        // Create DLP info struct
+        DLPInfo memory dlpInfo = DLPInfo({
+            dlpAddress: rdatDataDAO,
+            ownerAddress: admin,
+            treasuryAddress: treasury,
+            name: DLP_NAME,
+            iconUrl: DLP_ICON,
+            website: DLP_WEBSITE,
+            metadata: DLP_METADATA
+        });
+
+        // Register the DLP using struct
+        registry.registerDlp{value: REGISTRATION_FEE}(dlpInfo);
 
         // Step 3: Get the assigned DLP ID
         uint256 dlpId = registry.dlpIds(rdatDataDAO);
@@ -157,17 +163,12 @@ contract RegisterDLP is Script {
         console2.log("\n[OK] Successfully registered as DLP!");
         console2.log("  DLP ID:", dlpId);
 
-        // Step 4: Update our RDAT contract with DLP info
-        console2.log("\n[UPDATE] Updating RDAT contract with DLP registration...");
-        RDATUpgradeable rdatContract = RDATUpgradeable(rdatToken);
-
-        // Set the DLP Registry address
-        rdatContract.setDLPRegistry(dlpRegistry);
-
-        // Update the DLP registration with the assigned ID
-        rdatContract.updateDLPRegistration(dlpId);
-
-        console2.log("[OK] RDAT contract updated with DLP ID:", dlpId);
+        // Step 4: Update our RDAT contract with DLP info (SKIPPED - can be done manually later)
+        console2.log("\n[SKIP] RDAT contract update skipped for now");
+        console2.log("  DLP registration succeeded - token updates can be done separately");
+        // RDATUpgradeable rdatContract = RDATUpgradeable(rdatToken);
+        // rdatContract.setDLPRegistry(dlpRegistry);
+        // rdatContract.updateDLPRegistration(dlpId);
 
         // Step 5: Verify registration
         console2.log("\n[VERIFY] Verifying registration...");

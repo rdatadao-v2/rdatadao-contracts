@@ -127,9 +127,10 @@ isValidator(address) → bool
 3. User submits signatures to Vana bridge
 4. Bridge releases RDAT tokens on Vana
 
-### 4. RDATDataDAO (DLP Contract)
+### 4. RDATDataDAO (DLP Contract) ✅
 **Address**: `0x32B481b52616044E5c937CF6D20204564AD62164`
-**Status**: Deployed, pending DLP registration with Vana
+**DLP ID**: `155` (Successfully registered!)
+**Status**: ✅ **Deployed and Registered with Vana**
 **Key Functions**:
 ```solidity
 // Data Contribution
@@ -202,7 +203,7 @@ const vanaMoksha = {
     rdatToken: '0xC1aC75130533c7F93BDa67f6645De65C9DEE9a3A',
     treasury: '0x31C3e3F091FB2A25d4dac82474e7dc709adE754a',
     vanaMigrationBridge: '0x31C3e3F091FB2A25d4dac82474e7dc709adE754a',
-    rdatDataDAO: '0x32B481b52616044E5c937CF6D20204564AD62164',
+    rdatDataDAO: '0x32B481b52616044E5c937CF6D20204564AD62164', // DLP ID: 155
   }
 }
 
