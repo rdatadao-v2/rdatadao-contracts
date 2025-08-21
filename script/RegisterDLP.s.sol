@@ -105,7 +105,7 @@ contract RegisterDLP is Script {
         uint256 existingDlpId = registry.dlpIds(rdatDataDAO);
 
         if (existingDlpId > 0) {
-            console2.log("DLP already registered with ID:", existingDlpId);
+            console2.log("[INFO] DLP already registered with ID:", existingDlpId);
 
             // Get registration details
             (address dlpAddress, address ownerAddress, address treasuryAddress, string memory name,,,,,,) =
@@ -116,13 +116,45 @@ contract RegisterDLP is Script {
             console2.log("  Treasury:", treasuryAddress);
             console2.log("  Name:", name);
 
-            // Update our contract with the DLP ID
+            // Try to update our RDAT contract with the DLP ID
             RDATUpgradeable rdat = RDATUpgradeable(rdatToken);
-            if (!rdat.dlpRegistered() || rdat.dlpId() != existingDlpId) {
-                console2.log("\nUpdating RDAT contract with DLP registration...");
-                rdat.setDLPRegistry(dlpRegistry);
-                rdat.updateDLPRegistration(existingDlpId);
-                console2.log("[OK] RDAT contract updated with DLP ID:", existingDlpId);
+            
+            // Check current registration status
+            bool isRegistered = false;
+            uint256 currentDlpId = 0;
+            
+            try rdat.dlpRegistered() returns (bool registered) {
+                isRegistered = registered;
+            } catch {
+                console2.log("  [WARNING] Could not check DLP registration status");
+            }
+            
+            try rdat.dlpId() returns (uint256 id) {
+                currentDlpId = id;
+            } catch {
+                console2.log("  [WARNING] Could not check current DLP ID");
+            }
+            
+            if (!isRegistered || currentDlpId != existingDlpId) {
+                console2.log("\n[UPDATE] Attempting to update RDAT contract with DLP registration...");
+                
+                try rdat.setDLPRegistry(dlpRegistry) {
+                    console2.log("  [OK] DLP Registry set to:", dlpRegistry);
+                } catch Error(string memory reason) {
+                    console2.log("  [ERROR] Failed to set DLP Registry:", reason);
+                } catch {
+                    console2.log("  [ERROR] Failed to set DLP Registry (no reason provided)");
+                }
+                
+                try rdat.updateDLPRegistration(existingDlpId) {
+                    console2.log("  [OK] DLP registration updated with ID:", existingDlpId);
+                } catch Error(string memory reason) {
+                    console2.log("  [ERROR] Failed to update DLP registration:", reason);
+                } catch {
+                    console2.log("  [ERROR] Failed to update DLP registration (no reason provided)");
+                }
+            } else {
+                console2.log("  [OK] RDAT contract already has correct DLP ID:", existingDlpId);
             }
 
             vm.stopBroadcast();
@@ -178,6 +210,64 @@ contract RegisterDLP is Script {
 
         console2.log("\n[SUCCESS] DLP Registration Complete!");
         console2.log("Use this DLP ID for all Vana operations:", dlpId);
+    }
+
+    /**
+     * @notice Update RDAT contract with existing DLP registration
+     * @dev Use this after DLP is already registered to update the token contract
+     */
+    function updateRDATContract() external {
+        address rdatDataDAO = vm.envAddress("RDAT_DATA_DAO_ADDRESS");
+        address rdatToken = vm.envAddress("RDAT_TOKEN_ADDRESS");
+
+        uint256 chainId = block.chainid;
+        address dlpRegistry = (chainId == 1480) ? DLP_REGISTRY_MAINNET : DLP_REGISTRY_MOKSHA;
+
+        IDLPRegistryProxy registry = IDLPRegistryProxy(dlpRegistry);
+        uint256 dlpId = registry.dlpIds(rdatDataDAO);
+
+        if (dlpId == 0) {
+            console2.log("[ERROR] DLP not registered yet");
+            console2.log("  RDATDataDAO Address:", rdatDataDAO);
+            return;
+        }
+
+        console2.log("[INFO] DLP is registered with ID:", dlpId);
+        console2.log("  RDATDataDAO Address:", rdatDataDAO);
+        console2.log("  RDAT Token Address:", rdatToken);
+
+        vm.startBroadcast();
+
+        // Update RDAT contract
+        RDATUpgradeable rdat = RDATUpgradeable(rdatToken);
+        
+        console2.log("\n[UPDATE] Updating RDAT contract with DLP information...");
+        
+        // Set DLP Registry
+        try rdat.setDLPRegistry(dlpRegistry) {
+            console2.log("  [OK] DLP Registry set to:", dlpRegistry);
+        } catch Error(string memory reason) {
+            console2.log("  [ERROR] Failed to set DLP Registry:", reason);
+            console2.log("  Note: This might require admin privileges");
+        } catch {
+            console2.log("  [ERROR] Failed to set DLP Registry");
+            console2.log("  Note: This might require admin privileges");
+        }
+        
+        // Update DLP Registration
+        try rdat.updateDLPRegistration(dlpId) {
+            console2.log("  [OK] DLP registration updated with ID:", dlpId);
+        } catch Error(string memory reason) {
+            console2.log("  [ERROR] Failed to update DLP registration:", reason);
+            console2.log("  Note: Make sure DLP Registry is set first");
+        } catch {
+            console2.log("  [ERROR] Failed to update DLP registration");
+            console2.log("  Note: Make sure DLP Registry is set first");
+        }
+
+        vm.stopBroadcast();
+        
+        console2.log("\n[COMPLETE] RDAT contract update process finished");
     }
 
     /**
