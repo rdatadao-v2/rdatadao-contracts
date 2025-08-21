@@ -11,6 +11,41 @@ This guide provides comprehensive information for the frontend team to integrate
 - **Architecture**: Hybrid approach with UUPS upgradeable token + non-upgradeable staking
 - **Current Status**: 333/333 tests passing (100%), production-ready
 
+## Deployed Contracts Across Testnets
+
+### Base Sepolia Testnet (Migration Source)
+
+#### Mock RDAT V1 Token (For Migration Testing)
+**Address**: `0xEb0c43d5987de0672A22e350930F615Af646e28c`
+**Type**: Standard ERC-20
+**Supply**: 30,000,000 RDATv1 tokens
+**Key Functions**:
+```solidity
+// Standard ERC-20 functions
+balanceOf(address account) → uint256
+transfer(address to, uint256 amount) → bool
+approve(address spender, uint256 amount) → bool
+mint(address to, uint256 amount) // Test function only
+```
+
+#### Base Migration Bridge
+**Address**: `0xF73c6216d7D6218d722968e170Cfff6654A8936c`
+**Purpose**: Initiates migrations from Base to Vana
+**Key Functions**:
+```solidity
+// Migration initiation
+initiateMigration(uint256 amount)
+getMigrationHistory(address user) → Migration[]
+userMigrationTotal(address user) → uint256
+```
+
+### Test Wallets (Pre-funded with 1,000 RDATv1 each)
+1. **Primary Test Account**: `0x70997970C51812dc3A010C7d01b50e0d17dc79C8`
+2. **Secondary Test Account**: `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC`
+3. **Additional Test Account**: `0x90F79bf6EB2c4f870365E785982E1f101E93b906`
+
+*Note: These are Anvil test accounts with publicly known private keys - use only for testing*
+
 ## Deployed Contracts on Vana Moksha Testnet
 
 ### 1. RDAT Token (Main Token Contract)
@@ -166,18 +201,44 @@ const vanaMoksha = {
   contracts: {
     rdatToken: '0xC1aC75130533c7F93BDa67f6645De65C9DEE9a3A',
     treasury: '0x31C3e3F091FB2A25d4dac82474e7dc709adE754a',
-    migrationBridge: '0x31C3e3F091FB2A25d4dac82474e7dc709adE754a',
+    vanaMigrationBridge: '0x31C3e3F091FB2A25d4dac82474e7dc709adE754a',
     rdatDataDAO: '0x32B481b52616044E5c937CF6D20204564AD62164',
+  }
+}
+
+const baseSepolia = {
+  id: 84532,
+  name: 'Base Sepolia',
+  network: 'base-sepolia',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'ETH',
+    symbol: 'ETH',
+  },
+  rpcUrls: {
+    default: { http: ['https://sepolia.base.org'] },
+  },
+  blockExplorers: {
+    default: { 
+      name: 'Basescan', 
+      url: 'https://sepolia.basescan.org' 
+    },
+  },
+  contracts: {
+    mockRDATv1: '0xEb0c43d5987de0672A22e350930F615Af646e28c',
+    baseMigrationBridge: '0xF73c6216d7D6218d722968e170Cfff6654A8936c',
   }
 }
 ```
 
 ### 2. ABI Integration
 All contract ABIs are available in the `/out` directory. Key ABIs needed:
-- `RDATUpgradeable.sol/RDATUpgradeable.json`
-- `TreasuryWallet.sol/TreasuryWallet.json`
-- `VanaMigrationBridge.sol/VanaMigrationBridge.json`
-- `RDATDataDAO.sol/RDATDataDAO.json`
+- `RDATUpgradeable.sol/RDATUpgradeable.json` (Vana Moksha)
+- `TreasuryWallet.sol/TreasuryWallet.json` (Vana Moksha)
+- `VanaMigrationBridge.sol/VanaMigrationBridge.json` (Vana Moksha)
+- `RDATDataDAO.sol/RDATDataDAO.json` (Vana Moksha)
+- `BaseMigrationBridge.sol/BaseMigrationBridge.json` (Base Sepolia)
+- `MockRDATv1` ABI (embedded in DeployBaseSepolia.s.sol)
 
 Extract ABIs using:
 ```bash
@@ -185,6 +246,7 @@ forge inspect RDATUpgradeable abi > abi/RDATUpgradeable.json
 forge inspect TreasuryWallet abi > abi/TreasuryWallet.json
 forge inspect VanaMigrationBridge abi > abi/VanaMigrationBridge.json
 forge inspect RDATDataDAO abi > abi/RDATDataDAO.json
+forge inspect BaseMigrationBridge abi > abi/BaseMigrationBridge.json
 ```
 
 ### 3. Key User Flows to Implement
@@ -294,12 +356,74 @@ Based on the contracts, implement these pages/components:
 
 ## Testing on Testnet
 
-### Test Token Acquisition
-Contact the team for testnet RDAT tokens or use the faucet (if available).
+### Complete Migration Testing Flow
 
-### Test Scenarios
+#### Prerequisites
+1. **Base Sepolia ETH**: Get from [Base Sepolia Faucet](https://faucet.quicknode.com/base/sepolia)
+2. **Vana Moksha VANA**: Contact team for testnet VANA tokens
+3. **Test Wallets**: Use provided test accounts or connect your own wallet
+
+#### Testing Scenario 1: Full Migration Flow
+```typescript
+// 1. On Base Sepolia - Check V1 token balance
+const v1Balance = await mockRDATv1.balanceOf(userAddress)
+console.log('V1 Balance:', v1Balance.toString())
+
+// 2. On Base Sepolia - Approve migration
+await mockRDATv1.approve(baseMigrationBridge.address, amountToMigrate)
+
+// 3. On Base Sepolia - Initiate migration
+await baseMigrationBridge.initiateMigration(amountToMigrate)
+
+// 4. Wait for validator signatures (backend process)
+
+// 5. On Vana Moksha - Process migration
+await vanaMigrationBridge.processMigration(
+  userAddress,
+  amountToMigrate,
+  migrationId,
+  validatorSignatures
+)
+
+// 6. Verify V2 tokens received on Vana
+const v2Balance = await rdatToken.balanceOf(userAddress)
+```
+
+#### Testing Scenario 2: Data Contribution
+```typescript
+// 1. Submit data contribution
+await rdatDataDAO.contributeData(
+  keccak256("test-reddit-data"),
+  85 // Quality score 0-100
+)
+
+// 2. Check contribution stats
+const [score, rewards] = await rdatDataDAO.getContributor(userAddress)
+```
+
+#### Testing Scenario 3: Treasury Operations
+```typescript
+// Check treasury balance and vesting
+const treasuryBalance = await rdatToken.balanceOf(treasuryAddress)
+const currentPhase = await treasuryWallet.getCurrentPhase()
+const vestingSchedules = await treasuryWallet.getAllVestingSchedules()
+```
+
+### Test Wallet Private Keys (Anvil Standard)
+**⚠️ ONLY FOR TESTING - DO NOT USE ON MAINNET**
+
+1. **Test Wallet 1**: `0x70997970C51812dc3A010C7d01b50e0d17dc79C8`
+   - Private Key: `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d`
+
+2. **Test Wallet 2**: `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC`
+   - Private Key: `0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a`
+
+3. **Test Wallet 3**: `0x90F79bf6EB2c4f870365E785982E1f101E93b906`
+   - Private Key: `0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6`
+
+### Additional Test Scenarios
 1. Token transfers between accounts
-2. Migration from Base Sepolia to Vana Moksha
+2. Cross-chain migration (Base Sepolia → Vana Moksha)  
 3. Data contribution and reward distribution
 4. Treasury vesting schedule checks
 

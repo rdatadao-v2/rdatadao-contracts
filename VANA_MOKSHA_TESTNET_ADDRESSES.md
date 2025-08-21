@@ -1,7 +1,9 @@
-# Vana Moksha Testnet Contract Addresses
+# Testnet Contract Addresses for Frontend Integration
 
 ## Overview
-All contracts deployed on **Vana Moksha Testnet** (Chain ID: 14800)
+All contracts deployed across testnet environments for frontend development and testing.
+
+## Vana Moksha Testnet (Chain ID: 14800)
 - **Network RPC**: https://rpc.moksha.vana.org
 - **Explorer**: https://moksha.vanascan.io
 
@@ -35,6 +37,45 @@ All contracts deployed on **Vana Moksha Testnet** (Chain ID: 14800)
 - `0x254A9344AAb674530D47B6F2dDd8e328A17Da860` (v1 - missing methods)
 - `0xCB3C48cb2a20F06d41BF15dF943D797421c56207` (v2 - added owner())
 - `0x32B481b52616044E5c937CF6D20204564AD62164` (v3 - current, full interface)
+
+## Base Sepolia Testnet (Chain ID: 84532)
+- **Network RPC**: https://sepolia.base.org
+- **Explorer**: https://sepolia.basescan.org
+
+### Migration Testing Contracts
+
+#### 1. Mock RDAT V1 Token (For Migration Testing)
+- **Address**: `0xEb0c43d5987de0672A22e350930F615Af646e28c`
+- **Type**: Standard ERC-20
+- **Supply**: 30,000,000 RDATv1 tokens
+- **Purpose**: Simulates V1 tokens for migration testing
+- **Explorer**: [View on Basescan](https://sepolia.basescan.org/address/0xEb0c43d5987de0672A22e350930F615Af646e28c)
+
+#### 2. Base Migration Bridge
+- **Address**: `0xF73c6216d7D6218d722968e170Cfff6654A8936c`
+- **Type**: Migration contract (Base side)
+- **Purpose**: Initiates migrations from Base to Vana
+- **Explorer**: [View on Basescan](https://sepolia.basescan.org/address/0xF73c6216d7D6218d722968e170Cfff6654A8936c)
+
+### Test Wallet Addresses (Pre-funded with Mock V1 Tokens)
+Each address has been minted **1,000 Mock RDATv1 tokens** for testing:
+
+#### Test Wallet 1
+- **Address**: `0x70997970C51812dc3A010C7d01b50e0d17dc79C8`
+- **Balance**: 1,000 RDATv1 tokens
+- **Purpose**: Primary test account for migration flows
+
+#### Test Wallet 2  
+- **Address**: `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC`
+- **Balance**: 1,000 RDATv1 tokens
+- **Purpose**: Secondary test account
+
+#### Test Wallet 3
+- **Address**: `0x90F79bf6EB2c4f870365E785982E1f101E93b906`
+- **Balance**: 1,000 RDATv1 tokens
+- **Purpose**: Additional test account
+
+**Note**: These are standard Anvil test accounts. Private keys are publicly known and should only be used for testing.
 
 ## Key Addresses & Roles
 
@@ -88,7 +129,8 @@ ABIs for all contracts are available in:
 
 ### Network Configuration
 ```javascript
-const vanaTestnet = {
+// Vana Moksha Testnet
+const vanaMoksha = {
   id: 14800,
   name: 'Vana Moksha',
   network: 'vana-moksha',
@@ -104,6 +146,27 @@ const vanaTestnet = {
     default: { 
       name: 'Vanascan', 
       url: 'https://moksha.vanascan.io' 
+    },
+  },
+}
+
+// Base Sepolia Testnet
+const baseSepolia = {
+  id: 84532,
+  name: 'Base Sepolia',
+  network: 'base-sepolia',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'ETH',
+    symbol: 'ETH',
+  },
+  rpcUrls: {
+    default: { http: ['https://sepolia.base.org'] },
+  },
+  blockExplorers: {
+    default: { 
+      name: 'Basescan', 
+      url: 'https://sepolia.basescan.org' 
     },
   },
 }
