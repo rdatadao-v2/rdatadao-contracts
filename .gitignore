@@ -16,6 +16,7 @@ out/
 .env.local
 .env.production
 .env.backup
+.env.*
 
 # Private keys - CRITICAL SECURITY
 *_PRIVATE_KEY*
