@@ -173,7 +173,7 @@ contract VanaMigrationBridgeTest is Test {
 
         // Cannot execute challenged migration
         vm.warp(block.timestamp + 7 hours);
-        vm.expectRevert(VanaMigrationBridge.NotChallenged.selector);
+        vm.expectRevert(VanaMigrationBridge.MigrationIsChallenged.selector);
         bridge.executeMigration(requestId);
     }
 

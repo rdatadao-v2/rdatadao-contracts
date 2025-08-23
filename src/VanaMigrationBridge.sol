@@ -63,6 +63,8 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
     // Events
     event DailyLimitUpdated(uint256 newLimit);
     event MigrationCompleted(address indexed user, uint256 amount, uint256 bonus);
+    event BonusVestingSet(address indexed bonusVesting);
+    event UnclaimedTokensReturned(address indexed to, uint256 amount);
 
     // Errors
     error InvalidValidator();
@@ -73,7 +75,7 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
     error AlreadyValidated();
     error InvalidRequest();
     error ChallengePeriodActive();
-    error NotChallenged();
+    error MigrationIsChallenged();
     error DailyLimitExceeded();
     error MigrationDeadlinePassed();
     error InsufficientBalance();
@@ -223,7 +225,7 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
 
         if (request.validatorApprovals < MIN_VALIDATORS) revert InsufficientValidators();
         if (request.executed) revert AlreadyProcessed();
-        if (request.challenged) revert NotChallenged();
+        if (request.challenged) revert MigrationIsChallenged();
         if (block.timestamp < request.challengeEndTime) revert ChallengePeriodActive();
 
         // For daily limit, we only count the base amount (not bonus)
@@ -360,6 +362,7 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
     function setBonusVesting(address _bonusVesting) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_bonusVesting != address(0), "Invalid vesting contract");
         bonusVesting = MigrationBonusVesting(_bonusVesting);
+        emit BonusVestingSet(_bonusVesting);
     }
 
     /**
@@ -373,6 +376,7 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
         uint256 balance = v2Token.balanceOf(address(this));
         if (balance > 0) {
             v2Token.safeTransfer(to, balance);
+            emit UnclaimedTokensReturned(to, balance);
         }
     }
 

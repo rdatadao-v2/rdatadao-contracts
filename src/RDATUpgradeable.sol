@@ -105,8 +105,8 @@ contract RDATUpgradeable is
         __UUPSUpgradeable_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(PAUSER_ROLE, admin);
-        _grantRole(UPGRADER_ROLE, admin);
+        _grantRole(PAUSER_ROLE, admin); // Note: In production, use separate address for PAUSER_ROLE
+        _grantRole(UPGRADER_ROLE, admin); // Note: In production, use separate address for UPGRADER_ROLE
 
         // Mint ENTIRE supply at deployment
         _mint(treasury, TOTAL_SUPPLY - MIGRATION_ALLOCATION); // 70M to treasury

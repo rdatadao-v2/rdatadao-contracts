@@ -39,6 +39,7 @@ contract BaseMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
 
     // Events
     event TokensBurned(address indexed user, uint256 amount, bytes32 indexed burnTxHash);
+    event TokensRescued(address indexed token, address indexed to, uint256 amount);
 
     // Errors
     error ZeroAmount();
@@ -119,6 +120,7 @@ contract BaseMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
         require(token != address(v1Token), "Cannot rescue V1 tokens");
 
         IERC20(token).safeTransfer(to, amount);
+        emit TokensRescued(token, to, amount);
     }
 
     // ========== View Functions ==========

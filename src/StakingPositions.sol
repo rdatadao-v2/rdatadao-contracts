@@ -51,6 +51,7 @@ contract StakingPositions is
     // Events
     event RevenueRewardsReceived(uint256 amount, uint256 totalPending);
     event PenaltiesWithdrawn(address indexed recipient, uint256 amount);
+    event TokensRescued(address indexed token, address indexed to, uint256 amount);
 
     // Constants
     uint256 public constant MONTH_1 = 30 days;
@@ -423,6 +424,7 @@ contract StakingPositions is
     function rescueTokens(address token, uint256 amount) external override onlyRole(ADMIN_ROLE) {
         require(token != address(_rdatToken), "Cannot rescue RDAT");
         IERC20(token).safeTransfer(msg.sender, amount);
+        emit TokensRescued(token, msg.sender, amount);
     }
 
     /**
