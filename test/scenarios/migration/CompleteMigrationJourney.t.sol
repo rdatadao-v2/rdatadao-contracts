@@ -498,9 +498,10 @@ contract CompleteMigrationJourney is Test {
         uint256 finalV1Supply = v1Token.totalSupply();
         uint256 finalV2Supply = v2Token.totalSupply();
 
-        // V1 tokens should be locked in the bridge (not actually burned in this implementation)
-        uint256 tokensInBridge = v1Token.balanceOf(address(baseBridge));
-        assertEq(tokensInBridge, SMALL_AMOUNT + MEDIUM_AMOUNT, "V1 tokens not locked in bridge");
+        // V1 tokens should be sent to burn address (0xdEaD) per audit remediation M-01
+        address burnAddress = address(0x000000000000000000000000000000000000dEaD);
+        uint256 tokensInBurnAddress = v1Token.balanceOf(burnAddress);
+        assertEq(tokensInBurnAddress, SMALL_AMOUNT + MEDIUM_AMOUNT, "V1 tokens not sent to burn address");
 
         // V2 total supply should remain constant (tokens transferred from bridge)
         assertEq(finalV2Supply, initialV2Supply, "V2 total supply changed");

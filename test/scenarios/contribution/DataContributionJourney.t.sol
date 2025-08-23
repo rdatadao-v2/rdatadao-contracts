@@ -283,12 +283,27 @@ contract DataContributionJourney is Test {
         // Step 2: Create data pool and submit data
         console2.log("\n[STEP2] Creating data pool and submitting to blockchain");
 
-        bytes32 poolId = keccak256("reddit_data_pool_v1");
+        // The poolId is now generated internally, so we need to capture it from the event
         address[] memory initialContributors = new address[](1);
         initialContributors[0] = dataContributor1;
 
         vm.startPrank(dataContributor1);
-        rdatToken.createDataPool(poolId, submission.ipfsHash, initialContributors);
+        
+        // Record logs to capture the poolId from DataPoolCreated event
+        vm.recordLogs();
+        bytes32 userPoolId = keccak256("reddit_data_pool_v1"); // User's requested ID (ignored)
+        rdatToken.createDataPool(userPoolId, submission.ipfsHash, initialContributors);
+        
+        // Extract the actual poolId from the event
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 poolId;
+        for (uint256 i = 0; i < entries.length; i++) {
+            if (entries[i].topics[0] == keccak256("DataPoolCreated(bytes32,address,string)")) {
+                poolId = entries[i].topics[1]; // First indexed parameter is the poolId
+                break;
+            }
+        }
+        require(poolId != bytes32(0), "Failed to capture poolId from event");
 
         bool success = rdatToken.addDataToPool(poolId, submission.dataHash, submission.qualityScore);
         vm.stopPrank();
@@ -357,16 +372,28 @@ contract DataContributionJourney is Test {
         // Step 1: All contributors submit data
         console2.log("\n[STEP1] All contributors submit identical quality data");
 
-        bytes32 poolId = keccak256("multi_contributor_pool");
-
         // Create pool
         address[] memory initialContributors = new address[](4);
         for (uint256 i = 0; i < 4; i++) {
             initialContributors[i] = contributors[i];
         }
 
-        vm.prank(admin);
-        rdatToken.createDataPool(poolId, "QmMultiContrib...", initialContributors);
+        vm.startPrank(admin);
+        vm.recordLogs();
+        bytes32 userPoolId = keccak256("multi_contributor_pool"); // User's requested ID (ignored)
+        rdatToken.createDataPool(userPoolId, "QmMultiContrib...", initialContributors);
+        
+        // Extract the actual poolId from the event
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 poolId;
+        for (uint256 i = 0; i < entries.length; i++) {
+            if (entries[i].topics[0] == keccak256("DataPoolCreated(bytes32,address,string)")) {
+                poolId = entries[i].topics[1];
+                break;
+            }
+        }
+        require(poolId != bytes32(0), "Failed to capture poolId from event");
+        vm.stopPrank();
 
         // Each contributor submits data
         for (uint256 i = 0; i < contributors.length; i++) {
@@ -511,10 +538,23 @@ contract DataContributionJourney is Test {
         console2.log("\n[STEP1] First contributor submits original Reddit dataset");
 
         bytes32 uniqueDataHash = keccak256("unique_reddit_export_2024");
-        bytes32 poolId = keccak256("first_submitter_pool");
 
-        vm.prank(admin);
-        rdatToken.createDataPool(poolId, "QmFirstSubmitter...", new address[](0));
+        vm.startPrank(admin);
+        vm.recordLogs();
+        bytes32 userPoolId = keccak256("first_submitter_pool"); // User's requested ID (ignored)
+        rdatToken.createDataPool(userPoolId, "QmFirstSubmitter...", new address[](0));
+        
+        // Extract the actual poolId from the event
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 poolId;
+        for (uint256 i = 0; i < entries.length; i++) {
+            if (entries[i].topics[0] == keccak256("DataPoolCreated(bytes32,address,string)")) {
+                poolId = entries[i].topics[1];
+                break;
+            }
+        }
+        require(poolId != bytes32(0), "Failed to capture poolId from event");
+        vm.stopPrank();
 
         vm.prank(dataContributor1);
         rdatToken.addDataToPool(poolId, uniqueDataHash, HIGH_QUALITY_SCORE);
@@ -632,10 +672,22 @@ contract DataContributionJourney is Test {
         // Step 1: Multiple contributions during epoch
         console2.log("\n[STEP1] Contributors submit data during epoch 1");
 
-        bytes32 poolId = keccak256("epoch_1_pool");
-
-        vm.prank(admin);
-        rdatToken.createDataPool(poolId, "QmEpoch1...", new address[](0));
+        vm.startPrank(admin);
+        vm.recordLogs();
+        bytes32 userPoolId = keccak256("epoch_1_pool"); // User's requested ID (ignored)
+        rdatToken.createDataPool(userPoolId, "QmEpoch1...", new address[](0));
+        
+        // Extract the actual poolId from the event
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 poolId;
+        for (uint256 i = 0; i < entries.length; i++) {
+            if (entries[i].topics[0] == keccak256("DataPoolCreated(bytes32,address,string)")) {
+                poolId = entries[i].topics[1];
+                break;
+            }
+        }
+        require(poolId != bytes32(0), "Failed to capture poolId from event");
+        vm.stopPrank();
 
         // Contributions with different quality scores
         vm.prank(dataContributor1);
