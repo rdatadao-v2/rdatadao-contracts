@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 r/datadao V2 smart contracts implementing cross-chain migration from Base to Vana blockchain with expanded tokenomics (30M → 100M fixed supply). Architecture uses hybrid approach: UUPS upgradeable RDAT token + non-upgradeable staking for optimal security/flexibility balance.
 
-**Current Status**: 333/333 tests passing (100%) ✅, production-ready, audit-ready
+**Current Status**: 333/333 tests passing (100%) ✅, production-ready, audit-ready  
+**Audit Report**: Preliminary audit report available at `r_datadao_Smart_Contract_Audit_Report_Preliminary_Report_v1.pdf`
 
 ## Core Commands
 
@@ -66,6 +67,10 @@ forge script script/DeployRDATUpgradeableSimple.s.sol --rpc-url $VANA_MOKSHA_RPC
 # Vana-specific deployment
 forge script script/vana/DeployRDATUpgradeable.s.sol --rpc-url $VANA_MOKSHA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
 
+# Register DLP after deployment
+RDAT_DATA_DAO_ADDRESS=0x32B481b52616044E5c937CF6D20204564AD62164 RDAT_TOKEN_ADDRESS=0xC1aC75130533c7F93BDa67f6645De65C9DEE9a3A \
+forge script script/RegisterDLP.s.sol:RegisterDLP --rpc-url $VANA_MOKSHA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
+
 # Check balances and deployment status
 ./script/check-balances.sh
 ./script/deployment-summary.sh
@@ -82,6 +87,7 @@ forge script script/vana/DeployRDATUpgradeable.s.sol --rpc-url $VANA_MOKSHA_RPC_
 6. **MigrationBridge** - Secure V1→V2 cross-chain migration (30M allocation) ✅
 7. **VanaMigrationBridge** - Vana-side bridge with validator consensus (30M allocation) ✅
 8. **RDATDataDAO** - Vana DLP contract for data contribution and validation ✅
+   - **DLP ID**: 155 (Successfully registered on Vana Moksha)
 9. **EmergencyPause** - Shared emergency response (72hr auto-expiry) ✅
 10. **RevenueCollector** - Fee distribution (50/30/20 split) ✅
 11. **RewardsManager** - UUPS upgradeable reward module orchestrator ✅
@@ -127,6 +133,7 @@ cp .env.example .env
 3. Deploy MigrationBridge with predicted RDAT address  
 4. Deploy RDATUpgradeable via CREATE2 (mints 70M to Treasury, 30M to Bridge)
 5. Treasury distributes per DAO vote (manual trigger post-migration)
+6. Register DLP with Vana using `RegisterDLP.s.sol` script
 
 ### Deployment Verification
 ```shell
@@ -152,8 +159,23 @@ forge script script/VerifyDeployment.s.sol --rpc-url $VANA_MOKSHA_RPC_URL
 - **Unit Tests**: Individual contract functions
 - **Integration Tests**: Cross-contract interactions
 - **Scenario Tests**: Complete user journeys
-- **Security Tests**: Attack vectors and edge cases
+- **Security Tests**: Attack vectors and edge cases (24 tests in `/test/security/`)
 - **Fuzz Tests**: Property-based testing
+
+### Running Specific Test Categories
+```shell
+# Run only security tests
+forge test --match-path test/security/*
+
+# Run integration tests
+forge test --match-path test/integration/*
+
+# Run tests for specific contract
+forge test --match-contract RDATUpgradeableTest
+
+# Run with detailed gas reporting
+forge test --gas-report --match-test testStaking
+```
 
 ## Production Readiness ✅
 
@@ -162,13 +184,15 @@ forge script script/VerifyDeployment.s.sol --rpc-url $VANA_MOKSHA_RPC_URL
   - RDAT: `0xC1aC75130533c7F93BDa67f6645De65C9DEE9a3A` (100M supply correctly distributed)
   - Treasury: `0x31C3e3F091FB2A25d4dac82474e7dc709adE754a` (70M RDAT)
   - Migration Bridge: `0x31C3e3F091FB2A25d4dac82474e7dc709adE754a` (30M RDAT)
+  - Data DAO: `0x32B481b52616044E5c937CF6D20204564AD62164` (DLP ID: 155)
+- **Base Sepolia**: Migration testing infrastructure deployed
 - **Mainnet**: Ready for deployment (all scripts validated)
-- **DLP Registration**: Pending manual intervention from Vana team
 
 ### GitHub Actions CI/CD ✅
-- Build: ✅ Passing
-- Tests: ✅ 333/333 passing
-- Formatting: ✅ All files standardized with `forge fmt`
+- **Workflow**: `.github/workflows/test.yml`
+- Build: ✅ Passing (`forge build --sizes`)
+- Tests: ✅ 333/333 passing (`forge test -vvv`)
+- Formatting: ✅ All files standardized (`forge fmt --check`)
 - Gas Reporting: ✅ Optimized contracts
 
 ### Deployment Scripts ✅
@@ -202,9 +226,34 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 **Types**: feat, fix, test, docs, refactor, checkpoint, wip
 
-### Key Principles
+#### Key Principles
 - Commit after each logical unit of work
 - Every commit should compile and pass existing tests
 - Use "checkpoint:" for stable rollback points
 - Document experiments and edge cases in commits
 - Create session summaries at end of work sessions
+
+## Documentation
+
+Comprehensive documentation organized in `/docs/`:
+- **01_PROJECT_OVERVIEW.md**: High-level project summary
+- **02_SPECIFICATIONS.md**: Detailed technical specifications (175KB)
+- **03_CONTRACTS_SPECIFICATION.md**: Contract-specific details
+- **04_WHITEPAPER.md**: Economic model and tokenomics
+- **05_SPRINT_PLAN.md**: Development timeline and milestones
+- **06_USE_CASES_AND_SCENARIOS.md**: User journey examples
+- **07_WORKFLOW_SEQUENCE_DIAGRAMS.md**: System interaction flows
+- **08_DEPLOYMENT_AND_OPERATIONS.md**: Production deployment guide
+- **09_TESTING_AND_AUDIT.md**: Comprehensive testing requirements
+- **10_GOVERNANCE_FRAMEWORK.md**: DAO governance mechanics
+- **ABI_EXPORT_GUIDE.md**: Instructions for exporting contract ABIs
+
+## Utility Scripts
+
+Production and development utilities in `/scripts/`:
+- **export-abi.sh**: Export contract ABIs for frontend integration
+- **extract-abi.sh**: Extract specific ABIs from build artifacts
+- **setup-frontend.sh**: Configure frontend repository
+- **fix-test-compilation.sh**: Resolve test compilation issues
+- **remove-minter-role-references.sh**: Clean up deprecated minter role
+- **update-tests-for-fixed-supply.sh**: Update tests for fixed supply model
