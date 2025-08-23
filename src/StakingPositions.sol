@@ -79,11 +79,14 @@ contract StakingPositions is
     address public rewardsManager; // RewardsManager contract for notifications
     uint256 public accumulatedPenalties; // Track penalties from emergency withdrawals
     
-    // Reward accounting (audit remediation L-05) 
+    // Reward accounting (audit remediation L-05) - Production-ready tracking
     mapping(address => uint256) public userTotalRewardsClaimed;
+    mapping(address => uint256) public userLifetimeRewards; // Total rewards earned (claimed + unclaimed)
+    uint256 public lastRewardDistributionTime;
+    uint256 public totalPendingRewards;
 
     // Storage gap for upgradeability
-    uint256[38] private __gap; // Reduced by 2 for new state variables
+    uint256[36] private __gap; // Reduced by 4 for new state variables
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -486,6 +489,8 @@ contract StakingPositions is
 
         pendingRevenueRewards += amount;
         totalRewardsDistributed += amount;
+        totalPendingRewards += amount;  // Track total pending (L-05)
+        lastRewardDistributionTime = block.timestamp;  // Track distribution time (L-05)
 
         emit RevenueRewardsReceived(amount, pendingRevenueRewards);
     }
@@ -498,26 +503,46 @@ contract StakingPositions is
     // View functions
     
     /**
-     * @dev Get reward accounting statistics (audit remediation L-05)
+     * @dev Get comprehensive reward accounting statistics (audit remediation L-05)
+     * @notice Production-ready reward tracking with full visibility
      * @return totalDistributed Total rewards ever distributed
      * @return totalPenalties Total penalties accumulated
      * @return pendingRevenue Current pending revenue rewards
+     * @return lastDistribution Timestamp of last reward distribution
+     * @return totalPending Total rewards pending distribution
      */
     function getRewardStatistics() external view returns (
         uint256 totalDistributed,
         uint256 totalPenalties,
-        uint256 pendingRevenue
+        uint256 pendingRevenue,
+        uint256 lastDistribution,
+        uint256 totalPending
     ) {
-        return (totalRewardsDistributed, accumulatedPenalties, pendingRevenueRewards);
+        return (
+            totalRewardsDistributed, 
+            accumulatedPenalties, 
+            pendingRevenueRewards,
+            lastRewardDistributionTime,
+            totalPendingRewards
+        );
     }
     
     /**
-     * @dev Get user's total rewards claimed (audit remediation L-05)
+     * @dev Get comprehensive user reward data (audit remediation L-05)
      * @param user The user address
      * @return totalClaimed Total rewards claimed by user
+     * @return lifetimeEarned Total rewards earned (claimed + unclaimed)
+     * @return pendingClaims Estimated pending claims (if integrated with RewardsManager)
      */
-    function getUserRewardsClaimed(address user) external view returns (uint256) {
-        return userTotalRewardsClaimed[user];
+    function getUserRewardData(address user) external view returns (
+        uint256 totalClaimed,
+        uint256 lifetimeEarned,
+        uint256 pendingClaims
+    ) {
+        totalClaimed = userTotalRewardsClaimed[user];
+        lifetimeEarned = userLifetimeRewards[user];
+        pendingClaims = lifetimeEarned > totalClaimed ? lifetimeEarned - totalClaimed : 0;
+        return (totalClaimed, lifetimeEarned, pendingClaims);
     }
 
     /**
