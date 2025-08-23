@@ -72,6 +72,7 @@ contract RDATUpgradeable is
     mapping(bytes32 => mapping(address => bool)) private _dataOwnership;
     mapping(uint256 => uint256) private _epochRewardTotals;
     mapping(uint256 => mapping(address => uint256)) private _epochRewardsClaimed;
+    uint256 private _dataPoolCounter; // Counter for generating unique pool IDs
     mapping(uint256 => mapping(address => bool)) private _hasClaimedEpoch;
 
     // Errors
@@ -217,17 +218,19 @@ contract RDATUpgradeable is
 
     /**
      * @notice Creates a new data pool
-     * @param poolId Unique identifier for the pool
      * @param metadata Pool metadata (IPFS hash or JSON)
      * @param initialContributors Initial list of contributors
+     * @dev poolId parameter is ignored and generated internally to prevent front-running
      */
-    function createDataPool(bytes32 poolId, string memory metadata, address[] memory initialContributors)
+    function createDataPool(bytes32 /* ignored - generated internally */, string memory metadata, address[] memory initialContributors)
         external
         override
         nonReentrant
         returns (bool)
     {
-        require(poolId != bytes32(0), "Invalid pool ID");
+        // Generate poolId internally to prevent front-running
+        _dataPoolCounter++;
+        bytes32 poolId = keccak256(abi.encodePacked(msg.sender, block.timestamp, _dataPoolCounter));
         require(_dataPools[poolId].creator == address(0), "Pool already exists");
         require(bytes(metadata).length > 0, "Empty metadata");
 

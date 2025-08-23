@@ -359,16 +359,11 @@ contract StakingPositions is
 
         // Allow minting and burning
         if (from != address(0) && to != address(0)) {
-            Position memory position = _positions[tokenId];
-
-            // Check 1: Position must be unlocked
+            // Only check: Position must be unlocked
+            // The position can be transferred after the lock period ends
+            // Any associated vRDAT remains with the position and will be 
+            // burned when the new owner unstakes
             if (!canUnstake(tokenId)) revert TransferWhileLocked();
-
-            // Check 2: Position must not have active vRDAT rewards
-            // User must emergency exit first to burn vRDAT before transfer
-            if (position.vrdatMinted > 0) {
-                revert TransferWithActiveRewards();
-            }
         }
 
         return super._update(to, tokenId, auth);

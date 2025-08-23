@@ -221,13 +221,22 @@ contract StakingPositionsTest is Test {
         // Fast forward past lock period
         vm.warp(block.timestamp + staking.MONTH_1() + 1);
 
-        // Transfer should NOT work if vRDAT is still active
-        // Users must emergency withdraw first to burn vRDAT
-        vm.expectRevert(IStakingPositions.TransferWithActiveRewards.selector);
+        // Transfer should now work after lock period ends
+        // The position and its vRDAT are transferred to the new owner
         staking.transferFrom(alice, bob, positionId);
-
-        // Emergency withdraw to burn vRDAT (enables transfer)
-        staking.emergencyWithdraw(positionId);
+        
+        // Verify bob now owns the position
+        assertEq(staking.ownerOf(positionId), bob);
+        
+        // Bob should be able to unstake the position
+        vm.stopPrank();
+        vm.startPrank(bob);
+        
+        uint256 bobBalanceBefore = rdat.balanceOf(bob);
+        staking.unstake(positionId);
+        
+        // Verify Bob received the staked tokens
+        assertEq(rdat.balanceOf(bob), bobBalanceBefore + STAKE_AMOUNT);
 
         vm.stopPrank();
     }

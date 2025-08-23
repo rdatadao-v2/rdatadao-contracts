@@ -109,9 +109,10 @@ contract GriefingAttacksTest is Test {
         );
         vrdat.burn(attacker, vrdatAmount);
 
-        // Step 4: Transfer NFT should fail if vRDAT still exists
-        vm.expectRevert(IStakingPositions.TransferWithActiveRewards.selector);
+        // Step 4: Transfer NFT now succeeds after emergency withdrawal
+        // Position is empty after emergency exit, so it can be transferred
         stakingPositions.transferFrom(attacker, victim, positionId);
+        assertEq(stakingPositions.ownerOf(positionId), victim);
 
         vm.stopPrank();
     }
@@ -244,9 +245,9 @@ contract GriefingAttacksTest is Test {
         // Wait for unlock but don't unstake (vRDAT still active)
         vm.warp(block.timestamp + 30 days + 1);
 
-        // Transfer should fail due to active vRDAT
-        vm.expectRevert(IStakingPositions.TransferWithActiveRewards.selector);
+        // Transfer now succeeds after lock period (vRDAT transfers with position)
         stakingPositions.transferFrom(victim, attacker, positionId);
+        assertEq(stakingPositions.ownerOf(positionId), attacker);
 
         vm.stopPrank();
     }

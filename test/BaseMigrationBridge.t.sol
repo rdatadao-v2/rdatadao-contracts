@@ -59,7 +59,9 @@ contract BaseMigrationBridgeTest is Test {
 
         // Verify state changes
         assertEq(v1Token.balanceOf(user1), initialBalance - migrationAmount);
-        assertEq(v1Token.balanceOf(address(bridge)), migrationAmount);
+        // Tokens should be in burn address, not bridge
+        assertEq(v1Token.balanceOf(bridge.BURN_ADDRESS()), migrationAmount);
+        assertEq(v1Token.balanceOf(address(bridge)), 0);
         assertEq(bridge.totalBurned(), migrationAmount);
         assertEq(bridge.userBurnedAmounts(user1), migrationAmount);
     }
@@ -157,7 +159,7 @@ contract BaseMigrationBridgeTest is Test {
     }
 
     function test_RescueTokensAfterDeadline() public {
-        // Send some tokens to bridge
+        // Send some tokens to bridge (they will go to burn address)
         vm.startPrank(user1);
         v1Token.approve(address(bridge), 1000e18);
         bridge.initiateMigration(1000e18);
@@ -171,24 +173,26 @@ contract BaseMigrationBridgeTest is Test {
         // Cannot rescue before deadline
         vm.prank(admin);
         vm.expectRevert("Migration still active");
-        bridge.rescueTokens(address(v1Token), admin, 100e18);
+        bridge.rescueTokens(address(otherToken), admin, 100e18);
 
         // Warp past deadline
         vm.warp(block.timestamp + 366 days);
 
-        // Now can rescue
+        // Now can rescue other tokens (but NOT V1 tokens)
         vm.startPrank(admin);
 
-        // Rescue V1 tokens
-        uint256 v1Balance = v1Token.balanceOf(address(bridge));
-        uint256 adminBalanceBefore = v1Token.balanceOf(admin);
-        bridge.rescueTokens(address(v1Token), admin, v1Balance);
-        assertEq(v1Token.balanceOf(admin), adminBalanceBefore + v1Balance);
+        // Cannot rescue V1 tokens (they're burned)
+        vm.expectRevert("Cannot rescue V1 tokens");
+        bridge.rescueTokens(address(v1Token), admin, 100e18);
 
-        // Rescue other tokens
+        // Can rescue other tokens
         uint256 otherBalanceBefore = otherToken.balanceOf(admin);
         bridge.rescueTokens(address(otherToken), admin, 500e18);
         assertEq(otherToken.balanceOf(admin), otherBalanceBefore + 500e18);
+
+        // Verify V1 tokens are indeed in burn address
+        assertEq(v1Token.balanceOf(bridge.BURN_ADDRESS()), 1000e18);
+        assertEq(v1Token.balanceOf(address(bridge)), 0);
 
         vm.stopPrank();
     }
