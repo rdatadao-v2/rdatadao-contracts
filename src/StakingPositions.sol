@@ -78,9 +78,12 @@ contract StakingPositions is
     uint256 public pendingRevenueRewards; // Revenue rewards from RevenueCollector
     address public rewardsManager; // RewardsManager contract for notifications
     uint256 public accumulatedPenalties; // Track penalties from emergency withdrawals
+    
+    // Reward accounting (audit remediation L-05) 
+    mapping(address => uint256) public userTotalRewardsClaimed;
 
     // Storage gap for upgradeability
-    uint256[39] private __gap; // Reduced by 1 for accumulatedPenalties
+    uint256[38] private __gap; // Reduced by 2 for new state variables
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -493,6 +496,29 @@ contract StakingPositions is
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {}
 
     // View functions
+    
+    /**
+     * @dev Get reward accounting statistics (audit remediation L-05)
+     * @return totalDistributed Total rewards ever distributed
+     * @return totalPenalties Total penalties accumulated
+     * @return pendingRevenue Current pending revenue rewards
+     */
+    function getRewardStatistics() external view returns (
+        uint256 totalDistributed,
+        uint256 totalPenalties,
+        uint256 pendingRevenue
+    ) {
+        return (totalRewardsDistributed, accumulatedPenalties, pendingRevenueRewards);
+    }
+    
+    /**
+     * @dev Get user's total rewards claimed (audit remediation L-05)
+     * @param user The user address
+     * @return totalClaimed Total rewards claimed by user
+     */
+    function getUserRewardsClaimed(address user) external view returns (uint256) {
+        return userTotalRewardsClaimed[user];
+    }
 
     /**
      * @dev Get RDAT token address

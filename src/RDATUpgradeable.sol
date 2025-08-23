@@ -144,6 +144,7 @@ contract RDATUpgradeable is
      * @dev Sets the Proof of Contribution contract address
      * @param _poc Address of the PoC contract
      * @notice VRC-20 compliance requirement
+     * @dev AUDIT L-04: Consider using timelock for this critical function in production
      */
     function setPoCContract(address _poc) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_poc == address(0)) revert InvalidAddress();
@@ -176,7 +177,10 @@ contract RDATUpgradeable is
      * @dev Authorizes an upgrade to a new implementation
      * @param newImplementation Address of the new implementation
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {
+        // AUDIT L-04: In production, UPGRADER_ROLE should be held by a TimelockController
+        // This ensures a 48-hour delay before any upgrade can be executed
+    }
 
     /**
      * @dev Hook that is called on any transfer of tokens
