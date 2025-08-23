@@ -46,9 +46,11 @@ contract StakingPositions is
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     bytes32 public constant REVENUE_COLLECTOR_ROLE = keccak256("REVENUE_COLLECTOR_ROLE");
+    bytes32 public constant TREASURY_ROLE = keccak256("TREASURY_ROLE");
 
     // Events
     event RevenueRewardsReceived(uint256 amount, uint256 totalPending);
+    event PenaltiesWithdrawn(address indexed recipient, uint256 amount);
 
     // Constants
     uint256 public constant MONTH_1 = 30 days;
@@ -74,9 +76,10 @@ contract StakingPositions is
     uint256 public rewardRate; // DEPRECATED: Rewards now handled by RewardsManager
     uint256 public pendingRevenueRewards; // Revenue rewards from RevenueCollector
     address public rewardsManager; // RewardsManager contract for notifications
+    uint256 public accumulatedPenalties; // Track penalties from emergency withdrawals
 
     // Storage gap for upgradeability
-    uint256[40] private __gap;
+    uint256[39] private __gap; // Reduced by 1 for accumulatedPenalties
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -258,10 +261,13 @@ contract StakingPositions is
         // Option 2: Burn NFT immediately (current behavior)
         _burn(positionId);
 
+        // Track the penalty for treasury withdrawal
+        accumulatedPenalties += penalty;
+
         // Transfer reduced amount back to user
         _rdatToken.safeTransfer(msg.sender, withdrawAmount);
 
-        // Penalty stays in contract for treasury rescue
+        // Penalty stays in contract for treasury withdrawal
 
         emit EmergencyWithdraw(msg.sender, positionId, withdrawAmount, penalty);
     }
@@ -432,6 +438,25 @@ contract StakingPositions is
         require(_rewardsManager != address(0), "Invalid rewards manager");
         rewardsManager = _rewardsManager;
         emit RewardsManagerUpdated(_rewardsManager);
+    }
+
+    /**
+     * @dev Withdraw accumulated penalties from emergency withdrawals
+     * @notice Only callable by treasury role
+     * @param recipient Address to receive the penalties
+     */
+    function withdrawPenalties(address recipient) external onlyRole(TREASURY_ROLE) {
+        require(recipient != address(0), "Invalid recipient");
+        uint256 penalties = accumulatedPenalties;
+        require(penalties > 0, "No penalties to withdraw");
+        
+        // Reset accumulated penalties before transfer (reentrancy protection)
+        accumulatedPenalties = 0;
+        
+        // Transfer penalties to recipient (typically treasury)
+        _rdatToken.safeTransfer(recipient, penalties);
+        
+        emit PenaltiesWithdrawn(recipient, penalties);
     }
 
     /**

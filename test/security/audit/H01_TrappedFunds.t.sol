@@ -15,11 +15,11 @@ contract H01_TrappedFundsTest is Test {
     StakingPositions public stakingPositions;
     RDATUpgradeable public rdatToken;
     
-    address public admin = address(0x1);
-    address public treasury = address(0x2);
-    address public revenueCollector = address(0x3);
-    address public user1 = address(0x4);
-    address public user2 = address(0x5);
+    address public admin = address(0x1000);
+    address public treasury = address(0x2000);
+    address public revenueCollector = address(0x3000);
+    address public user1 = address(0x4000);
+    address public user2 = address(0x5000);
     
     uint256 public constant INITIAL_BALANCE = 10000 * 1e18;
     uint256 public constant STAKE_AMOUNT = 1000 * 1e18;
@@ -30,14 +30,22 @@ contract H01_TrappedFundsTest is Test {
         bytes memory initData = abi.encodeWithSelector(
             RDATUpgradeable.initialize.selector,
             treasury,
-            address(0) // migration bridge
+            admin,
+            address(1) // migration bridge (dummy address for testing)
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
         rdatToken = RDATUpgradeable(address(proxy));
         
         // Deploy StakingPositions
-        stakingPositions = new StakingPositions();
-        stakingPositions.initialize(address(rdatToken), admin);
+        StakingPositions stakingImpl = new StakingPositions();
+        bytes memory stakingInitData = abi.encodeWithSelector(
+            StakingPositions.initialize.selector,
+            address(rdatToken),
+            address(0x9000), // vRDAT token (dummy address for testing)
+            admin
+        );
+        ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), stakingInitData);
+        stakingPositions = StakingPositions(address(stakingProxy));
         
         // Setup roles
         vm.startPrank(admin);
@@ -60,11 +68,12 @@ contract H01_TrappedFundsTest is Test {
         // User stakes tokens
         vm.startPrank(user1);
         rdatToken.approve(address(stakingPositions), STAKE_AMOUNT);
-        uint256 positionId = stakingPositions.stake(STAKE_AMOUNT, StakingPositions.LockDuration.NINETY_DAYS);
+        uint256 positionId = stakingPositions.stake(STAKE_AMOUNT, 90 days);
         vm.stopPrank();
         
-        // Record balance before emergency withdrawal
+        // Verify initial balance (should have the staked amount)
         uint256 contractBalanceBefore = rdatToken.balanceOf(address(stakingPositions));
+        assertEq(contractBalanceBefore, STAKE_AMOUNT, "Initial balance incorrect");
         
         // User performs emergency withdrawal (50% penalty)
         vm.startPrank(user1);
@@ -75,20 +84,34 @@ contract H01_TrappedFundsTest is Test {
         uint256 penaltyAmount = STAKE_AMOUNT / 2;
         uint256 contractBalanceAfter = rdatToken.balanceOf(address(stakingPositions));
         
-        // Verify penalty is trapped in contract
-        assertEq(contractBalanceAfter - contractBalanceBefore, penaltyAmount, "Penalty not trapped in contract");
+        // Verify penalty is trapped in contract (balance should be the penalty amount)
+        assertEq(contractBalanceAfter, penaltyAmount, "Penalty not trapped in contract");
         
-        // Current implementation: This should REVERT
-        // After fix: This should SUCCEED
+        // Test that rescueTokens still cannot be used for RDAT
         vm.startPrank(admin);
         vm.expectRevert("Cannot rescue RDAT");
         stakingPositions.rescueTokens(address(rdatToken), penaltyAmount);
         vm.stopPrank();
         
-        // TODO: After implementing fix, test the new withdrawPenalties function
-        // vm.startPrank(treasury);
-        // stakingPositions.withdrawPenalties(penaltyAmount);
-        // vm.stopPrank();
+        // Test the new withdrawPenalties function (our fix)
+        uint256 treasuryBalanceBefore = rdatToken.balanceOf(treasury);
+        
+        // Grant TREASURY_ROLE to treasury address
+        vm.startPrank(admin);
+        stakingPositions.grantRole(stakingPositions.TREASURY_ROLE(), treasury);
+        vm.stopPrank();
+        
+        // Treasury withdraws penalties
+        vm.startPrank(treasury);
+        stakingPositions.withdrawPenalties(treasury);
+        vm.stopPrank();
+        
+        // Verify penalties transferred to treasury
+        uint256 treasuryBalanceAfter = rdatToken.balanceOf(treasury);
+        assertEq(treasuryBalanceAfter - treasuryBalanceBefore, penaltyAmount, "Penalties not transferred to treasury");
+        
+        // Verify contract balance is now 0
+        assertEq(rdatToken.balanceOf(address(stakingPositions)), 0, "Contract should have 0 balance after withdrawal");
     }
     
     /**
@@ -110,7 +133,7 @@ contract H01_TrappedFundsTest is Test {
         // User stakes to be eligible for rewards
         vm.startPrank(user1);
         rdatToken.approve(address(stakingPositions), STAKE_AMOUNT);
-        uint256 positionId = stakingPositions.stake(STAKE_AMOUNT, StakingPositions.LockDuration.THIRTY_DAYS);
+        uint256 positionId = stakingPositions.stake(STAKE_AMOUNT, 30 days);
         vm.stopPrank();
         
         // Fast forward time
@@ -118,7 +141,7 @@ contract H01_TrappedFundsTest is Test {
         
         // Try to claim rewards - should revert with current implementation
         vm.startPrank(user1);
-        vm.expectRevert("Use RewardsManager");
+        vm.expectRevert("Use RewardsManager.claimRewards directly");
         stakingPositions.claimRewards(positionId);
         vm.stopPrank();
         
@@ -138,7 +161,7 @@ contract H01_TrappedFundsTest is Test {
         // Setup: User stakes and emergency withdraws
         vm.startPrank(user1);
         rdatToken.approve(address(stakingPositions), STAKE_AMOUNT);
-        uint256 positionId = stakingPositions.stake(STAKE_AMOUNT, StakingPositions.LockDuration.NINETY_DAYS);
+        uint256 positionId = stakingPositions.stake(STAKE_AMOUNT, 90 days);
         stakingPositions.emergencyWithdraw(positionId);
         vm.stopPrank();
         
@@ -173,12 +196,12 @@ contract H01_TrappedFundsTest is Test {
         // Multiple users stake
         vm.startPrank(user1);
         rdatToken.approve(address(stakingPositions), STAKE_AMOUNT);
-        uint256 position1 = stakingPositions.stake(STAKE_AMOUNT, StakingPositions.LockDuration.THIRTY_DAYS);
+        uint256 position1 = stakingPositions.stake(STAKE_AMOUNT, 30 days);
         vm.stopPrank();
         
         vm.startPrank(user2);
         rdatToken.approve(address(stakingPositions), STAKE_AMOUNT);
-        uint256 position2 = stakingPositions.stake(STAKE_AMOUNT, StakingPositions.LockDuration.NINETY_DAYS);
+        uint256 position2 = stakingPositions.stake(STAKE_AMOUNT, 90 days);
         vm.stopPrank();
         
         // Both perform emergency withdrawals
