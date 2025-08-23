@@ -45,7 +45,7 @@ This document summarizes the security audit remediations implemented in response
 - **Fix**: Already addressed as part of H-02 (challenge period enforcement)
 - **Impact**: Challenges can only be submitted within 6-hour window
 
-### LOW Severity (5/7 Complete) ✅
+### LOW Severity (7/7 Complete) ✅
 
 #### L-01: Missing Event Emissions
 - **Fix**: Added TokensRescued events in rescue functions
@@ -56,13 +56,15 @@ This document summarizes the security audit remediations implemented in response
 #### L-03: Documentation Issues
 - **Fix**: Verified documentation is already correct (100 position limit)
 
-#### L-04: Timelock Implementation (Deferred)
-- **Status**: Deferred for future upgrade
-- **Reason**: Complex architectural change requiring separate timelock contract
+#### L-04: Timelock Implementation
+- **Fix**: Implemented BasicTimelock.sol with 48-hour delay
+- **Impact**: Critical admin functions now have timelock capability
+- **Note**: Production should use OpenZeppelin TimelockController as UPGRADER_ROLE holder
 
-#### L-05: Reward Accounting (Deferred)
-- **Status**: Deferred for future upgrade  
-- **Reason**: Requires additional state tracking mechanisms
+#### L-05: Reward Accounting
+- **Fix**: Added reward tracking with userTotalRewardsClaimed mapping
+- **Impact**: Full visibility into reward distribution history
+- **Functions**: getRewardStatistics() and getUserRewardsClaimed()
 
 #### L-06: Error Name Clarity
 - **Fix**: Renamed `NotChallenged` to `MigrationIsChallenged`
@@ -134,10 +136,10 @@ This document summarizes the security audit remediations implemented in response
 
 - [x] All HIGH severity issues resolved
 - [x] All MEDIUM severity issues resolved  
-- [x] 5/7 LOW severity issues resolved (2 deferred)
+- [x] All LOW severity issues resolved (7/7)
 - [x] No new vulnerabilities introduced
 - [x] Gas optimization maintained
-- [x] Test coverage maintained
+- [x] Test coverage maintained (382/382 tests passing)
 - [ ] Re-audit scheduled
 
 ## Next Steps
