@@ -1,11 +1,11 @@
 # Audit Response Document
 ## r/datadao Smart Contract Security Audit - Hashlock Pty Ltd
 
-**Date of Audit**: August 2025  
-**Response Date**: August 2025  
-**Audit Commit**: 7dcd7c1bb893927b7d88bcc05f37a3d2cfdbdd2c  
-**Response Branch**: audit-feedback-remediation  
-**Response Commit**: 7082254 (latest on branch)
+**Date of Audit**: August 2025
+**Response Date**: September 2025
+**Audit Commit**: 7dcd7c1bb893927b7d88bcc05f37a3d2cfdbdd2c
+**Response Branch**: audit-feedback-remediation
+**Response Commit**: 1967b16 (latest on branch)
 
 ---
 
