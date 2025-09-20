@@ -263,7 +263,7 @@ contract CrossChainMigrationTest is Test {
         console2.log("\n3. Attempting to execute challenged migration");
         vm.warp(block.timestamp + 7 hours);
 
-        vm.expectRevert(VanaMigrationBridge.NotChallenged.selector);
+        vm.expectRevert(VanaMigrationBridge.MigrationIsChallenged.selector);
         vanaBridge.executeMigration(requestId);
 
         console2.log("Migration blocked due to challenge");

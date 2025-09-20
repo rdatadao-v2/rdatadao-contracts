@@ -33,11 +33,24 @@ contract DeployVanaMigrationBridge is Script {
 
         vm.startBroadcast();
 
-        // Setup validators
+        // Setup validators - using production validator addresses
         address[] memory validators = new address[](3);
-        validators[0] = 0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319; // Multisig (admin)
-        validators[1] = 0x58eCB94e6F5e6521228316b55c465ad2A2938FbB; // Deployer
-        validators[2] = 0xC9Af4E56741f255743e8f4877d4cfa9971E910C2; // Additional validator
+        validators[0] = vm.envAddress("VALIDATOR_1"); // Angela (dev)
+        validators[1] = vm.envAddress("VALIDATOR_2"); // monkfenix.eth
+
+        // Use appropriate validator 3 based on network
+        uint256 chainId = block.chainid;
+        if (chainId == 84532 || chainId == 14800) {
+            // Base Sepolia or Vana Moksha testnet
+            validators[2] = vm.envOr("VALIDATOR_3_TESTNET", address(0));
+        } else {
+            // Base mainnet or Vana mainnet
+            validators[2] = vm.envOr("VALIDATOR_3_MAINNET", address(0));
+        }
+
+        require(validators[0] != address(0), "VALIDATOR_1 not set");
+        require(validators[1] != address(0), "VALIDATOR_2 not set");
+        require(validators[2] != address(0), "VALIDATOR_3 not set for this network");
 
         // Deploy the migration bridge with validators
         VanaMigrationBridge bridge = new VanaMigrationBridge(rdatToken, admin, validators);

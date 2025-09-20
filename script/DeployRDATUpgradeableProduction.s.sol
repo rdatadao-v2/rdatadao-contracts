@@ -93,8 +93,27 @@ contract DeployRDATUpgradeableProduction is Script {
     }
 
     function _deployMigrationBridge(DeploymentConfig memory config) internal returns (address) {
-        address[] memory validators = new address[](1);
-        validators[0] = config.multisig;
+        // Setup validators - using production validator addresses
+        address[] memory validators = new address[](3);
+        validators[0] = vm.envAddress("VALIDATOR_1"); // Angela (dev)
+        validators[1] = vm.envAddress("VALIDATOR_2"); // monkfenix.eth
+
+        // Use appropriate validator 3 based on network
+        uint256 chainId = block.chainid;
+        if (chainId == 84532 || chainId == 14800) {
+            // Base Sepolia or Vana Moksha testnet
+            validators[2] = vm.envOr("VALIDATOR_3_TESTNET", address(0));
+        } else if (chainId == 8453 || chainId == 1480) {
+            // Base mainnet or Vana mainnet
+            validators[2] = vm.envOr("VALIDATOR_3_MAINNET", address(0));
+        } else {
+            // Fallback for local testing
+            validators[2] = config.multisig;
+        }
+
+        require(validators[0] != address(0), "VALIDATOR_1 not set");
+        require(validators[1] != address(0), "VALIDATOR_2 not set");
+        require(validators[2] != address(0), "VALIDATOR_3 not set for this network");
 
         // Deploy with placeholder address, will be updated later
         VanaMigrationBridge bridge = new VanaMigrationBridge(

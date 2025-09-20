@@ -1,0 +1,1 @@
+=== VANA MAINNET DEPLOYMENT SIMULATION === echo Running dry run to verify deployment readiness... echo  source .env export ADMIN_ADDRESS= forge script script/DeployRDATUpgradeableProduction.s.sol  --rpc-url https://rpc.vana.org  --sender   --sig dryRun()

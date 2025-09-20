@@ -72,6 +72,7 @@ contract RDATUpgradeable is
     mapping(bytes32 => mapping(address => bool)) private _dataOwnership;
     mapping(uint256 => uint256) private _epochRewardTotals;
     mapping(uint256 => mapping(address => uint256)) private _epochRewardsClaimed;
+    uint256 private _dataPoolCounter; // Counter for generating unique pool IDs
     mapping(uint256 => mapping(address => bool)) private _hasClaimedEpoch;
 
     // Errors
@@ -104,8 +105,8 @@ contract RDATUpgradeable is
         __UUPSUpgradeable_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(PAUSER_ROLE, admin);
-        _grantRole(UPGRADER_ROLE, admin);
+        _grantRole(PAUSER_ROLE, admin); // Note: In production, use separate address for PAUSER_ROLE
+        _grantRole(UPGRADER_ROLE, admin); // Note: In production, use separate address for UPGRADER_ROLE
 
         // Mint ENTIRE supply at deployment
         _mint(treasury, TOTAL_SUPPLY - MIGRATION_ALLOCATION); // 70M to treasury
@@ -143,6 +144,7 @@ contract RDATUpgradeable is
      * @dev Sets the Proof of Contribution contract address
      * @param _poc Address of the PoC contract
      * @notice VRC-20 compliance requirement
+     * @dev AUDIT L-04: Consider using timelock for this critical function in production
      */
     function setPoCContract(address _poc) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_poc == address(0)) revert InvalidAddress();
@@ -175,7 +177,10 @@ contract RDATUpgradeable is
      * @dev Authorizes an upgrade to a new implementation
      * @param newImplementation Address of the new implementation
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {
+        // AUDIT L-04: In production, UPGRADER_ROLE should be held by a TimelockController
+        // This ensures a 48-hour delay before any upgrade can be executed
+    }
 
     /**
      * @dev Hook that is called on any transfer of tokens
@@ -217,17 +222,18 @@ contract RDATUpgradeable is
 
     /**
      * @notice Creates a new data pool
-     * @param poolId Unique identifier for the pool
      * @param metadata Pool metadata (IPFS hash or JSON)
      * @param initialContributors Initial list of contributors
+     * @dev poolId parameter is ignored and generated internally to prevent front-running
      */
-    function createDataPool(bytes32 poolId, string memory metadata, address[] memory initialContributors)
-        external
-        override
-        nonReentrant
-        returns (bool)
-    {
-        require(poolId != bytes32(0), "Invalid pool ID");
+    function createDataPool(
+        bytes32, /* ignored - generated internally */
+        string memory metadata,
+        address[] memory initialContributors
+    ) external override nonReentrant returns (bool) {
+        // Generate poolId internally to prevent front-running
+        _dataPoolCounter++;
+        bytes32 poolId = keccak256(abi.encodePacked(msg.sender, block.timestamp, _dataPoolCounter));
         require(_dataPools[poolId].creator == address(0), "Pool already exists");
         require(bytes(metadata).length > 0, "Empty metadata");
 

@@ -26,6 +26,9 @@ contract BaseMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
     // Roles
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
+    // Constants
+    address public constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+
     // State variables
     IERC20 public immutable v1Token;
     uint256 public totalBurned;
@@ -36,6 +39,7 @@ contract BaseMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
 
     // Events
     event TokensBurned(address indexed user, uint256 amount, bytes32 indexed burnTxHash);
+    event TokensRescued(address indexed token, address indexed to, uint256 amount);
 
     // Errors
     error ZeroAmount();
@@ -71,8 +75,8 @@ contract BaseMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
         uint256 userBalance = v1Token.balanceOf(msg.sender);
         if (userBalance < amount) revert InsufficientBalance();
 
-        // Transfer tokens to this contract
-        v1Token.safeTransferFrom(msg.sender, address(this), amount);
+        // Transfer tokens to burn address (effectively burning them)
+        v1Token.safeTransferFrom(msg.sender, BURN_ADDRESS, amount);
 
         // Update state
         userBurnedAmounts[msg.sender] += amount;
@@ -108,18 +112,15 @@ contract BaseMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
      * @param to Recipient address
      * @param amount Amount to rescue
      * @dev Only callable by admin after migration deadline
+     * @dev V1 tokens cannot be rescued as they are sent to burn address
      */
     function rescueTokens(address token, address to, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(block.timestamp > migrationDeadline, "Migration still active");
         require(to != address(0), "Invalid recipient");
-
-        if (token == address(v1Token)) {
-            // For V1 tokens, only rescue what wasn't burned
-            uint256 contractBalance = v1Token.balanceOf(address(this));
-            require(amount <= contractBalance, "Amount exceeds balance");
-        }
+        require(token != address(v1Token), "Cannot rescue V1 tokens");
 
         IERC20(token).safeTransfer(to, amount);
+        emit TokensRescued(token, to, amount);
     }
 
     // ========== View Functions ==========

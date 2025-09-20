@@ -39,7 +39,6 @@ interface IStakingPositions {
     error PositionDoesNotExist();
     error NotPositionOwner();
     error TransferWhileLocked();
-    error TransferWithActiveRewards();
     error BelowMinimumStake();
     error TooManyPositions();
 

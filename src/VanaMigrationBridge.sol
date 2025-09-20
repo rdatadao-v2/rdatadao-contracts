@@ -30,6 +30,7 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
 
     // Constants
     uint256 public constant override CHALLENGE_PERIOD = 6 hours;
+    uint256 public constant CHALLENGE_REVIEW_PERIOD = 7 days; // Time admin must wait to override
     uint256 public constant override MIN_VALIDATORS = 2;
     uint256 public constant override CONFIRMATION_BLOCKS = 12;
     uint256 public constant override BASIS_POINTS = 10000;
@@ -48,6 +49,7 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
     // Migration tracking
     mapping(bytes32 => MigrationRequest) private _migrationRequests;
     mapping(bytes32 => bool) private _processedBurnHashes;
+    mapping(bytes32 => uint256) private _challengeTimestamps; // Track when challenges were made
     mapping(address => bool) private _validators;
     mapping(bytes32 => mapping(address => bool)) private _hasValidated;
     mapping(address => uint256) private _userMigrations;
@@ -61,6 +63,8 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
     // Events
     event DailyLimitUpdated(uint256 newLimit);
     event MigrationCompleted(address indexed user, uint256 amount, uint256 bonus);
+    event BonusVestingSet(address indexed bonusVesting);
+    event UnclaimedTokensReturned(address indexed to, uint256 amount);
 
     // Errors
     error InvalidValidator();
@@ -71,7 +75,7 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
     error AlreadyValidated();
     error InvalidRequest();
     error ChallengePeriodActive();
-    error NotChallenged();
+    error MigrationIsChallenged();
     error DailyLimitExceeded();
     error MigrationDeadlinePassed();
     error InsufficientBalance();
@@ -174,8 +178,35 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
         if (request.executed) revert AlreadyProcessed();
         if (request.challenged) revert AlreadyProcessed();
 
+        // Ensure challenge is within the challenge period
+        require(block.timestamp <= request.challengeEndTime, "Challenge period ended");
+
         request.challenged = true;
+        _challengeTimestamps[requestId] = block.timestamp;
+
         emit MigrationChallenged(requestId, msg.sender);
+    }
+
+    /**
+     * @notice Override a challenged migration after review period
+     * @dev Only admin can call after CHALLENGE_REVIEW_PERIOD has passed
+     * @param requestId Request to override
+     */
+    function overrideChallenge(bytes32 requestId) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
+        MigrationRequest storage request = _migrationRequests[requestId];
+        require(request.validatorApprovals > 0, "Invalid request");
+        require(request.challenged, "Not challenged");
+        require(!request.executed, "Already executed");
+
+        // Ensure enough time has passed since the challenge
+        uint256 challengeTime = _challengeTimestamps[requestId];
+        require(challengeTime > 0, "Challenge timestamp not found");
+        require(block.timestamp >= challengeTime + CHALLENGE_REVIEW_PERIOD, "Review period not ended");
+
+        // Reset challenge status
+        request.challenged = false;
+
+        emit ChallengeOverridden(requestId, msg.sender);
     }
 
     /**
@@ -194,7 +225,7 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
 
         if (request.validatorApprovals < MIN_VALIDATORS) revert InsufficientValidators();
         if (request.executed) revert AlreadyProcessed();
-        if (request.challenged) revert NotChallenged();
+        if (request.challenged) revert MigrationIsChallenged();
         if (block.timestamp < request.challengeEndTime) revert ChallengePeriodActive();
 
         // For daily limit, we only count the base amount (not bonus)
@@ -331,6 +362,7 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
     function setBonusVesting(address _bonusVesting) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_bonusVesting != address(0), "Invalid vesting contract");
         bonusVesting = MigrationBonusVesting(_bonusVesting);
+        emit BonusVestingSet(_bonusVesting);
     }
 
     /**
@@ -344,6 +376,7 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
         uint256 balance = v2Token.balanceOf(address(this));
         if (balance > 0) {
             v2Token.safeTransfer(to, balance);
+            emit UnclaimedTokensReturned(to, balance);
         }
     }
 

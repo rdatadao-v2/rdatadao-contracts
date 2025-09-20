@@ -25,6 +25,7 @@ interface IMigrationBridge {
     // Events - Vana side
     event MigrationValidated(bytes32 indexed requestId, address indexed validator);
     event MigrationChallenged(bytes32 indexed requestId, address indexed challenger);
+    event ChallengeOverridden(bytes32 indexed requestId, address indexed admin);
     event MigrationExecuted(bytes32 indexed requestId, address indexed user, uint256 amount, uint256 bonus);
     event ValidatorAdded(address indexed validator);
     event ValidatorRemoved(address indexed validator);
