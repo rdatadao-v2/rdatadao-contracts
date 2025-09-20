@@ -23,10 +23,7 @@ contract DeployBaseMigrationMainnet is Script {
         vm.startBroadcast();
 
         // Deploy BaseMigrationBridge
-        BaseMigrationBridge bridge = new BaseMigrationBridge(
-            RDAT_V1,
-            admin
-        );
+        BaseMigrationBridge bridge = new BaseMigrationBridge(RDAT_V1, admin);
 
         console2.log("BaseMigrationBridge deployed at:", address(bridge));
 

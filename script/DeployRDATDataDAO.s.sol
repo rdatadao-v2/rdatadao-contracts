@@ -28,12 +28,7 @@ contract DeployRDATDataDAO is Script {
         initialValidators[2] = vm.envAddress("VALIDATOR_3_MAINNET"); // Base multisig
 
         // Deploy RDATDataDAO
-        RDATDataDAO dataDAO = new RDATDataDAO(
-            rdatToken,
-            treasury,
-            vanaMultisig,
-            initialValidators
-        );
+        RDATDataDAO dataDAO = new RDATDataDAO(rdatToken, treasury, vanaMultisig, initialValidators);
 
         console2.log("RDATDataDAO deployed at:", address(dataDAO));
 

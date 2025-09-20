@@ -42,7 +42,7 @@ contract RegisterDLPMainnet is Script {
 
         // Create DLP info
         IDLPRegistry.DLPInfo memory dlpInfo = IDLPRegistry.DLPInfo({
-            dlpAddress: rdatToken,  // Using RDAT token address as DLP
+            dlpAddress: rdatToken, // Using RDAT token address as DLP
             ownerAddress: vanaMultisig,
             treasuryAddress: vanaMultisig,
             name: "r/datadao",
