@@ -1,29 +1,35 @@
 # 🚀 r/datadao Smart Contracts
 
-**Version**: 3.1 - Production Ready ✅  
-**Last Updated**: August 8, 2025  
-**Blockchain**: Vana (Primary), Base (Migration Only)  
-**Status**: 333/333 tests passing, audit-ready, production-ready
+**Version**: 3.2 - Mainnet Live ✅
+**Last Updated**: September 20, 2025
+**Blockchain**: Vana (Primary), Base (Migration Only)
+**Status**: 382/382 tests passing, audited, mainnet deployed
 
 ## 📋 Overview
 
-RDAT V2 represents a major upgrade from V1, expanding token supply from 30M to 100M and migrating from Base to Vana blockchain. This repository contains the smart contracts for the r/datadao ecosystem with fixed supply tokenomics and comprehensive vesting mechanisms.
+RDAT V2 is now live on mainnet, representing a major upgrade from V1. The migration expanded token supply from 30M to 100M and moved from Base to Vana blockchain. This repository contains the audited smart contracts for the r/datadao ecosystem with fixed supply tokenomics and comprehensive vesting mechanisms.
+
+**Mainnet Status**: ✅ Deployed on Vana (Chain ID: 1480) and Base (Chain ID: 8453)
+**DLP Registration**: ✅ Active on Vana (DLP ID: 40)
+**Audit Status**: ✅ Hashlock audit complete with all findings remediated
 
 ## 🏗️ Architecture
 
-### Core Contracts (12 Total - Production Ready) ✅
-1. **RDATUpgradeable**: Main ERC-20/VRC-20 token (100M fixed supply, UUPS) ✅
-2. **vRDAT**: Soul-bound governance token (proportional distribution) ✅
-3. **StakingPositions**: NFT-based staking with 30/90/180/365 day locks ✅
-4. **TreasuryWallet**: Manages 70M RDAT with phased vesting ✅
-5. **TokenVesting**: VRC-20 compliant team vesting (6mo cliff + 18mo linear) ✅
-6. **VanaMigrationBridge**: Secure V1→V2 cross-chain migration (30M allocation) ✅
-7. **RDATDataDAO**: Vana DLP contract for data contribution and validation ✅
-8. **EmergencyPause**: Shared emergency response (72hr auto-expiry) ✅
-9. **RevenueCollector**: Fee distribution (50/30/20 split) ✅
-10. **RewardsManager**: UUPS upgradeable reward module orchestrator ✅
-11. **ProofOfContributionStub**: Vana DLP integration placeholder ✅
-12. **Create2Factory**: Deterministic deployment infrastructure ✅
+### Deployed Contracts (Live on Mainnet) ✅
+1. **RDATUpgradeable**: `0x2c1CB448cAf3579B2374EFe20068Ea97F72A996E` (100M fixed supply, UUPS)
+2. **TreasuryWallet**: `0x77D2713972af12F1E3EF39b5395bfD65C862367C` (70M RDAT vesting)
+3. **VanaMigrationBridge**: `0x9d4aB2d3fb25D414dba1d9D22200356b5984D35E` (30M for V1→V2)
+4. **RDATDataDAO**: `0xBbB0B59163b850dDC5139e98118774557c5d9F92` (DLP ID: 40)
+5. **BaseMigrationBridge**: `0xa4435b45035a483d364de83B9494BDEFA8322626` (Base network)
+
+### Contracts Ready for Phase 2 Deployment 🔄
+6. **vRDAT**: Soul-bound governance token (proportional distribution)
+7. **StakingPositions**: NFT-based staking with 30/90/180/365 day locks
+8. **TokenVesting**: VRC-20 compliant team vesting (6mo cliff + 18mo linear)
+9. **RevenueCollector**: Fee distribution (50/30/20 split)
+10. **RewardsManager**: UUPS upgradeable reward module orchestrator
+11. **GovernanceCore**: On-chain voting with timelock execution
+12. **EmergencyPause**: Shared emergency response (72hr auto-expiry)
 
 ### Key Features
 - **Fixed Supply**: 100M RDAT total, no minting capability
@@ -33,10 +39,13 @@ RDAT V2 represents a major upgrade from V1, expanding token supply from 30M to 1
 - **Emergency Controls**: Pause functionality with auto-expiry
 - **UUPS Upgradeable**: Future improvements without token migration
 
-### Key Addresses
-- **Vana Multisig**: `0x29CeA936835D189BD5BEBA80Fe091f1Da29aA319`
-- **Base Multisig**: `0x90013583c66D2bf16327cB5Bc4a647AcceCF4B9A`
-- **Deployer**: `0x58eCB94e6F5e6521228316b55c465ad2A2938FbB`
+### Key Addresses (Mainnet)
+- **Vana Multisig**: `0xe4F7Eca807C57311e715C3Ef483e72Fa8D5bCcDF` (3/5 signers)
+- **Base Multisig**: `0x90013583c66D2bf16327cB5Bc4a647AcceCF4B9A` (mainnet)
+- **Migration Validators** (2/3 required):
+  - Angela: `0xd36B49f2DB6aA708Ce7245e8ab2453C6DfFc9d6f`
+  - monkfenix.eth: `0xC9Af4E56741f255743e8f4877d4cfa9971E910C2`
+  - Base Multisig: `0x08Cc5ed1bA3C95AA741f8AaEf631f716b037444b`
 
 ## 🛠️ Development Setup
 
@@ -86,36 +95,42 @@ forge script script/Deploy.s.sol --rpc-url http://localhost:8546 --broadcast
 ./script/anvil-multichain.sh stop
 ```
 
-## ✅ Production Readiness
+## ✅ Production Status
 
-### Test Status - 100% PASSING ✅
+### Mainnet Deployment Status ✅
+- **Vana Mainnet**: ✅ Live since September 20, 2025
+  - RDAT: `0x2c1CB448cAf3579B2374EFe20068Ea97F72A996E`
+  - Treasury: 70M RDAT correctly allocated
+  - Migration Bridge: 30M RDAT correctly allocated
+  - DLP Registration: ID 40 active
+- **Base Mainnet**: ✅ Migration bridge deployed
+- **Total Migrated**: Check at `cast call 0x9d4aB2d3fb25D414dba1d9D22200356b5984D35E "totalMigrated()" --rpc-url https://rpc.vana.org`
+
+### Test Coverage - 100% PASSING ✅
 ```
-Total Tests: 333
-Passing: 333 (100%) ✅
+Total Tests: 382 (expanded from 333)
+Passing: 382 (100%) ✅
 Failed: 0
 
 Test Categories:
 ✅ Unit Tests: 100% passing (all core contracts)
-✅ Integration Tests: 100% passing (cross-contract interactions) 
-✅ Security Tests: 100% passing (24 attack vector tests)
-✅ Scenario Tests: 100% passing (8 complete migration journeys)
-✅ Production Simulations: All deployment scripts validated
+✅ Integration Tests: 100% passing (cross-contract interactions)
+✅ Security Tests: 100% passing (42 attack vector tests)
+✅ Audit Tests: 100% passing (remediation validation)
+✅ Migration Tests: 100% passing (end-to-end journeys)
 ```
 
-### Deployment Status
-- **Vana Moksha Testnet**: ✅ Fully deployed and operational
-  - RDAT: `0xC1aC75130533c7F93BDa67f6645De65C9DEE9a3A` (100M supply)
-  - Treasury: 70M RDAT correctly allocated
-  - Migration Bridge: 30M RDAT correctly allocated
-- **Mainnet**: ✅ Ready for deployment (all scripts validated)
-- **GitHub Actions**: ✅ All CI/CD checks passing
-
-### Security Audit Status
-- **Core Contracts**: 12/12 production-ready ✅
-- **Test Coverage**: 100% (333/333 tests) ✅  
-- **Attack Vector Testing**: Comprehensive griefing protection ✅
-- **Emergency Systems**: 72hr auto-expiry pause tested ✅
-- **Access Controls**: Multi-sig validation complete ✅
+### Security Audit Status ✅
+- **Auditor**: Hashlock
+- **Audit Period**: September 2025
+- **Findings Remediated**: All HIGH, MEDIUM, and LOW findings addressed
+- **Key Remediations**:
+  - H-01: Added `withdrawPenalties()` for trapped fund recovery
+  - H-02: Challenge period enforcement + 7-day admin override
+  - M-01: V1 tokens burned to 0xdEaD address
+  - M-02: Fixed NFT transfer blocking condition
+  - M-03: Internal poolId generation prevents front-running
+  - L-04/L-05: TimelockController and comprehensive reward accounting
 
 ### Running Tests
 ```bash
@@ -149,83 +164,98 @@ RDAT V2 uses a modular architecture with CREATE2 deployment:
 forge script script/ShowDeploymentAddresses.s.sol
 ```
 
-### Testnet Deployment (Vana Moksha)
+### Mainnet Deployment (Already Deployed) ✅
 ```bash
-# Dry run first
-forge script script/vana/DeployRDATUpgradeable.s.sol \
-  --rpc-url $VANA_MOKSHA_RPC_URL \
-  --sig "dryRun()"
+# View deployment addresses
+cast call 0x2c1CB448cAf3579B2374EFe20068Ea97F72A996E "totalSupply()" --rpc-url https://rpc.vana.org
+# Returns: 100000000000000000000000000 (100M RDAT)
 
-# Deploy with broadcast
-forge script script/vana/DeployRDATUpgradeable.s.sol \
-  --rpc-url $VANA_MOKSHA_RPC_URL \
+# Check DLP registration
+cast call 0x2c1CB448cAf3579B2374EFe20068Ea97F72A996E "dlpId()" --rpc-url https://rpc.vana.org
+# Returns: 40
+```
+
+### Phase 2 Deployment (Staking & Governance)
+```bash
+# Deploy staking contracts
+forge script script/DeployStakingSystem.s.sol \
+  --rpc-url $VANA_RPC_URL \
+  --private-key $DEPLOYER_PRIVATE_KEY \
+  --broadcast \
+  --verify
+
+# Deploy governance contracts
+forge script script/DeployGovernanceSystem.s.sol \
+  --rpc-url $VANA_RPC_URL \
   --private-key $DEPLOYER_PRIVATE_KEY \
   --broadcast \
   --verify
 ```
 
-### Mainnet Deployment (Vana)
-```bash
-# Dry run first
-forge script script/vana/DeployRDATUpgradeable.s.sol \
-  --rpc-url $VANA_RPC_URL \
-  --sig "dryRun()"
+### Migration Process (For Users)
+```javascript
+// 1. On Base: Approve V1 tokens
+const v1Contract = new Contract('0x4498cd8Ba045E00673402353f5a4347562707e7D', ERC20_ABI, signer);
+await v1Contract.approve('0xa4435b45035a483d364de83B9494BDEFA8322626', amount);
 
-# Deploy with broadcast
-forge script script/vana/DeployRDATUpgradeable.s.sol \
-  --rpc-url $VANA_RPC_URL \
-  --private-key $DEPLOYER_PRIVATE_KEY \
-  --broadcast \
-  --verify \
-  --slow
-```
+// 2. On Base: Initiate migration
+const baseBridge = new Contract('0xa4435b45035a483d364de83B9494BDEFA8322626', BRIDGE_ABI, signer);
+const tx = await baseBridge.initiateMigration(amount);
 
-### Migration Bridge (Base Networks)
-```bash
-# Base contracts only receive migration bridge
-# RDAT V2 is NOT deployed to Base
-forge script script/base/DeployMigrationBridge.s.sol \
-  --rpc-url $BASE_RPC_URL \
-  --private-key $DEPLOYER_PRIVATE_KEY \
-  --broadcast
+// 3. Backend collects 2/3 validator signatures
+
+// 4. On Vana: Claim with signatures
+const vanaBridge = new Contract('0x9d4aB2d3fb25D414dba1d9D22200356b5984D35E', BRIDGE_ABI, signer);
+await vanaBridge.processMigration(userAddress, amount, migrationId, signatures);
 ```
 
 ## 🔒 Security
 
 ### Audit Status
-- Internal review: ✅ Complete
-- External audit: 📅 Scheduled for Days 7-8
+- **Hashlock Audit**: ✅ Complete (September 2025)
+- **All Findings**: ✅ Remediated and validated
+- **Test Coverage**: 100% (382/382 tests passing)
 
 ### Security Features
-- Multi-signature control (3/5 for critical, 2/5 for pause)
+- Multi-signature control (3/5 for critical operations)
 - Emergency pause system (72-hour auto-expiry)
-- Module timelock (48-hour delay for new reward modules)
-- Proportional vRDAT prevents governance gaming
-- Dynamic reward rate for 2-year sustainability
-- Enhanced bridge security (3-of-5 validators recommended)
+- Timelock delays (48-hour for governance execution)
+- Fixed supply (no minting capability post-deployment)
+- Migration security (2/3 validator signatures required)
+- Challenge period (6 hours) with admin override (7 days)
 
 ### Bug Bounty
 Report security vulnerabilities to: security@rdatadao.org
+**Rewards**: Up to $50,000 for critical vulnerabilities
 
 ## 📚 Documentation
 
-### Core Documentation
-- [Full Specifications](./docs/SPECIFICATIONS.md) - Complete system design
-- [Architecture Summary](./docs/ARCHITECTURE_SUMMARY.md) - High-level architecture overview
-- [Implementation Updates](./docs/) - Daily progress updates:
-  - [Day 6 Update](./docs/IMPLEMENTATION_UPDATE_DAY6.md) - Revenue distribution architecture
-  - [Day 5 Update](./docs/IMPLEMENTATION_UPDATE_DAY5.md) - Migration system completion
-- [Technical FAQ](./docs/TECHNICAL_FAQ.md) - Common questions answered
+### 🚀 Quick Start
+- **[Quick Reference](./QUICK_REFERENCE.md)** - All mainnet addresses and key info
+- **[Project Overview](./docs/PROJECT_OVERVIEW.md)** - Executive summary and vision
+- **[Frontend Integration](./docs/FRONTEND_INTEGRATION.md)** - Complete UI integration guide
 
-### Contract Specifications
-- [TreasuryWallet Spec](./docs/TREASURY_WALLET_SPEC.md) - 70M RDAT vesting
-- [TokenVesting Spec](./docs/TOKEN_VESTING_SPEC.md) - VRC-20 team vesting
-- [Phase 3 Activation](./docs/PHASE_3_ACTIVATION_SPEC.md) - Future rewards unlock
+### 📖 Core Documentation
+- **[System Architecture](./docs/ARCHITECTURE.md)** - Complete technical design
+- **[Smart Contracts](./docs/CONTRACTS.md)** - Detailed contract reference
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Deployment process and commands
+- **[Migration Guide](./docs/MIGRATION.md)** - V1 to V2 migration process
 
-### Development Guides
-- [Testing Requirements](./docs/TESTING_REQUIREMENTS.md)
-- [Deployment Guide](./docs/DEPLOYMENT_GUIDE.md)
-- [Sprint Execution Plan](./docs/SPRINT_EXECUTION_PLAN_V2.md)
+### 🔒 Security & Operations
+- **[Security Documentation](./docs/SECURITY.md)** - Security model and practices
+- **[Audit Report](./docs/AUDIT.md)** - Hashlock audit and remediations
+- **[Admin Guide](./docs/ADMIN_GUIDE.md)** - Multisig and validator operations
+- **[Testing Guide](./docs/TESTING.md)** - Test suite and coverage
+
+### 🔮 Future Development
+- **[Phase 2 Roadmap](./docs/PHASE_2_ROADMAP.md)** - Staking, rewards, and governance
+- **[DLP Integration](./docs/DLP_VANA_INTEGRATION.md)** - Vana DLP documentation
+
+### 🛠️ Developer Resources
+- **[Claude.md](./CLAUDE.md)** - AI assistant instructions
+- **[ABI Exports](./abi/)** - Contract ABIs for integration
+- **[Deployment Scripts](./script/)** - Automation scripts
+- **[Audit Reports](./audits/)** - PDF audit documents
 
 ## 🤝 Contributing
 
@@ -252,9 +282,31 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Discord**: [discord.gg/rdatadao](https://discord.gg/rdatadao)
 - **Twitter**: [@rdatadao](https://twitter.com/rdatadao)
 
+## 📊 Current Status & Roadmap
+
+### ✅ Phase 1 Complete (Mainnet Live)
+- Token deployment and distribution
+- Cross-chain migration infrastructure
+- Treasury with vesting schedules
+- DLP registration for Vana rewards
+- Hashlock security audit
+
+### 🔄 Phase 2 In Development (Q4 2025)
+- Staking system with NFT positions
+- vRDAT governance token
+- Reward distribution modules
+- On-chain governance voting
+- Revenue collector integration
+
+### 📋 Phase 3 Planned (2026)
+- Full DAO automation
+- Advanced reward programs
+- Liquidity provisions
+- Cross-chain expansions
+
 ## ⚠️ Disclaimer
 
-These contracts are currently in beta. While they have been thoroughly tested, please use at your own risk. The team is not responsible for any loss of funds.
+These contracts have been audited by Hashlock and are live on mainnet. While thoroughly tested and audited, users should understand the risks involved in DeFi protocols. The team and DAO are not responsible for any loss of funds.
 
 ---
 

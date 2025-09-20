@@ -4,7 +4,9 @@
 
 RDATDataDAO is r/datadao's Data Liquidity Pool (DLP) contract designed to integrate with the Vana ecosystem. It manages data contributions, validator consensus, and reward distribution for Reddit data processed through the network.
 
-**Contract Address (Moksha)**: `0x254A9344AAb674530D47B6F2dDd8e328A17Da860`
+**Contract Addresses**:
+- **Mainnet (Vana)**: `0xBbB0B59163b850dDC5139e98118774557c5d9F92`
+- **Testnet (Moksha)**: `0x254A9344AAb674530D47B6F2dDd8e328A17Da860`
 
 ## Architecture
 
