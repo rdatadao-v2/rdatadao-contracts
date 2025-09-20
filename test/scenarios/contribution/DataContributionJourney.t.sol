@@ -288,12 +288,12 @@ contract DataContributionJourney is Test {
         initialContributors[0] = dataContributor1;
 
         vm.startPrank(dataContributor1);
-        
+
         // Record logs to capture the poolId from DataPoolCreated event
         vm.recordLogs();
         bytes32 userPoolId = keccak256("reddit_data_pool_v1"); // User's requested ID (ignored)
         rdatToken.createDataPool(userPoolId, submission.ipfsHash, initialContributors);
-        
+
         // Extract the actual poolId from the event
         Vm.Log[] memory entries = vm.getRecordedLogs();
         bytes32 poolId;
@@ -382,7 +382,7 @@ contract DataContributionJourney is Test {
         vm.recordLogs();
         bytes32 userPoolId = keccak256("multi_contributor_pool"); // User's requested ID (ignored)
         rdatToken.createDataPool(userPoolId, "QmMultiContrib...", initialContributors);
-        
+
         // Extract the actual poolId from the event
         Vm.Log[] memory entries = vm.getRecordedLogs();
         bytes32 poolId;
@@ -543,7 +543,7 @@ contract DataContributionJourney is Test {
         vm.recordLogs();
         bytes32 userPoolId = keccak256("first_submitter_pool"); // User's requested ID (ignored)
         rdatToken.createDataPool(userPoolId, "QmFirstSubmitter...", new address[](0));
-        
+
         // Extract the actual poolId from the event
         Vm.Log[] memory entries = vm.getRecordedLogs();
         bytes32 poolId;
@@ -676,7 +676,7 @@ contract DataContributionJourney is Test {
         vm.recordLogs();
         bytes32 userPoolId = keccak256("epoch_1_pool"); // User's requested ID (ignored)
         rdatToken.createDataPool(userPoolId, "QmEpoch1...", new address[](0));
-        
+
         // Extract the actual poolId from the event
         Vm.Log[] memory entries = vm.getRecordedLogs();
         bytes32 poolId;

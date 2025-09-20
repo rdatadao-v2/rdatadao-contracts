@@ -78,7 +78,7 @@ contract StakingPositions is
     uint256 public pendingRevenueRewards; // Revenue rewards from RevenueCollector
     address public rewardsManager; // RewardsManager contract for notifications
     uint256 public accumulatedPenalties; // Track penalties from emergency withdrawals
-    
+
     // Reward accounting (audit remediation L-05) - Production-ready tracking
     mapping(address => uint256) public userTotalRewardsClaimed;
     mapping(address => uint256) public userLifetimeRewards; // Total rewards earned (claimed + unclaimed)
@@ -368,7 +368,7 @@ contract StakingPositions is
         if (from != address(0) && to != address(0)) {
             // Only check: Position must be unlocked
             // The position can be transferred after the lock period ends
-            // Any associated vRDAT remains with the position and will be 
+            // Any associated vRDAT remains with the position and will be
             // burned when the new owner unstakes
             if (!canUnstake(tokenId)) revert TransferWhileLocked();
         }
@@ -452,13 +452,13 @@ contract StakingPositions is
         require(recipient != address(0), "Invalid recipient");
         uint256 penalties = accumulatedPenalties;
         require(penalties > 0, "No penalties to withdraw");
-        
+
         // Reset accumulated penalties before transfer (reentrancy protection)
         accumulatedPenalties = 0;
-        
+
         // Transfer penalties to recipient (typically treasury)
         _rdatToken.safeTransfer(recipient, penalties);
-        
+
         emit PenaltiesWithdrawn(recipient, penalties);
     }
 
@@ -489,8 +489,8 @@ contract StakingPositions is
 
         pendingRevenueRewards += amount;
         totalRewardsDistributed += amount;
-        totalPendingRewards += amount;  // Track total pending (L-05)
-        lastRewardDistributionTime = block.timestamp;  // Track distribution time (L-05)
+        totalPendingRewards += amount; // Track total pending (L-05)
+        lastRewardDistributionTime = block.timestamp; // Track distribution time (L-05)
 
         emit RevenueRewardsReceived(amount, pendingRevenueRewards);
     }
@@ -501,7 +501,7 @@ contract StakingPositions is
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {}
 
     // View functions
-    
+
     /**
      * @dev Get comprehensive reward accounting statistics (audit remediation L-05)
      * @notice Production-ready reward tracking with full visibility
@@ -511,22 +511,26 @@ contract StakingPositions is
      * @return lastDistribution Timestamp of last reward distribution
      * @return totalPending Total rewards pending distribution
      */
-    function getRewardStatistics() external view returns (
-        uint256 totalDistributed,
-        uint256 totalPenalties,
-        uint256 pendingRevenue,
-        uint256 lastDistribution,
-        uint256 totalPending
-    ) {
+    function getRewardStatistics()
+        external
+        view
+        returns (
+            uint256 totalDistributed,
+            uint256 totalPenalties,
+            uint256 pendingRevenue,
+            uint256 lastDistribution,
+            uint256 totalPending
+        )
+    {
         return (
-            totalRewardsDistributed, 
-            accumulatedPenalties, 
+            totalRewardsDistributed,
+            accumulatedPenalties,
             pendingRevenueRewards,
             lastRewardDistributionTime,
             totalPendingRewards
         );
     }
-    
+
     /**
      * @dev Get comprehensive user reward data (audit remediation L-05)
      * @param user The user address
@@ -534,11 +538,11 @@ contract StakingPositions is
      * @return lifetimeEarned Total rewards earned (claimed + unclaimed)
      * @return pendingClaims Estimated pending claims (if integrated with RewardsManager)
      */
-    function getUserRewardData(address user) external view returns (
-        uint256 totalClaimed,
-        uint256 lifetimeEarned,
-        uint256 pendingClaims
-    ) {
+    function getUserRewardData(address user)
+        external
+        view
+        returns (uint256 totalClaimed, uint256 lifetimeEarned, uint256 pendingClaims)
+    {
         totalClaimed = userTotalRewardsClaimed[user];
         lifetimeEarned = userLifetimeRewards[user];
         pendingClaims = lifetimeEarned > totalClaimed ? lifetimeEarned - totalClaimed : 0;

@@ -177,13 +177,13 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
         if (request.validatorApprovals == 0) revert InvalidRequest();
         if (request.executed) revert AlreadyProcessed();
         if (request.challenged) revert AlreadyProcessed();
-        
+
         // Ensure challenge is within the challenge period
         require(block.timestamp <= request.challengeEndTime, "Challenge period ended");
 
         request.challenged = true;
         _challengeTimestamps[requestId] = block.timestamp;
-        
+
         emit MigrationChallenged(requestId, msg.sender);
     }
 
@@ -197,15 +197,15 @@ contract VanaMigrationBridge is IMigrationBridge, AccessControl, Pausable, Reent
         require(request.validatorApprovals > 0, "Invalid request");
         require(request.challenged, "Not challenged");
         require(!request.executed, "Already executed");
-        
+
         // Ensure enough time has passed since the challenge
         uint256 challengeTime = _challengeTimestamps[requestId];
         require(challengeTime > 0, "Challenge timestamp not found");
         require(block.timestamp >= challengeTime + CHALLENGE_REVIEW_PERIOD, "Review period not ended");
-        
+
         // Reset challenge status
         request.challenged = false;
-        
+
         emit ChallengeOverridden(requestId, msg.sender);
     }
 

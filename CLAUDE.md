@@ -43,6 +43,12 @@ forge test --match-path test/integration/*
 
 # Run audit remediation tests
 forge test --match-path test/audit/*
+
+# Format check
+forge fmt --check
+
+# Format fix
+forge fmt
 ```
 
 ### Local Development
@@ -195,4 +201,4 @@ Key documentation files:
 - `FRONTEND_INTEGRATION_GUIDE.md` - Frontend integration instructions
 - `AUDIT_README.md` - Comprehensive audit submission guide
 - `docs/AUDIT_REMEDIATION_SUMMARY.md` - All audit findings and fixes
-- `docs/SPECIFICATIONS.md` - Complete technical specifications (175KB)
+- `docs/02_SPECIFICATIONS.md` - Complete technical specifications (175KB)

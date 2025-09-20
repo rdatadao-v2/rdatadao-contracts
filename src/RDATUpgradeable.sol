@@ -226,12 +226,11 @@ contract RDATUpgradeable is
      * @param initialContributors Initial list of contributors
      * @dev poolId parameter is ignored and generated internally to prevent front-running
      */
-    function createDataPool(bytes32 /* ignored - generated internally */, string memory metadata, address[] memory initialContributors)
-        external
-        override
-        nonReentrant
-        returns (bool)
-    {
+    function createDataPool(
+        bytes32, /* ignored - generated internally */
+        string memory metadata,
+        address[] memory initialContributors
+    ) external override nonReentrant returns (bool) {
         // Generate poolId internally to prevent front-running
         _dataPoolCounter++;
         bytes32 poolId = keccak256(abi.encodePacked(msg.sender, block.timestamp, _dataPoolCounter));

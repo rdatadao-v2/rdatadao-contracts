@@ -224,17 +224,17 @@ contract StakingPositionsTest is Test {
         // Transfer should now work after lock period ends
         // The position and its vRDAT are transferred to the new owner
         staking.transferFrom(alice, bob, positionId);
-        
+
         // Verify bob now owns the position
         assertEq(staking.ownerOf(positionId), bob);
-        
+
         // Bob should be able to unstake the position
         vm.stopPrank();
         vm.startPrank(bob);
-        
+
         uint256 bobBalanceBefore = rdat.balanceOf(bob);
         staking.unstake(positionId);
-        
+
         // Verify Bob received the staked tokens
         assertEq(rdat.balanceOf(bob), bobBalanceBefore + STAKE_AMOUNT);
 

@@ -71,7 +71,7 @@ contract MockRDATFaucet is Script {
         console2.log("Deployer balance:", deployerBalance / 1e18, "RDAT");
 
         if (deployerBalance < amountInWei) {
-            console2.log("❌ Insufficient balance in deployer wallet");
+            console2.log("ERROR: Insufficient balance in deployer wallet");
             console2.log("   Need to mint more tokens to deployer first");
             vm.stopBroadcast();
             return;
@@ -80,10 +80,10 @@ contract MockRDATFaucet is Script {
         // Transfer tokens from deployer to tester
         try mockRdat.transfer(tester, amountInWei) {
             uint256 newBalance = mockRdat.balanceOf(tester);
-            console2.log("✅ Successfully distributed", amountInTokens, "RDAT to", tester);
+            console2.log("SUCCESS: Distributed", amountInTokens, "RDAT to", tester);
             console2.log("Tester new balance:", newBalance / 1e18, "RDAT");
         } catch Error(string memory reason) {
-            console2.log("❌ Failed to distribute:", reason);
+            console2.log("ERROR: Failed to distribute:", reason);
         }
 
         vm.stopBroadcast();
@@ -132,10 +132,10 @@ contract MockRDATFaucet is Script {
         // Mint tokens
         try mockRdat.mint(recipient, amountInWei) {
             uint256 balanceAfter = mockRdat.balanceOf(recipient);
-            console2.log("✅ Successfully minted", amountInTokens, "RDAT");
+            console2.log("SUCCESS: Minted", amountInTokens, "RDAT");
             console2.log("Balance after:", balanceAfter / 1e18, "RDAT");
         } catch Error(string memory reason) {
-            console2.log("❌ Failed to mint:", reason);
+            console2.log("ERROR: Failed to mint:", reason);
         }
 
         vm.stopBroadcast();
@@ -183,7 +183,7 @@ contract MockRDATFaucet is Script {
         console2.log("========================================\n");
 
         if (mockRdatAddress == address(0)) {
-            console2.log("❌ MockRDAT not deployed on this network (Chain ID:", chainId, ")");
+            console2.log("ERROR: MockRDAT not deployed on this network (Chain ID:", chainId, ")");
             console2.log("");
             console2.log("Supported networks:");
             console2.log("- Base Sepolia (Chain ID: 84532)");
