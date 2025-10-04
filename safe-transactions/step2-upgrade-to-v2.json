@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "chainId": "1480",
+  "createdAt": 1759566066000,
+  "meta": {
+    "name": "Step 2: Upgrade RDAT to V2",
+    "description": "Upgrade RDAT proxy to V2 implementation with rescueBrokenBridgeFunds() function",
+    "txBuilderVersion": "1.16.5",
+    "createdFromSafeAddress": "0xe4F7Eca807C57311e715C3Ef483e72Fa8D5bCcDF",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": [
+    {
+      "to": "0x2c1CB448cAf3579B2374EFe20068Ea97F72A996E",
+      "value": "0",
+      "data": "0x4f1ef286000000000000000000000000f73c6216d7d6218d722968e170cfff6654a8936c00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "newImplementation",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "data",
+            "type": "bytes",
+            "internalType": "bytes"
+          }
+        ],
+        "name": "upgradeToAndCall",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "newImplementation": "0xf73c6216d7d6218d722968e170cfff6654a8936c",
+        "data": "0x"
+      }
+    }
+  ]
+}
